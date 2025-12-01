@@ -18,9 +18,9 @@ export function PageHeader({
       <div>
         <div className="flex items-center gap-2">
           {mode ? <ModeBadge mode={mode} /> : null}
-          <h1 className="text-[28px] font-semibold tracking-tight text-white leading-tight">{title}</h1>
+          <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-[var(--text-primary)]">{title}</h1>
         </div>
-        {description ? <p className="text-sm leading-relaxed text-slate-400">{description}</p> : null}
+        {description ? <p className="text-sm leading-relaxed text-[var(--text-secondary)]">{description}</p> : null}
       </div>
       {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
     </div>
@@ -30,18 +30,18 @@ export function PageHeader({
 export function SectionHeader({ title, helper, className }: { title: string; helper?: string; className?: string }) {
   return (
     <div className={cn("mb-3 flex items-center justify-between", className)}>
-      <p className="text-2xl font-semibold tracking-tight text-white leading-tight">{title}</p>
-      {helper ? <span className="text-sm text-slate-500 leading-relaxed">{helper}</span> : null}
+      <p className="text-2xl font-semibold leading-tight tracking-tight text-[var(--text-primary)]">{title}</p>
+      {helper ? <span className="text-sm leading-relaxed text-[var(--text-tertiary)]">{helper}</span> : null}
     </div>
   );
 }
 
 function ModeBadge({ mode }: { mode: AppMode }) {
   const colors: Record<AppMode, string> = {
-    discover: "bg-emerald-500/20 text-emerald-200 border border-emerald-500/30",
-    pipeline: "bg-blue-500/20 text-blue-200 border border-blue-500/30",
-    execute: "bg-purple-500/20 text-purple-200 border border-purple-500/30",
-    other: "bg-slate-800 text-slate-200 border border-slate-700",
+    discover: "border border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-secondary)]",
+    pipeline: "border border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-secondary)]",
+    execute: "border border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-secondary)]",
+    other: "border border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-secondary)]",
   };
   const label: Record<AppMode, string> = {
     discover: "Discover",

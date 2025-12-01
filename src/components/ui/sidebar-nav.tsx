@@ -14,13 +14,13 @@ export function SidebarNav({ groups, className }: { groups: NavGroup[]; classNam
     <nav className={cn("space-y-6 text-sm", className)}>
       {groups.map((group) => (
         <div key={group.label} className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{group.label}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">{group.label}</p>
           <div className="space-y-1">
             {group.items.map((item) => (
               <Link
                 key={`${group.label}-${item.href}-${item.label}`}
                 href={item.href}
-                className="block rounded-md px-3 py-2 text-slate-200 transition hover:bg-slate-800"
+                className="block rounded-lg px-3 py-2 text-[var(--text-secondary)] transition hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
               >
                 {item.label}
               </Link>

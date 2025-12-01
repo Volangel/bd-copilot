@@ -64,37 +64,37 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     redirect("/login");
   }
   return (
-    <div className="flex min-h-screen bg-slate-950 text-slate-100">
-      <aside className="hidden w-64 flex-col justify-between border-r border-slate-800 bg-slate-900/60 px-6 py-8 lg:flex">
+    <div className="flex min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
+      <aside className="hidden w-[17rem] flex-col justify-between border-r border-[var(--border-default)] bg-[var(--bg-secondary)]/90 px-7 py-9 lg:flex">
         <div className="space-y-8">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-widest text-emerald-300">Web3 BD Copilot</p>
-            <p className="mt-1 text-xs text-slate-400">AI-powered pipeline ops</p>
+            <p className="text-sm font-semibold uppercase tracking-widest text-[var(--accent-primary)]">Web3 BD Copilot</p>
+            <p className="mt-1 text-xs text-[var(--text-tertiary)]">AI-powered pipeline ops</p>
           </div>
           <ModeSelector />
           <SidebarNav groups={navGroups} />
         </div>
         <div className="space-y-3">
-          <div className="rounded-lg border border-slate-800 bg-slate-900 px-3 py-3">
-            <p className="text-sm font-semibold text-white">{session.user.email}</p>
-            <p className="text-xs text-slate-400">Plan: {session.user.plan}</p>
+          <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-tertiary)] px-3 py-3 shadow-lg shadow-black/20">
+            <p className="text-sm font-semibold text-[var(--text-primary)]">{session.user.email}</p>
+            <p className="text-xs text-[var(--text-secondary)]">Plan: {session.user.plan}</p>
           </div>
           <LogoutButton />
         </div>
       </aside>
       <div className="flex-1">
-        <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-4 py-3 lg:hidden">
+        <div className="flex items-center justify-between border-b border-[var(--border-default)] bg-[var(--bg-secondary)] px-5 py-4 lg:hidden shadow-md shadow-black/20">
           <div>
-            <p className="text-sm font-semibold text-emerald-300">Web3 BD Copilot</p>
-            <p className="text-xs text-slate-400">Plan: {session.user.plan}</p>
+            <p className="text-sm font-semibold text-[var(--accent-primary)]">Web3 BD Copilot</p>
+            <p className="text-xs text-[var(--text-secondary)]">Plan: {session.user.plan}</p>
           </div>
           <LogoutButton />
         </div>
-        <div className="border-b border-slate-800 bg-slate-900 px-4 py-3 lg:hidden">
+        <div className="border-b border-[var(--border-default)] bg-[var(--bg-secondary)] px-5 py-4 lg:hidden">
           <ModeSelector />
           <SidebarNav groups={navGroups} />
         </div>
-        <PageContainer className="lg:py-8 text-slate-100">{children}</PageContainer>
+        <PageContainer className="lg:py-10">{children}</PageContainer>
       </div>
     </div>
   );

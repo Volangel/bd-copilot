@@ -36,7 +36,7 @@ export function ModeSelector() {
   ];
 
   return (
-    <div className="flex gap-2 rounded-lg bg-slate-900/70 p-2">
+    <div className="flex gap-2 rounded-xl border border-[var(--border-default)] bg-[var(--bg-tertiary)]/60 p-2 shadow-inner shadow-black/20">
       {modes.map((m) => {
         const isActive = m.mode === active;
         return (
@@ -45,7 +45,9 @@ export function ModeSelector() {
             href={modeDefaults[m.mode]}
             className={cn(
               "rounded-full px-3 py-1 text-xs font-semibold transition",
-              isActive ? "bg-emerald-500 text-slate-950" : "bg-slate-800 text-slate-300 hover:bg-slate-700",
+              isActive
+                ? "bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-[0_0_20px_rgba(0,217,163,0.35)]"
+                : "bg-[var(--bg-secondary)]/70 text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]",
             )}
           >
             {m.label}

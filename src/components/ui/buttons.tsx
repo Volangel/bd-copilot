@@ -4,7 +4,7 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & { children: ReactNode };
 
 const base =
-  "inline-flex items-center justify-center rounded-md border text-sm font-semibold transition-all duration-200 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-60";
+  "inline-flex items-center justify-center rounded-lg border text-sm font-semibold transition-all duration-200 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-60";
 
 export function PrimaryButton({ className, ...props }: Props) {
   return (
@@ -12,7 +12,7 @@ export function PrimaryButton({ className, ...props }: Props) {
       {...props}
       className={cn(
         base,
-        "border-[#00D9A3] bg-[#00D9A3] px-4 py-2 text-white shadow-lg shadow-emerald-500/30 hover:bg-[#05c795] focus-visible:outline-[#00D9A3]",
+        "border-[var(--accent-primary)] bg-[var(--accent-primary)] px-5 py-[10px] text-[var(--bg-primary)] shadow-[0_0_20px_rgba(0,217,163,0.3)] hover:bg-[var(--accent-hover)] active:scale-[0.98] focus-visible:outline-[var(--accent-primary)]",
         className,
       )}
     />
@@ -25,7 +25,7 @@ export function SecondaryButton({ className, ...props }: Props) {
       {...props}
       className={cn(
         base,
-        "border-[#00D9A3] bg-transparent px-4 py-2 text-[#00D9A3] hover:bg-[#0F1012] focus-visible:outline-[#00D9A3]",
+        "border-[var(--accent-primary)] bg-transparent px-5 py-[10px] text-[var(--accent-primary)] hover:bg-[rgba(0,217,163,0.1)] active:scale-[0.98] focus-visible:outline-[var(--accent-primary)]",
         className,
       )}
     />
@@ -38,7 +38,7 @@ export function GhostButton({ className, ...props }: Props) {
       {...props}
       className={cn(
         base,
-        "border-transparent bg-transparent px-3 py-2 text-slate-200 hover:bg-white/5 focus-visible:outline-slate-400",
+        "border-transparent bg-transparent px-4 py-2 text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] focus-visible:outline-[var(--border-strong)]",
         className,
       )}
     />
@@ -50,7 +50,7 @@ export function IconButton({ className, ...props }: Props) {
     <button
       {...props}
       className={cn(
-        "inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/10 bg-[#0F1012] text-slate-200 hover:bg-white/10",
+        "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]",
         className,
       )}
     />

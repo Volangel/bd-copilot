@@ -7,7 +7,7 @@ export function Card({ className, children }: { className?: string; children: Re
   return (
     <div
       className={cn(
-        "rounded-xl border border-white/10 bg-[#1A1F3A] p-6 shadow-lg shadow-black/20 transition-all duration-200 ease-out hover:shadow-xl hover:border-white/15",
+        "rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-6 shadow-lg shadow-black/25 transition-all duration-200 ease-out hover:shadow-xl hover:border-[var(--border-strong)]",
         className,
       )}
     >
@@ -29,9 +29,9 @@ export function MetricCard({
 }) {
   return (
     <Card className={cn("space-y-2", className)}>
-      <p className="text-sm font-medium text-slate-200">{title}</p>
-      <p className="text-3xl font-semibold text-white tracking-tight leading-tight">{value}</p>
-      {helper ? <p className="text-xs text-slate-500 leading-relaxed">{helper}</p> : null}
+      <p className="text-sm font-medium text-[var(--text-secondary)]">{title}</p>
+      <p className="text-[32px] font-semibold leading-[1.2] tracking-tight text-[var(--text-primary)]">{value}</p>
+      {helper ? <p className="text-xs leading-relaxed text-[var(--text-tertiary)]">{helper}</p> : null}
     </Card>
   );
 }

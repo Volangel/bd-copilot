@@ -1,0 +1,220 @@
+// Prisma schema for Web3 BD Copilot
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  passwordHash String
+  plan         String       @default("free")
+  aiVoice      String?
+  representingProject String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  projects     Project[]
+  icpProfile   ICPProfile?
+  templates    Template[]
+  opportunities Opportunity[]
+  playbooks    Playbook[]
+  watchlistUrls WatchlistUrl[]
+  interactions Interaction[]
+}
+
+model ICPProfile {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  industries String?
+  painPoints String?
+  filters    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id])
+  opportunities Opportunity[]
+}
+
+model Project {
+  id             String            @id @default(cuid())
+  userId         String
+  name           String?
+  url            String
+  summary        String?
+  categoryTags   String?
+  stage          String?
+  targetUsers    String?
+  painPoints     String?
+  icpScore       Int?
+  icpExplanation String?
+  bdAngles       String?
+  mqaScore       Int?
+  mqaReasons     String?
+  playbookSummary   String?
+  playbookPersonas  String?
+  playbookAngles    String?
+  twitter        String?
+  telegram       String?
+  discord        String?
+  github         String?
+  medium         String?
+  status         String            @default("NOT_CONTACTED")
+  lastContactAt  DateTime?
+  nextFollowUpAt DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  user           User              @relation(fields: [userId], references: [id])
+  contacts       Contact[]
+  outreach       OutreachMessage[]
+  notes          Note[]
+  opportunities  Opportunity[]
+  sequences      Sequence[]
+  interactions   Interaction[]
+}
+
+model Contact {
+  id            String            @id @default(cuid())
+  projectId     String
+  name          String
+  role          String?
+  persona       String?
+  linkedinUrl   String?
+  twitterHandle String?
+  telegram      String?
+  email         String?
+  channelPreference String?
+  sequence      Sequence?        @relation(name: "ContactSequence")
+  createdAt     DateTime          @default(now())
+  project       Project           @relation(fields: [projectId], references: [id])
+  outreach      OutreachMessage[]
+  interactions  Interaction[]
+}
+
+model Sequence {
+  id         String        @id @default(cuid())
+  userId     String
+  projectId  String
+  contactId  String  @unique
+  playbookId String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  steps      SequenceStep[]
+  contact    Contact       @relation(fields: [contactId], references: [id], name: "ContactSequence")
+  project    Project       @relation(fields: [projectId], references: [id])
+  playbook   Playbook?     @relation(fields: [playbookId], references: [id])
+}
+
+model SequenceStep {
+  id          String   @id @default(cuid())
+  sequenceId  String
+  stepNumber  Int
+  channel     String
+  content     String
+  status      String  @default("PENDING")
+  scheduledAt DateTime?
+  sentAt      DateTime?
+
+  sequence    Sequence @relation(fields: [sequenceId], references: [id])
+  interactions Interaction[]
+}
+
+model OutreachMessage {
+  id        String   @id @default(cuid())
+  projectId String
+  contactId String
+  channel   String
+  content   String
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id])
+  contact   Contact  @relation(fields: [contactId], references: [id])
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  projectId String
+  content   String
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id])
+}
+
+model Template {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Opportunity {
+  id          String   @id @default(cuid())
+  userId      String
+  sourceType  String
+  sourceLabel String?
+  rawContext  String?
+  url         String
+  title       String?
+  tags        String?
+  icpScore    Int?
+  mqaScore    Int?
+  bdAngles    String?
+  leadScore       Int?
+  leadReasons     String?
+  signalStrength  Int?
+  recencyScore    Int?
+  playbookMatches String?
+  icpProfileId    String?
+  nextReviewAt    DateTime?
+  status      String   @default("NEW")
+  projectId   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id])
+  icpProfile  ICPProfile? @relation(fields: [icpProfileId], references: [id])
+  project     Project? @relation(fields: [projectId], references: [id])
+}
+
+model Playbook {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  boosts    String?
+  penalties String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+  sequences Sequence[]
+}
+
+model WatchlistUrl {
+  id        String   @id @default(cuid())
+  userId    String
+  label     String?
+  url       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Interaction {
+  id            String    @id @default(cuid())
+  userId        String
+  projectId     String
+  contactId     String?
+  sequenceStepId String?
+  channel       String
+  type          String
+  title         String?
+  body          String?
+  occurredAt    DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+
+  user          User      @relation(fields: [userId], references: [id])
+  project       Project   @relation(fields: [projectId], references: [id])
+  contact       Contact?  @relation(fields: [contactId], references: [id])
+  sequenceStep  SequenceStep? @relation(fields: [sequenceStepId], references: [id])
+}

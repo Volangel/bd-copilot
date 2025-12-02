@@ -7,7 +7,7 @@ export function Card({ className, children }: { className?: string; children: Re
   return (
     <div
       className={cn(
-        "rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-6 shadow-lg shadow-black/25 transition-all duration-200 ease-out hover:shadow-xl hover:border-[var(--border-strong)]",
+        "rounded-2xl border border-white/10 bg-[var(--bg-elevated)]/95 p-6 shadow-[0_20px_70px_rgba(0,0,0,0.35)] ring-1 ring-white/5 transition-all duration-200 ease-out hover:-translate-y-[1px] hover:border-white/20 hover:ring-white/10",
         className,
       )}
     >

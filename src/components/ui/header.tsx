@@ -38,10 +38,10 @@ export function SectionHeader({ title, helper, className }: { title: string; hel
 
 function ModeBadge({ mode }: { mode: AppMode }) {
   const colors: Record<AppMode, string> = {
-    discover: "border border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-secondary)]",
-    pipeline: "border border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-secondary)]",
-    execute: "border border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-secondary)]",
-    other: "border border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-secondary)]",
+    discover: "border-emerald-400/30 bg-emerald-500/10 text-emerald-100",
+    pipeline: "border-blue-400/30 bg-blue-500/10 text-blue-100",
+    execute: "border-purple-400/30 bg-purple-500/10 text-purple-100",
+    other: "border-white/15 bg-white/5 text-slate-100",
   };
   const label: Record<AppMode, string> = {
     discover: "Discover",
@@ -50,7 +50,13 @@ function ModeBadge({ mode }: { mode: AppMode }) {
     other: "Today",
   };
   return (
-    <span className={cn("rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-wide", colors[mode])}>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide shadow-[0_6px_24px_rgba(0,0,0,0.3)]",
+        colors[mode],
+      )}
+    >
+      <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
       {label[mode]}
     </span>
   );

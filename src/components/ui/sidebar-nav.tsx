@@ -20,7 +20,7 @@ export function SidebarNav({ groups, className }: { groups: NavGroup[]; classNam
               <Link
                 key={`${group.label}-${item.href}-${item.label}`}
                 href={item.href}
-                className="block rounded-lg px-3 py-2 text-[var(--text-secondary)] transition hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
+                className="block rounded-xl border border-transparent px-3 py-2 text-[var(--text-secondary)] transition hover:-translate-y-[1px] hover:border-white/10 hover:bg-white/5 hover:text-[var(--text-primary)]"
               >
                 {item.label}
               </Link>

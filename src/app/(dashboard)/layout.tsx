@@ -65,7 +65,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   }
   return (
     <div className="flex min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <aside className="hidden w-[17rem] flex-col justify-between border-r border-[var(--border-default)] bg-[var(--bg-secondary)]/90 px-7 py-9 lg:flex">
+      <aside className="hidden w-[17rem] flex-col justify-between border-r border-[var(--border-default)] bg-[var(--bg-secondary)]/90 px-7 py-9 shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl lg:flex">
         <div className="space-y-8">
           <div>
             <p className="text-sm font-semibold uppercase tracking-widest text-[var(--accent-primary)]">Web3 BD Copilot</p>
@@ -75,7 +75,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           <SidebarNav groups={navGroups} />
         </div>
         <div className="space-y-3">
-          <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-tertiary)] px-3 py-3 shadow-lg shadow-black/20">
+          <div className="rounded-2xl border border-white/10 bg-[var(--bg-elevated)]/90 px-3 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
             <p className="text-sm font-semibold text-[var(--text-primary)]">{session.user.email}</p>
             <p className="text-xs text-[var(--text-secondary)]">Plan: {session.user.plan}</p>
           </div>
@@ -83,14 +83,14 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         </div>
       </aside>
       <div className="flex-1">
-        <div className="flex items-center justify-between border-b border-[var(--border-default)] bg-[var(--bg-secondary)] px-5 py-4 lg:hidden shadow-md shadow-black/20">
+        <div className="flex items-center justify-between border-b border-[var(--border-default)] bg-[var(--bg-secondary)]/95 px-5 py-4 shadow-md shadow-black/25 backdrop-blur lg:hidden">
           <div>
             <p className="text-sm font-semibold text-[var(--accent-primary)]">Web3 BD Copilot</p>
             <p className="text-xs text-[var(--text-secondary)]">Plan: {session.user.plan}</p>
           </div>
           <LogoutButton />
         </div>
-        <div className="border-b border-[var(--border-default)] bg-[var(--bg-secondary)] px-5 py-4 lg:hidden">
+        <div className="border-b border-[var(--border-default)] bg-[var(--bg-secondary)]/95 px-5 py-4 backdrop-blur lg:hidden">
           <ModeSelector />
           <SidebarNav groups={navGroups} />
         </div>

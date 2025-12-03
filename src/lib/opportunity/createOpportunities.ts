@@ -31,12 +31,18 @@ export async function createOpportunities(options: Options) {
 
   for (const urlRaw of urls) {
     if (final.length >= maxCount) break;
-    const normalized = normalizeUrl(urlRaw) || urlRaw;
-    if (seen.has(normalized)) {
+
+    const normalized = normalizeUrl(urlRaw);
+    if (!normalized) {
+      console.warn("[lib/opportunity/createOpportunities] URL normalization failed, using raw:", urlRaw);
+    }
+    const urlToUse = normalized || urlRaw;
+
+    if (seen.has(urlToUse)) {
       skipped.push(urlRaw);
       continue;
     }
-    seen.add(normalized);
+    seen.add(urlToUse);
 
     // Check for existing opportunity OR project with this URL
     const [existingOpportunity, existingProject] = await Promise.all([
@@ -69,7 +75,7 @@ export async function createOpportunities(options: Options) {
       const created = await prisma.opportunity.create({
         data: {
           userId,
-          url: normalized,
+          url: urlToUse,
           sourceType,
           sourceLabel: sourceLabel || null,
           rawContext: rawContext || null,
@@ -103,11 +109,11 @@ export async function createOpportunities(options: Options) {
         const created = await prisma.opportunity.create({
           data: {
             userId,
-            url: normalized,
+            url: urlToUse,
             sourceType,
             sourceLabel: sourceLabel || null,
             rawContext: rawContext || null,
-            title: normalized,
+            title: urlToUse,
             status: "NEW",
           },
         });

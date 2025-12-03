@@ -67,6 +67,10 @@ export async function POST(request: Request) {
     const body = bodySchema.parse(await request.json());
 
     const name = body.name.trim();
+    if (!name) {
+      return NextResponse.json({ error: "Name cannot be empty" }, { status: 400 });
+    }
+
     const role = body.role?.trim() || null;
     const linkedinUrl = normalizeLinkedIn(body.linkedinUrl);
     const twitterHandle = normalizeTwitter(body.twitterUrlOrHandle);

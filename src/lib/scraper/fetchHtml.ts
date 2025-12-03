@@ -77,6 +77,11 @@ export default async function fetchHtml(url: string): Promise<{ html: string; te
     $("script, style, noscript").remove();
     const text = $("body").text().replace(/\s+/g, " ").trim();
 
+    // Validate that we extracted meaningful content
+    if (!text || text.length < 10) {
+      throw new Error("No meaningful content extracted from page");
+    }
+
     // Avoid returning enormous payloads
     return { html: html.slice(0, 2_000_000), text: text.slice(0, 20_000) };
   } finally {

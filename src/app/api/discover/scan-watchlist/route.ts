@@ -12,14 +12,12 @@ export async function POST() {
 
   try {
     const watchlist = await prisma.watchlistUrl.findMany({ where: { userId: session.user.id } });
-    let totalCreated = 0;
-    let totalSkipped = 0;
-
-    for (const item of watchlist) {
-      try {
+    // Process watchlist items in parallel for better performance
+    const results = await Promise.allSettled(
+      watchlist.map(async (item) => {
         const html = await fetchHtml(item.url);
         const candidates = extractCandidateUrlsFromHtml(html.html, item.url);
-        const result = await createOpportunities({
+        return createOpportunities({
           userId: session.user.id,
           urls: candidates.length ? candidates : [item.url],
           sourceType: "WATCHLIST",
@@ -27,14 +25,29 @@ export async function POST() {
           rawContext: "",
           maxCount: 20,
         });
-        totalCreated += result.created.length;
-        totalSkipped += result.skipped.length;
-      } catch (err) {
-        console.error("watchlist scan failed for", item.url, err);
-      }
-    }
+      })
+    );
 
-    return NextResponse.json({ createdCount: totalCreated, skippedCount: totalSkipped });
+    let totalCreated = 0;
+    let totalSkipped = 0;
+    let failed = 0;
+
+    results.forEach((result, idx) => {
+      if (result.status === "fulfilled") {
+        totalCreated += result.value.created.length;
+        totalSkipped += result.value.skipped.length;
+      } else {
+        failed += 1;
+        console.error("watchlist scan failed for", watchlist[idx]?.url, result.reason);
+      }
+    });
+
+    return NextResponse.json({
+      createdCount: totalCreated,
+      skippedCount: totalSkipped,
+      attempted: watchlist.length,
+      failed,
+    });
   } catch (error) {
     console.error("scan-watchlist failed", error);
     return NextResponse.json({ error: "Failed to scan watchlist" }, { status: 500 });

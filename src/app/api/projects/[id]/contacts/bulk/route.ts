@@ -46,7 +46,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ created: [], message: "Nothing to import (all duplicates)" });
     }
 
-    const created = await Promise.all(
+    // Use allSettled to handle partial failures gracefully
+    const results = await Promise.allSettled(
       toCreate.map((c) =>
         prisma.contact.create({
           data: {
@@ -62,7 +63,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       ),
     );
 
-    return NextResponse.json({ created });
+    const created = results.filter((r) => r.status === "fulfilled").map((r) => r.value);
+    const failed = results.filter((r) => r.status === "rejected").length;
+
+    return NextResponse.json({
+      created,
+      attempted: toCreate.length,
+      succeeded: created.length,
+      failed,
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0]?.message ?? "Invalid payload" }, { status: 400 });

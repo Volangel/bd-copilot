@@ -67,6 +67,10 @@ export async function POST(request: Request) {
     const body = bodySchema.parse(await request.json());
 
     const name = body.name.trim();
+    if (!name) {
+      return NextResponse.json({ error: "Name cannot be empty" }, { status: 400 });
+    }
+
     const role = body.role?.trim() || null;
     const linkedinUrl = normalizeLinkedIn(body.linkedinUrl);
     const twitterHandle = normalizeTwitter(body.twitterUrlOrHandle);
@@ -154,12 +158,13 @@ export async function POST(request: Request) {
       });
       contactId = existing.id;
     } else {
+      // Use word boundaries to avoid false matches (e.g., "developer" in "developed")
       const persona = role
-        ? /founder|ceo|cto|co[- ]founder/i.test(role)
+        ? /\b(founder|ceo|cto|co[- ]founder)\b/i.test(role)
           ? "Technical founder"
-          : /engineer|developer|dev|protocol/i.test(role)
+          : /\b(engineer|developer|dev|protocol)\b/i.test(role)
             ? "Protocol engineer"
-            : /bd|business|growth|ecosystem/i.test(role)
+            : /\b(bd|business|growth|ecosystem)\b/i.test(role)
               ? "BD / ecosystem lead"
               : null
         : null;

@@ -26,8 +26,15 @@ function stripLinkedInTitle(title?: string | null) {
 }
 
 function extractEmail(text: string) {
-  const match = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
-  return match ? match[0] : null;
+  // Improved email regex: no consecutive dots, valid TLD, proper structure
+  const match = text.match(/\b[A-Z0-9][A-Z0-9._%+-]*[A-Z0-9]@[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?(?:\.[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?)*\.[A-Z]{2,}\b/i);
+  if (!match) return null;
+
+  const email = match[0];
+  // Additional validation: no consecutive dots, doesn't end with dot before @
+  if (email.includes('..') || email.match(/@\./)) return null;
+
+  return email;
 }
 
 function nameFromSlug(pathname: string) {

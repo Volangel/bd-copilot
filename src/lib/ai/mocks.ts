@@ -37,8 +37,8 @@ export function mockAnalyzeProject(args: AnalyzeProjectArgs): ProjectAnalysisRes
   ];
   const bdAngles = angleSeeds.slice(seed % angleSeeds.length, seed % angleSeeds.length + 3);
 
-  const mqaBase = 55 + (seed % 30);
-  const mqaScore = Math.min(100, mqaBase);
+  // Wider MQA distribution: 30-100 (was 55-85)
+  const mqaScore = 30 + (seed % 71); // 30-100 range
   const mqaReasons = `Score weighted by ICP match on ${foundKeyword}, stage ${stages[seed % stages.length]}, and traction signals.`;
 
   return {
@@ -60,9 +60,11 @@ export function mockScoreProject(args: ScoreProjectArgs): ScoreResult {
   const { analysis, icpProfile } = args;
   const icpText = `${icpProfile?.industries ?? ""} ${icpProfile?.painPoints ?? ""}`.toLowerCase();
   const matchSignals = [analysis.summary, analysis.painPoints, analysis.targetUsers].join(" ").toLowerCase();
-  const overlap = icpText && icpText.length > 0 && matchSignals.includes(icpText.split(" ")[0]) ? 18 : 0;
-  const stageBonus = ["growth", "mature"].includes(analysis.stage || "") ? 12 : 0;
-  const baseScore = 60 + overlap + stageBonus;
+
+  // Improved scoring: lower baseline, higher rewards for matches
+  const overlap = icpText && icpText.length > 0 && matchSignals.includes(icpText.split(" ")[0]) ? 30 : 0;
+  const stageBonus = ["growth", "mature"].includes(analysis.stage || "") ? 15 : 0;
+  const baseScore = 35 + overlap + stageBonus; // Base 35 (was 60), match gives 30 (was 18)
   const score = Math.min(100, Math.max(0, baseScore));
 
   return {

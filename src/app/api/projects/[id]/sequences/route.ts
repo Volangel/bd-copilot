@@ -91,7 +91,12 @@ export async function POST(request: Request, { params }: { params: { id: string 
             channel: s.channel,
             content: s.contentHint || s.objective || "",
             status: "PENDING",
-            scheduledAt: new Date(Date.now() + (s.offsetDays ?? 0) * 24 * 60 * 60 * 1000),
+            scheduledAt: (() => {
+              const baseDate = new Date();
+              baseDate.setHours(9, 0, 0, 0); // Schedule for 9 AM today
+              const offsetMs = (s.offsetDays ?? 0) * 24 * 60 * 60 * 1000;
+              return new Date(baseDate.getTime() + offsetMs);
+            })(),
           })),
         },
       },

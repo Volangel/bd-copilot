@@ -158,6 +158,17 @@ export async function analyzeProject(args: AnalyzeProjectArgs): Promise<ProjectA
       if (typeof val === "string") return val.split(",").map((v) => v.trim()).filter(Boolean);
       return [];
     };
+    // Validate MQA score if provided
+    let mqaScore: number | null = null;
+    if (result.mqaScore != null) {
+      const rawMqa = Number(result.mqaScore);
+      if (isNaN(rawMqa)) {
+        console.warn("[aiService.analyzeProject] AI returned non-numeric mqaScore:", result.mqaScore);
+      } else {
+        mqaScore = Math.max(0, Math.min(100, rawMqa));
+      }
+    }
+
     return {
       summary: result.summary || "",
       categoryTags: toStringArray(result.categoryTags),
@@ -165,7 +176,7 @@ export async function analyzeProject(args: AnalyzeProjectArgs): Promise<ProjectA
       targetUsers: toStringVal(result.targetUsers),
       painPoints: toStringVal(result.painPoints),
       bdAngles: toStringArray(result.bdAngles),
-      mqaScore: result.mqaScore ?? null,
+      mqaScore,
       mqaReasons: toStringVal(result.mqaReasons),
     };
   } catch (err) {
@@ -190,8 +201,15 @@ export async function scoreProject(args: ScoreProjectArgs): Promise<ScoreResult>
       user,
       maxTokens: 400,
     });
+    // Validate score is a number
+    const rawScore = Number(result.score);
+    if (isNaN(rawScore)) {
+      console.warn("[aiService.scoreProject] AI returned non-numeric score:", result.score);
+      return mockScoreProject(args);
+    }
+
     return {
-      score: Math.max(0, Math.min(100, result.score ?? 0)),
+      score: Math.max(0, Math.min(100, rawScore)),
       explanation: result.explanation ?? "",
     };
   } catch (err) {

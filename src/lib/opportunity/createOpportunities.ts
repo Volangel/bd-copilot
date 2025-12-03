@@ -31,17 +31,30 @@ export async function createOpportunities(options: Options) {
 
   for (const urlRaw of urls) {
     if (final.length >= maxCount) break;
-    const normalized = normalizeUrl(urlRaw) || urlRaw;
-    if (seen.has(normalized)) {
+
+    const normalized = normalizeUrl(urlRaw);
+    if (!normalized) {
+      console.warn("[lib/opportunity/createOpportunities] URL normalization failed, using raw:", urlRaw);
+    }
+    const urlToUse = normalized || urlRaw;
+
+    if (seen.has(urlToUse)) {
       skipped.push(urlRaw);
       continue;
     }
-    seen.add(normalized);
+    seen.add(urlToUse);
 
-    const exists = await prisma.opportunity.findFirst({
-      where: { userId, OR: [{ url: urlRaw }, { url: normalized }] },
-    });
-    if (exists) {
+    // Check for existing opportunity OR project with this URL
+    const [existingOpportunity, existingProject] = await Promise.all([
+      prisma.opportunity.findFirst({
+        where: { userId, OR: [{ url: urlRaw }, { url: normalized }] },
+      }),
+      prisma.project.findFirst({
+        where: { userId, OR: [{ url: urlRaw }, { url: normalized }] },
+      }),
+    ]);
+
+    if (existingOpportunity || existingProject) {
       skipped.push(urlRaw);
       continue;
     }
@@ -62,7 +75,7 @@ export async function createOpportunities(options: Options) {
       const created = await prisma.opportunity.create({
         data: {
           userId,
-          url: normalized,
+          url: urlToUse,
           sourceType,
           sourceLabel: sourceLabel || null,
           rawContext: rawContext || null,
@@ -81,17 +94,26 @@ export async function createOpportunities(options: Options) {
       });
       final.push(created);
     } catch (err) {
-      console.error("[lib/opportunity/createOpportunities] failed", { url: urlRaw, message: (err as Error).message });
+      const errorMessage = (err as Error).message;
+
+      // Skip if duplicate was created in a race condition
+      if (errorMessage.includes("Unique constraint") || errorMessage.includes("UNIQUE constraint")) {
+        console.log("[lib/opportunity/createOpportunities] skipped duplicate (race condition)", urlRaw);
+        skipped.push(urlRaw);
+        continue;
+      }
+
+      console.error("[lib/opportunity/createOpportunities] failed", { url: urlRaw, message: errorMessage });
       // Fallback minimal record so radar still shows it
       try {
         const created = await prisma.opportunity.create({
           data: {
             userId,
-            url: normalized,
+            url: urlToUse,
             sourceType,
             sourceLabel: sourceLabel || null,
             rawContext: rawContext || null,
-            title: normalized,
+            title: urlToUse,
             status: "NEW",
           },
         });
@@ -102,5 +124,5 @@ export async function createOpportunities(options: Options) {
     }
   }
 
-  return { created: final, skipped };
+  return { created: final, skipped, attempted: urls.length };
 }

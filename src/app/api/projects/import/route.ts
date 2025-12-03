@@ -57,6 +57,17 @@ export async function POST(request: Request) {
         skipped += 1;
         continue;
       }
+
+      // Check for existing project with this URL
+      const existing = await prisma.project.findFirst({
+        where: { userId: session.user.id, url },
+      });
+
+      if (existing) {
+        skipped += 1;
+        continue;
+      }
+
       try {
         const htmlResult = await fetchHtml(url).catch((fetchErr) => {
           console.error("[api/projects/import] fetch failed", { message: (fetchErr as Error).message });

@@ -13,10 +13,16 @@ export async function POST(request: Request) {
   }
 
   const signature = headers().get("stripe-signature");
+
+  if (!signature) {
+    console.error("Stripe webhook rejected: missing signature");
+    return NextResponse.json({ error: "Missing signature" }, { status: 401 });
+  }
+
   const payload = await request.text();
 
   try {
-    const event = stripe.webhooks.constructEvent(payload, signature || "", process.env.STRIPE_WEBHOOK_SECRET);
+    const event = stripe.webhooks.constructEvent(payload, signature, process.env.STRIPE_WEBHOOK_SECRET);
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;

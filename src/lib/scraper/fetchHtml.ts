@@ -67,6 +67,12 @@ export default async function fetchHtml(url: string): Promise<{ html: string; te
       throw new Error(`Failed to fetch URL (${response.status})`);
     }
 
+    // Validate Content-Type to ensure we're fetching HTML
+    const contentType = response.headers.get("content-type");
+    if (contentType && !contentType.includes("text/html") && !contentType.includes("application/xhtml")) {
+      throw new Error(`Invalid content type: ${contentType} (expected text/html)`);
+    }
+
     const contentLength = response.headers.get("content-length");
     if (contentLength && Number(contentLength) > 2_000_000) {
       throw new Error("Response too large");

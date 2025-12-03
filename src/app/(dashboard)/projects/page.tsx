@@ -59,18 +59,22 @@ export default async function ProjectsPage({
   today.setHours(0, 0, 0, 0);
   const endOfToday = new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
-  const projectSequenceCounts = await prisma.sequence.groupBy({
-    by: ["projectId"],
-    _count: { id: true },
-    where: { projectId: { in: projects.map((p) => p.id) } },
-  });
-  const sequenceMap = Object.fromEntries(projectSequenceCounts.map((g) => [g.projectId, g._count.id]));
+  // Run sequence metadata queries in parallel for better performance
+  const projectIds = projects.map((p) => p.id);
+  const [projectSequenceCounts, pendingSteps] = await Promise.all([
+    prisma.sequence.groupBy({
+      by: ["projectId"],
+      _count: { id: true },
+      where: { projectId: { in: projectIds } },
+    }),
+    prisma.sequenceStep.findMany({
+      where: { status: "PENDING", sequence: { projectId: { in: projectIds }, userId: session.user.id } },
+      include: { sequence: true },
+      orderBy: { scheduledAt: "asc" },
+    }),
+  ]);
 
-  const pendingSteps = await prisma.sequenceStep.findMany({
-    where: { status: "PENDING", sequence: { projectId: { in: projects.map((p) => p.id) }, userId: session.user.id } },
-    include: { sequence: true },
-    orderBy: { scheduledAt: "asc" },
-  });
+  const sequenceMap = Object.fromEntries(projectSequenceCounts.map((g) => [g.projectId, g._count.id]));
   const metaMap = buildStepMeta(
     pendingSteps.map((s) => ({ scheduledAt: s.scheduledAt, sequence: { projectId: s.sequence.projectId } })),
     projects.map((p) => p.id),

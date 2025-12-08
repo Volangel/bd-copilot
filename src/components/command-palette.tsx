@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-const commands = [
+type Command = { label: string; action: string; shortcut?: string };
+
+const commands: Command[] = [
   { label: "Go to Projects", action: "/projects", shortcut: "g p" },
   { label: "Go to Board", action: "/projects/board", shortcut: "g b" },
   { label: "Go to Session", action: "/session", shortcut: "g s" },
@@ -22,6 +24,17 @@ const commands = [
   { label: "Go to Quick Capture", action: "/tools/quick-capture" },
 ];
 
+const goShortcuts: Record<string, string> = {
+  b: "/projects/board",
+  c: "/projects",
+  d: "/discover",
+  p: "/projects",
+  r: "/radar",
+  s: "/session",
+  t: "/templates",
+  y: "/today",
+};
+
 export default function CommandPalette() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -29,8 +42,9 @@ export default function CommandPalette() {
   const gPressed = useRef(false);
 
   const filtered = useMemo(() => {
-    if (!query) return commands;
-    return commands.filter((cmd) => cmd.label.toLowerCase().includes(query.toLowerCase()));
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return commands;
+    return commands.filter((cmd) => cmd.label.toLowerCase().includes(normalizedQuery));
   }, [query]);
 
   useEffect(() => {
@@ -43,21 +57,24 @@ export default function CommandPalette() {
     };
 
     const comboHandler = (e: KeyboardEvent) => {
-      if (e.key === "g") {
+      const key = e.key.toLowerCase();
+
+      if (key === "g") {
         gPressed.current = true;
-        setTimeout(() => {
+        window.setTimeout(() => {
           gPressed.current = false;
         }, 800);
-      } else if (gPressed.current) {
-        const k = e.key.toLowerCase();
-        if (k === "p") router.push("/projects");
-        if (k === "b") router.push("/projects/board");
-        if (k === "s") router.push("/session");
-        if (k === "d") router.push("/discover");
-        if (k === "t") router.push("/templates");
-        if (k === "r") router.push("/radar");
-        gPressed.current = false;
+        return;
       }
+
+      if (!gPressed.current) return;
+
+      const destination = goShortcuts[key];
+      if (destination) {
+        e.preventDefault();
+        router.push(destination);
+      }
+      gPressed.current = false;
     };
 
     window.addEventListener("keydown", handler);

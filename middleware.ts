@@ -4,7 +4,6 @@ export const config = {
   matcher: [
     "/projects/:path*",
     "/discover/:path*",
-    "/tools/:path*",
     "/session/:path*",
     "/tools/:path*",
     "/settings/:path*",

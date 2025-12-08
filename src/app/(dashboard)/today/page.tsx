@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { pickNextSequenceStep } from "@/lib/sequences/nextStep";
 import { sortProjectsByPriority } from "@/lib/pipeline/priority";
 import { formatDate } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/header";
 import Link from "next/link";
 import { getServerSession } from "next-auth";
@@ -111,24 +112,75 @@ export default async function TodayPage() {
     { label: "New opps", value: newOppCount },
   ];
 
+  const quickActions = [
+    { label: "Add project", href: "/projects" },
+    { label: "Scan leads", href: "/discover/scan" },
+    { label: "Session mode", href: "/session", tone: "primary" },
+  ];
+
+  const focusTarget = topOverdue[0] || nextStep || opportunities[0];
+  const focusLabel = topOverdue[0]
+    ? "Overdue follow-up"
+    : nextStep
+      ? "Scheduled touch"
+      : opportunities[0]
+        ? "New lead to review"
+        : "Keep momentum";
+  const focusCta = topOverdue[0] || nextStep ? { label: "Open Session", href: "/session" } : { label: "Open Radar", href: "/radar" };
+  const focusSummary = topOverdue[0]
+    ? `${topOverdue[0].sequence.project.name || topOverdue[0].sequence.project.url} · ${topOverdue[0].channel}`
+    : nextStep
+      ? `Step ${nextStep.stepNumber} ${nextStep.scheduledAt ? `scheduled ${formatDate(nextStep.scheduledAt)}` : "ready to schedule"}`
+      : opportunities[0]
+        ? opportunities[0].title || opportunities[0].url
+        : "Nothing urgent in the queue. Use the quick actions to keep momentum.";
+
   return (
-    <div className="flex flex-col gap-8 px-8 py-10 md:py-12 lg:px-10 xl:max-w-6xl xl:mx-auto">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div>
-          <PageHeader title="Today" description="Top priorities for your BD workflow." mode="other" />
+    <div className="flex flex-col gap-8 px-8 py-10 md:py-12 lg:px-10 xl:mx-auto xl:max-w-6xl">
+      <PageHeader
+        title="Today"
+        description="Top priorities for your BD workflow."
+        mode="other"
+        actions={
+          <div className="flex flex-wrap gap-2">
+            {quickActions.map((action) => (
+              <Link
+                key={action.label}
+                href={action.href}
+                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400 ${
+                  action.tone === "primary"
+                    ? "border-emerald-400/60 bg-emerald-500/10 text-emerald-100 hover:border-emerald-300 hover:bg-emerald-500/20"
+                    : "border-white/10 bg-white/5 text-white hover:border-white/20 hover:bg-white/10"
+                }`}
+              >
+                {action.label}
+              </Link>
+            ))}
+          </div>
+        }
+      />
+
+      <Card className="flex flex-col gap-3 border-white/10 bg-gradient-to-r from-emerald-500/10 via-transparent to-transparent p-6 md:flex-row md:items-center md:justify-between">
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Focus for today</p>
+          <p className="text-lg font-semibold text-white">{focusTarget ? focusLabel : "You’re caught up"}</p>
+          <p className="text-sm text-[var(--text-secondary)]">{focusSummary}</p>
+          <div className="flex flex-wrap gap-2 text-[11px] text-[var(--text-tertiary)]">
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">Overdue: {stats[0].value}</span>
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">Due today: {stats[1].value}</span>
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">New opps: {stats[2].value}</span>
+          </div>
         </div>
-        <div className="flex flex-wrap items-start justify-end gap-3 pt-2">
-          <Link className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10" href="/projects">
-            Add project
+        <div className="flex flex-col items-start gap-3 text-sm md:items-end">
+          <Link
+            href={focusCta.href}
+            className="inline-flex items-center gap-2 rounded-full border border-emerald-400/60 bg-emerald-500/10 px-4 py-2 text-emerald-100 transition hover:border-emerald-300 hover:bg-emerald-500/20"
+          >
+            {focusCta.label}
           </Link>
-          <Link className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10" href="/discover/scan">
-            Scan leads
-          </Link>
-          <Link className="rounded-lg border border-emerald-400/50 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-200 transition hover:border-emerald-400 hover:bg-emerald-500/20" href="/session">
-            Session Mode
-          </Link>
+          {nextStep ? <p className="text-xs text-[var(--text-tertiary)]">Next touch {formatDate(nextStep.scheduledAt)}</p> : null}
         </div>
-      </div>
+      </Card>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <SectionCard title="Discover" description="Review new leads and scan for opportunities">

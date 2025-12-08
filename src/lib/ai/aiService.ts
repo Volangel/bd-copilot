@@ -51,18 +51,44 @@ function buildRepresentingProjectBlock(rep?: AnalyzeProjectArgs["representingPro
     .join("\n");
 }
 
+function formatVoiceProfile(voiceProfile?: Record<string, unknown> | null): string {
+  if (!voiceProfile || Object.keys(voiceProfile).length === 0) {
+    return "Voice/tone: concise, confident, and pragmatic. Avoid fluff or hype.";
+  }
+
+  const rendered = Object.entries(voiceProfile)
+    .map(([key, value]) => {
+      if (typeof value === "string") return `- ${key}: ${value}`;
+      if (Array.isArray(value)) return `- ${key}: ${(value as unknown[]).join(", ")}`;
+      if (value === null) return `- ${key}: null`;
+      if (typeof value === "object") return `- ${key}: ${JSON.stringify(value)}`;
+      return `- ${key}: ${String(value)}`;
+    })
+    .join("\n");
+
+  return ["Voice and tone preferences:", rendered].filter(Boolean).join("\n");
+}
+
 function buildAnalyzeProjectPrompt(args: AnalyzeProjectArgs): string {
   const { url, html, icpProfile, representingProject } = args;
   const trimmed = html.slice(0, 4000);
   return [
     buildRepresentingProjectBlock(representingProject),
-    `You will analyze a Web3 project website and return structured JSON only.`,
+    `You are analyzing a Web3 project website. Return structured JSON only—no prose, no markdown, no extra keys.`,
     `Website URL: ${url}`,
     `ICP industries: ${icpProfile?.industries ?? "-"}`,
     `ICP pain points: ${icpProfile?.painPoints ?? "-"}`,
     `Extract from HTML body text (truncated): ${trimmed}`,
-    `Return ONLY valid JSON. No markdown, no prose, no extra keys.`,
-    `Expected keys: summary, categoryTags[], stage, targetUsers, painPoints, bdAngles[], mqaScore (0-100), mqaReasons.`,
+    `Expected JSON keys with guidance:`,
+    `- summary: 1–3 sentences on what the project does.`,
+    `- categoryTags: array of short topical tags.`,
+    `- stage: one of early | growth | mature | unknown.`,
+    `- targetUsers: who the product serves ("unknown" if unclear).`,
+    `- painPoints: pains described on the site ("unknown" if not stated).`,
+    `- bdAngles: array of concrete BD angles based on the site content.`,
+    `- mqaScore: integer 0–100 representing ICP fit confidence.`,
+    `- mqaReasons: 1–2 sentences citing specifics from the page that justify the score.`,
+    `Do not invent details. If a field cannot be inferred, use null or an empty array as appropriate.`,
   ].join("\n");
 }
 
@@ -70,7 +96,7 @@ function buildScoreProjectPrompt(args: ScoreProjectArgs): string {
   const { analysis, icpProfile, representingProject } = args;
   return [
     buildRepresentingProjectBlock(representingProject),
-    `You score ICP fit. Return JSON: { "score": number, "explanation": string }. Score 0-100 only.`,
+    `You score ICP fit. Return ONLY JSON: { "score": number, "explanation": string }. Score 0–100 only.`,
     `Analysis summary: ${analysis.summary}`,
     `Tags: ${(analysis.categoryTags || []).join(", ")}`,
     `Stage: ${analysis.stage}`,
@@ -78,7 +104,8 @@ function buildScoreProjectPrompt(args: ScoreProjectArgs): string {
     `Pain points: ${analysis.painPoints}`,
     `ICP industries: ${icpProfile?.industries ?? "-"}`,
     `ICP pains: ${icpProfile?.painPoints ?? "-"}`,
-    `Return ONLY valid JSON. No markdown, no backticks.`,
+    `Scoring rubric: high scores require strong alignment to both the ICP industries and pain points. Mention 2–3 concrete reasons in the explanation tied to the analysis data above.`,
+    `Return ONLY valid JSON. No markdown, no backticks, no extra keys.`,
   ].join("\n");
 }
 
@@ -91,7 +118,7 @@ export function buildGenerateOutreachPrompt(args: GenerateOutreachArgs): string 
 
   return [
     repBlock,
-    `Generate concise BD outreach for the specified channels. Return pure JSON with only the requested channels as keys.`,
+    `Generate concise, actionable BD outreach for the specified channels. Return pure JSON with only the requested channels as keys.`,
     persona ? `Target persona: ${persona}` : "Target persona: not specified",
     primaryAngle ? `Primary BD angle to emphasize: ${primaryAngle}` : "Primary BD angle: not specified",
     `Project summary: ${analysis.summary}`,
@@ -104,8 +131,14 @@ export function buildGenerateOutreachPrompt(args: GenerateOutreachArgs): string 
     `Contact: ${contact.name} (${contact.role ?? "unknown role"})`,
     `Contact socials: LinkedIn=${contact.linkedinUrl ?? "-"}, Twitter=${contact.twitterHandle ?? "-"}, Email=${contact.email ?? "-"}, Telegram=${contact.telegram ?? "-"}`,
     `Channel preference: ${contact.channelPreference ?? "-"}`,
-    `Voice profile JSON: ${voiceProfile ? JSON.stringify(voiceProfile) : "{}"}`,
+    formatVoiceProfile(voiceProfile),
     `Channels to generate: ${channels.join(", ")}`,
+    `Channel-specific guidance:`,
+    `- Email: include a crisp subject line and 3–5 short sentences with a clear CTA.`,
+    `- LinkedIn: 2–4 sentences, professional and non-spammy.`,
+    `- Twitter: 1–2 tweets worth of text (<= 560 characters total).`,
+    `- Telegram: casual but credible; 2–4 sentences with a clear ask.`,
+    `General rules: do not invent features, avoid placeholders, and tailor to the persona/angle when provided.`,
     ``,
     `Return ONLY JSON like:`,
     `{`,
@@ -131,6 +164,7 @@ export function buildGenerateSequencePrompt(args: GenerateSequenceStepsArgs): st
     `BD angles: ${(analysis.bdAngles || []).join(" | ")}`,
     `Contact: ${contact?.name ?? "N/A"} (${contact?.role ?? "N/A"}), preference: ${contact?.channelPreference ?? "none"}`,
     `Playbook: ${playbook ? playbook.name : "none"}`,
+    `Sequence guidance: stagger touchpoints thoughtfully, vary channels when possible, and align objectives to the project pain points and primary angle. Each contentHint should be 1–2 sentences max.`,
     `Return ONLY valid JSON. No markdown or backticks.`,
   ].join("\n");
 }

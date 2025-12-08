@@ -211,12 +211,12 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
   };
 
   const statusAccent: Record<string, string> = {
-    NOT_CONTACTED: "from-slate-800/40 via-slate-800/10 to-slate-900",
-    CONTACTED: "from-cyan-700/30 via-cyan-800/10 to-slate-900",
-    WAITING_REPLY: "from-amber-700/30 via-amber-800/10 to-slate-900",
-    CALL_BOOKED: "from-blue-700/30 via-blue-800/10 to-slate-900",
-    WON: "from-emerald-700/30 via-emerald-800/10 to-slate-900",
-    LOST: "from-rose-700/20 via-rose-800/10 to-slate-900",
+    NOT_CONTACTED: "from-slate-900 via-slate-900/80 to-slate-950",
+    CONTACTED: "from-cyan-950 via-cyan-900/50 to-slate-950",
+    WAITING_REPLY: "from-amber-950 via-amber-900/50 to-slate-950",
+    CALL_BOOKED: "from-blue-950 via-blue-900/50 to-slate-950",
+    WON: "from-emerald-950 via-emerald-900/50 to-slate-950",
+    LOST: "from-rose-950 via-rose-900/50 to-slate-950",
   };
 
   const filterPills = [
@@ -247,13 +247,13 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
     <div className="space-y-4">
       <Toast message={message} onClear={() => setMessage(null)} />
       <Toast message={error} type="error" onClear={() => setError(null)} />
-      <div className="space-y-3 rounded-2xl border border-[#1D2024] bg-gradient-to-r from-[#0E1215] via-[#0E0F10] to-[#0D0E11] p-4 text-xs text-slate-200 shadow-inner shadow-emerald-900/30">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-emerald-100">
-            Curated controls
-          </p>
+      <div className="space-y-3 rounded-2xl border border-[#1D2024] bg-[#0C0D0F] p-4 text-xs text-slate-200 shadow-inner shadow-black/40">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-slate-100">
+            <span className="h-2 w-2 rounded-full bg-emerald-400" /> Guided focus
+          </div>
           <p className="text-sm text-slate-300">
-            {activeFilterCount > 0 ? `${activeFilterCount} refinement${activeFilterCount > 1 ? "s" : ""} active` : "Fine-tune the board to focus on the highest-signal work."}
+            {activeFilterCount > 0 ? `${activeFilterCount} refinement${activeFilterCount > 1 ? "s" : ""} applied` : "Tune the board to spotlight the next best work."}
           </p>
           {activeFilterCount > 0 ? (
             <button
@@ -263,9 +263,9 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                 setSearchTerm("");
                 setSortMode("next");
               }}
-              className="ml-auto rounded-full border border-white/10 px-3 py-1 text-[11px] text-slate-200 transition hover:border-emerald-400 hover:bg-emerald-500/10"
+              className="ml-auto inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1 text-[11px] text-slate-200 transition hover:border-emerald-400 hover:bg-emerald-500/10"
             >
-              Reset view
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" /> Reset view
             </button>
           ) : null}
         </div>
@@ -275,7 +275,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
               key={pill.key}
               type="button"
               onClick={() => setFilters((f) => ({ ...f, [pill.key]: !f[pill.key] }))}
-              className={`flex items-center gap-2 rounded-full border px-3 py-1 transition focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${
+              className={`flex items-center gap-2 rounded-full border px-3 py-1 text-left transition focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${
                 filters[pill.key] ? pill.activeClass : pill.inactiveClass
               }`}
             >
@@ -284,8 +284,8 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
             </button>
           ))}
         </div>
-        <div className="grid gap-2 md:grid-cols-[2fr_1fr] md:items-center">
-          <div className="flex items-center gap-2 rounded-lg border border-[#232527] bg-[#181A1C] px-3 py-2 text-xs text-slate-200 shadow-inner shadow-black/40">
+        <div className="grid gap-3 md:grid-cols-[2fr_1fr] md:items-center">
+          <div className="flex items-center gap-2 rounded-xl border border-[#232527] bg-[#111214] px-3 py-2 text-xs text-slate-200 shadow-inner shadow-black/50">
             <span className="rounded-full bg-[#0F1012] px-2 py-1 text-[10px] uppercase tracking-wide text-slate-400">Search</span>
             <input
               value={searchTerm}
@@ -294,15 +294,15 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
               className="w-full bg-transparent text-[13px] text-slate-100 placeholder:text-slate-500 focus:outline-none"
             />
           </div>
-          <div className="flex items-center justify-between gap-2 rounded-lg border border-[#232527] bg-[#181A1C] px-3 py-2 text-xs text-slate-200 shadow-inner shadow-black/40">
+          <div className="flex items-center justify-between gap-2 rounded-xl border border-[#232527] bg-[#111214] px-3 py-2 text-xs text-slate-200 shadow-inner shadow-black/50">
             <div className="flex flex-col leading-tight text-[11px] text-slate-400">
-              <span className="uppercase tracking-wide">Sort lane</span>
-              <span className="text-[10px] text-slate-500">Next touch or ICP focus</span>
+              <span className="uppercase tracking-wide text-slate-300">Lane sort</span>
+              <span className="text-[10px] text-slate-500">Next touch or ICP priority</span>
             </div>
             <select
               value={sortMode}
               onChange={(e) => setSortMode(e.target.value as "next" | "icp")}
-              className="rounded-md border border-[#232527] bg-[#0F1012] px-2 py-1 text-xs text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+              className="rounded-md border border-[#2D3136] bg-[#0F1012] px-2 py-1 text-xs text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
             >
               <option value="next">Next touch</option>
               <option value="icp">ICP</option>
@@ -310,12 +310,12 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
           </div>
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[#1C1F23] bg-gradient-to-r from-[#0E0F10] via-[#0F1114] to-[#0E1012] p-4 text-xs text-slate-200 shadow-sm">
-        <div className="flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-[11px] uppercase tracking-wide text-emerald-100">
-          <span className="h-2 w-2 rounded-full bg-emerald-400" /> Premium view
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[#1C1F23] bg-[#0D0E10] p-4 text-xs text-slate-200 shadow-inner shadow-black/40">
+        <div className="flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-500/5 px-3 py-1 text-[11px] uppercase tracking-wide text-emerald-100">
+          <span className="h-2 w-2 rounded-full bg-emerald-400" /> Calm view
         </div>
         <p className="text-sm text-slate-300">
-          Glide cards between lanes or use inline status controls to keep the pipeline crystal clear.
+          Smooth drag, inline status, and guided cues keep the pipeline readable and fast to work.
         </p>
         <div className="ml-auto flex items-center gap-2 text-[11px] text-slate-400">
           <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1">Drag glow</span>
@@ -334,7 +334,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
               key={column.status}
               className={`group relative min-h-[420px] rounded-2xl border border-[#232527] bg-gradient-to-b ${
                 statusAccent[column.status]
-              } p-3 shadow-[0_15px_40px_rgba(0,0,0,0.35)] ${draggingId ? "ring-1 ring-emerald-500/30" : ""} ${
+              } p-3 shadow-[0_10px_30px_rgba(0,0,0,0.35)] ${draggingId ? "ring-1 ring-emerald-500/30" : ""} ${
                 hoveredStatus === column.status ? "border-emerald-400/50 shadow-emerald-500/10" : ""
               }`}
               onDragOver={(e) => e.preventDefault()}
@@ -345,29 +345,29 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                 setHoveredStatus(null);
               }}
             >
-              <div className="mb-2 flex items-center justify-between gap-2 rounded-xl border border-white/5 bg-white/5 px-3 py-2 text-xs uppercase tracking-wide text-slate-300 shadow-inner shadow-black/30">
-                <div className="space-y-0.5">
-                  <span className="text-white">{column.status.replace(/_/g, " ")}</span>
+              <div className="mb-3 flex items-start justify-between gap-3 rounded-xl border border-white/5 bg-black/20 px-3 py-2 text-xs text-slate-300 shadow-inner shadow-black/30">
+                <div className="space-y-1">
+                  <span className="text-sm font-semibold text-white">{column.status.replace(/_/g, " ")}</span>
                   <p className="text-[11px] text-slate-400">{helperByStatus[column.status] || ""}</p>
+                  <div className="flex flex-wrap gap-2 text-[11px]">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-slate-100">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Hot fit {stats.hot}
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-slate-100">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-300" /> Missing {stats.missingNext}
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-slate-100">
+                      <span className="h-1.5 w-1.5 rounded-full bg-red-300" /> Overdue {stats.overdue}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full border border-[#232527] bg-[#181A1C] px-2 py-0.5 text-slate-200">{column.items.length}</span>
-                  <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-slate-300">{sortMode === "icp" ? "ICP" : "Next"}</span>
+                <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-200">
+                  <span className="rounded-full bg-[#181A1C] px-2 py-0.5 text-white">{column.items.length}</span>
+                  <span className="rounded-full bg-[#111214] px-2 py-0.5 text-[10px] uppercase tracking-wide text-slate-300">{sortMode === "icp" ? "ICP" : "Next"}</span>
                 </div>
-              </div>
-              <div className="mb-2 flex flex-wrap gap-2 text-[11px]">
-                <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2 py-1 text-emerald-100">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400" /> Hot fit: {stats.hot}
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-500/10 px-2 py-1 text-amber-100">
-                  <span className="h-2 w-2 rounded-full bg-amber-300" /> Missing next: {stats.missingNext}
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-red-400/30 bg-red-500/10 px-2 py-1 text-red-100">
-                  <span className="h-2 w-2 rounded-full bg-red-300" /> Overdue: {stats.overdue}
-                </span>
               </div>
               {laneFocus ? (
-                <div className="mb-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px] text-slate-200 shadow-inner shadow-black/20">
+                <div className="mb-3 rounded-lg border border-white/10 bg-[#0F1012] px-3 py-2 text-[11px] text-slate-200 shadow-sm shadow-black/20">
                   <div className="flex items-center justify-between gap-2">
                     <span className="flex items-center gap-2 font-semibold text-white">
                       <span className="h-2 w-2 rounded-full bg-emerald-400" /> Lane focus
@@ -380,7 +380,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                     ) : null}
                   </div>
                   <p className="mt-1 line-clamp-1 text-[12px] font-semibold text-white">{laneFocusName}</p>
-                  <p className="text-[11px] text-slate-400">Keep momentum by clearing this first.</p>
+                  <p className="text-[11px] text-slate-400">Clear this first to unlock the lane.</p>
                 </div>
               ) : null}
               <div className="space-y-3">
@@ -446,22 +446,25 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-2 text-[11px] text-slate-300">
-                        <div className="rounded-lg border border-white/5 bg-white/5 p-2">
-                          <p className="text-[10px] uppercase tracking-wide text-slate-500">ICP fit</p>
-                          <p className="text-sm font-semibold text-white">{project.icpScore ?? "–"}</p>
-                        </div>
-                        <div className="rounded-lg border border-white/5 bg-white/5 p-2">
-                          <p className="text-[10px] uppercase tracking-wide text-slate-500">MQA</p>
-                          <p className="text-sm font-semibold text-white">{project.mqaScore ?? "–"}</p>
-                        </div>
-                        <div className="rounded-lg border border-white/5 bg-white/5 p-2">
-                          <p className="text-[10px] uppercase tracking-wide text-slate-500">Momentum</p>
-                          <p className={`flex items-center gap-1 text-xs ${project.hasOverdueSequenceStep ? "text-red-100" : "text-emerald-100"}`}>
-                            <span className={`h-2 w-2 rounded-full ${urgency.color}`} />
-                            {urgency.label}
-                          </p>
-                        </div>
+                      <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
+                        <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2 py-1">
+                          <span className="text-[10px] uppercase tracking-wide text-slate-400">ICP</span>
+                          <span className="text-sm font-semibold text-white">{project.icpScore ?? "–"}</span>
+                        </span>
+                        <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2 py-1">
+                          <span className="text-[10px] uppercase tracking-wide text-slate-400">MQA</span>
+                          <span className="text-sm font-semibold text-white">{project.mqaScore ?? "–"}</span>
+                        </span>
+                        <span
+                          className={`inline-flex items-center gap-2 rounded-full border px-2 py-1 ${
+                            project.hasOverdueSequenceStep
+                              ? "border-red-500/40 bg-red-500/10 text-red-100"
+                              : "border-emerald-400/20 bg-emerald-500/10 text-emerald-100"
+                          }`}
+                        >
+                          <span className={`h-2 w-2 rounded-full ${urgency.color}`} />
+                          {urgency.label}
+                        </span>
                       </div>
 
                       <div className="space-y-2 rounded-lg border border-white/5 bg-[#0B0D10]/80 p-3 shadow-inner shadow-black/20">

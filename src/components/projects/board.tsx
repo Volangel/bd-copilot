@@ -111,6 +111,24 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
     return { label: diffDays <= 7 ? `In ${diffDays}d` : "Scheduled", color: "bg-teal-500" };
   };
 
+  const laneSnapshot = (items: BoardProject[]) => {
+    const hot = items.filter((p) => (p.icpScore ?? 0) >= 80).length;
+    const missingNext = items.filter((p) => !p.nextSequenceStepDueAt).length;
+    const overdue = items.filter((p) => p.hasOverdueSequenceStep).length;
+    return { hot, missingNext, overdue };
+  };
+
+  const priorityPick = (items: BoardProject[]) => {
+    if (items.length === 0) return null;
+    const overdue = items.find((p) => p.hasOverdueSequenceStep);
+    if (overdue) return overdue;
+    const nextByDate = items
+      .filter((p) => !!p.nextSequenceStepDueAt)
+      .sort((a, b) => (a.nextSequenceStepDueAt && b.nextSequenceStepDueAt ? a.nextSequenceStepDueAt.getTime() - b.nextSequenceStepDueAt.getTime() : 0));
+    if (nextByDate.length > 0) return nextByDate[0];
+    return items[0];
+  };
+
   const icpBadgeVariant = (icp?: number | null) => {
     if (icp === null || icp === undefined) return "neutral";
     if (icp >= 75) return "success";
@@ -305,34 +323,68 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
         </div>
       </div>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-        {grouped.map((column) => (
-          <div
-            key={column.status}
-            className={`group relative min-h-[420px] rounded-2xl border border-[#232527] bg-gradient-to-b ${
-              statusAccent[column.status]
-            } p-3 shadow-[0_15px_40px_rgba(0,0,0,0.35)] ${draggingId ? "ring-1 ring-emerald-500/30" : ""} ${
-              hoveredStatus === column.status ? "border-emerald-400/50 shadow-emerald-500/10" : ""
-            }`}
-            onDragOver={(e) => e.preventDefault()}
-            onDragEnter={() => setHoveredStatus(column.status)}
-            onDragLeave={() => setHoveredStatus(null)}
-            onDrop={() => {
-              onDrop(column.status);
-              setHoveredStatus(null);
-            }}
-          >
-            <div className="mb-2 flex items-center justify-between gap-2 rounded-xl border border-white/5 bg-white/5 px-3 py-2 text-xs uppercase tracking-wide text-slate-300 shadow-inner shadow-black/30">
-              <div className="space-y-0.5">
-                <span className="text-white">{column.status.replace(/_/g, " ")}</span>
-                <p className="text-[11px] text-slate-400">{helperByStatus[column.status] || ""}</p>
+        {grouped.map((column) => {
+          const stats = laneSnapshot(column.items);
+          const laneFocus = priorityPick(column.items);
+          const laneFocusName = laneFocus ? deriveName(laneFocus.name, laneFocus.url) : null;
+          const laneFocusUrgency = laneFocus ? urgencyLabel(laneFocus.nextSequenceStepDueAt || undefined) : null;
+
+          return (
+            <div
+              key={column.status}
+              className={`group relative min-h-[420px] rounded-2xl border border-[#232527] bg-gradient-to-b ${
+                statusAccent[column.status]
+              } p-3 shadow-[0_15px_40px_rgba(0,0,0,0.35)] ${draggingId ? "ring-1 ring-emerald-500/30" : ""} ${
+                hoveredStatus === column.status ? "border-emerald-400/50 shadow-emerald-500/10" : ""
+              }`}
+              onDragOver={(e) => e.preventDefault()}
+              onDragEnter={() => setHoveredStatus(column.status)}
+              onDragLeave={() => setHoveredStatus(null)}
+              onDrop={() => {
+                onDrop(column.status);
+                setHoveredStatus(null);
+              }}
+            >
+              <div className="mb-2 flex items-center justify-between gap-2 rounded-xl border border-white/5 bg-white/5 px-3 py-2 text-xs uppercase tracking-wide text-slate-300 shadow-inner shadow-black/30">
+                <div className="space-y-0.5">
+                  <span className="text-white">{column.status.replace(/_/g, " ")}</span>
+                  <p className="text-[11px] text-slate-400">{helperByStatus[column.status] || ""}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full border border-[#232527] bg-[#181A1C] px-2 py-0.5 text-slate-200">{column.items.length}</span>
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-slate-300">{sortMode === "icp" ? "ICP" : "Next"}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="rounded-full border border-[#232527] bg-[#181A1C] px-2 py-0.5 text-slate-200">{column.items.length}</span>
-                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-slate-300">{sortMode === "icp" ? "ICP" : "Next"}</span>
+              <div className="mb-2 flex flex-wrap gap-2 text-[11px]">
+                <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2 py-1 text-emerald-100">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400" /> Hot fit: {stats.hot}
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-500/10 px-2 py-1 text-amber-100">
+                  <span className="h-2 w-2 rounded-full bg-amber-300" /> Missing next: {stats.missingNext}
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full border border-red-400/30 bg-red-500/10 px-2 py-1 text-red-100">
+                  <span className="h-2 w-2 rounded-full bg-red-300" /> Overdue: {stats.overdue}
+                </span>
               </div>
-            </div>
-            <div className="space-y-3">
-              {column.items.map((project) => {
+              {laneFocus ? (
+                <div className="mb-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px] text-slate-200 shadow-inner shadow-black/20">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-2 font-semibold text-white">
+                      <span className="h-2 w-2 rounded-full bg-emerald-400" /> Lane focus
+                    </span>
+                    {laneFocusUrgency ? (
+                      <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 ${laneFocusUrgency.color === "bg-red-500" ? "border-red-400/60 bg-red-500/10 text-red-100" : "border-emerald-400/40 bg-emerald-500/10 text-emerald-100"}`}>
+                        <span className={`h-2 w-2 rounded-full ${laneFocusUrgency.color}`} />
+                        {laneFocusUrgency.label}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="mt-1 line-clamp-1 text-[12px] font-semibold text-white">{laneFocusName}</p>
+                  <p className="text-[11px] text-slate-400">Keep momentum by clearing this first.</p>
+                </div>
+              ) : null}
+              <div className="space-y-3">
+                {column.items.map((project) => {
                 const urgency = urgencyLabel(project.nextSequenceStepDueAt || undefined);
                 const name = deriveName(project.name, project.url);
                 const domain = deriveDomain(project.url);
@@ -453,7 +505,8 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
               ) : null}
             </div>
           </div>
-        ))}
+        );
+      })}
       </div>
     </div>
   );

@@ -11,49 +11,109 @@ const navGroups: NavGroup[] = [
   {
     label: "Today",
     mode: "other",
-    items: [{ href: "/today", label: "Today" }],
+    items: [
+      {
+        href: "/today",
+        label: "Today",
+        description: "Curated agenda, priorities, and blockers in one glance.",
+      },
+    ],
   },
   {
     label: "Discover",
     mode: "discover",
     items: [
-      { href: "/radar", label: "Radar" },
-      { href: "/leads/review", label: "Lead Review" },
-      { href: "/discover/scan", label: "Scan & Discover" },
-      { href: "/settings/watchlist", label: "Watchlist" },
+      {
+        href: "/radar",
+        label: "Radar",
+        badge: "Live",
+        description: "Signal dashboard with ecosystem alerts tuned to your org.",
+      },
+      {
+        href: "/leads/review",
+        label: "Lead Review",
+        description: "AI-first triage that scores inbound opportunities instantly.",
+      },
+      {
+        href: "/discover/scan",
+        label: "Scan & Discover",
+        badge: "Beta",
+        description: "Deep reconnaissance across chains, teams, and key milestones.",
+      },
+      {
+        href: "/settings/watchlist",
+        label: "Watchlist",
+        description: "Follow high-intent projects with health metrics and nudges.",
+      },
     ],
   },
   {
     label: "Pipeline",
     mode: "pipeline",
     items: [
-      { href: "/projects", label: "Accounts" },
-      { href: "/projects/board", label: "Board" },
-      { href: "/projects/import", label: "Import Projects" },
+      {
+        href: "/projects",
+        label: "Accounts",
+        description: "Single source of truth with context-aware profiles.",
+      },
+      {
+        href: "/projects/board",
+        label: "Board",
+        description: "Kanban flow with focus lanes, SLAs, and momentum cues.",
+      },
+      {
+        href: "/projects/import",
+        label: "Import Projects",
+        description: "Fast CSV & API imports with smart field mapping.",
+      },
     ],
   },
   {
     label: "Execute",
     mode: "execute",
     items: [
-      { href: "/session", label: "Session Mode" },
-      { href: "/tools/quick-capture", label: "Quick Capture" },
+      {
+        href: "/session",
+        label: "Session Mode",
+        description: "Guided work sprints with AI copiloting and timers.",
+      },
+      {
+        href: "/tools/quick-capture",
+        label: "Quick Capture",
+        description: "Drop in thoughts, calls, and intel without breaking focus.",
+      },
     ],
   },
   {
     label: "Playbooks",
     mode: "other",
     items: [
-      { href: "/settings/playbooks", label: "Playbooks" },
-      { href: "/templates", label: "Templates" },
+      {
+        href: "/settings/playbooks",
+        label: "Playbooks",
+        description: "Reusable operating rituals with embedded AI actions.",
+      },
+      {
+        href: "/templates",
+        label: "Templates",
+        description: "Ready-to-run cadences, briefs, and follow-up frameworks.",
+      },
     ],
   },
   {
     label: "Settings",
     mode: "other",
     items: [
-      { href: "/settings", label: "Settings" },
-      { href: "/billing", label: "Billing" },
+      {
+        href: "/settings",
+        label: "Settings",
+        description: "Team, auth, and integration controls in one place.",
+      },
+      {
+        href: "/billing",
+        label: "Billing",
+        description: "Manage seats, usage, and plan details with transparency.",
+      },
     ],
   },
 ];

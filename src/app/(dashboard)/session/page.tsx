@@ -22,7 +22,7 @@ export default async function SessionPage() {
 
   if (!candidate) {
     return (
-      <div className="flex flex-col gap-6 px-8 py-10 md:py-12 lg:px-10 xl:max-w-6xl xl:mx-auto">
+      <>
         <PageHeader title="Session Mode" description="No contacts need action right now." mode="execute" />
         <EmptyState
           title="No pending steps"
@@ -35,7 +35,7 @@ export default async function SessionPage() {
           <SectionHeader title="Sequences" />
           <SequenceMode />
         </Card>
-      </div>
+      </>
     );
   }
 
@@ -83,7 +83,7 @@ export default async function SessionPage() {
     .slice(0, 4);
 
   return (
-    <div className="flex flex-col gap-8 px-8 py-10 md:py-12 lg:px-10 xl:max-w-6xl xl:mx-auto">
+    <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <PageHeader title="Session Mode" description="Work through the next best contact with focused outreach." mode="execute" />
         <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
@@ -248,6 +248,6 @@ export default async function SessionPage() {
           </div>
         </Card>
       </div>
-    </div>
+    </>
   );
 }

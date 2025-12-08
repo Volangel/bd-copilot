@@ -96,7 +96,7 @@ export default async function ProjectWorkspace({
   }
   const selectedContact = project.contacts.find((c) => c.id === selectedContactId) || project.contacts[0] || null;
   return (
-    <div className="flex flex-col gap-8 px-8 py-10 md:py-12 lg:px-10 xl:max-w-6xl xl:mx-auto">
+    <>
       <PageHeader
         title="Account Workspace"
         description="Work this account end-to-end: context, contacts, sequences, interactions."
@@ -383,6 +383,6 @@ export default async function ProjectWorkspace({
           </Card>
         </div>
       </div>
-    </div>
+    </>
   );
 }

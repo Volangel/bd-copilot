@@ -64,7 +64,7 @@ export default async function RadarPage() {
 
   if (allOpps.length === 0) {
     return (
-      <div className="flex flex-col gap-8 px-8 py-10 md:py-12 lg:px-10 xl:max-w-6xl xl:mx-auto">
+      <>
         <PageHeader title="Lead Radar" description="Ranked opportunities by lead score, ICP fit, and signals." mode="discover" />
         <Card className="rounded-xl border border-white/10 bg-[#0F1012] px-6 py-8 shadow-lg shadow-black/20">
           <div className="flex flex-col items-center justify-center text-center space-y-3">
@@ -84,12 +84,12 @@ export default async function RadarPage() {
             </div>
           </div>
         </Card>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="flex flex-col gap-8 px-8 py-10 md:py-12 lg:px-10 xl:max-w-6xl xl:mx-auto">
+    <>
       <PageHeader
         title="Lead Radar"
         description="Ranked opportunities by lead score, ICP fit, and signals."
@@ -238,6 +238,6 @@ export default async function RadarPage() {
           </tbody>
         </Table>
       </Card>
-    </div>
+    </>
   );
 }

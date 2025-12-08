@@ -154,7 +154,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           <ModeSelector />
           <SidebarNav groups={navGroups} />
         </div>
-        <PageContainer className="lg:py-10">{children}</PageContainer>
+        <PageContainer>{children}</PageContainer>
       </div>
     </div>
   );

@@ -54,7 +54,7 @@ export default async function ContactWorkbench({ params }: { params: { id: strin
   const playbooks = await prisma.playbook.findMany({ where: { userId: session.user.id }, orderBy: { createdAt: "desc" } });
 
   return (
-    <div className="flex flex-col gap-8 px-8 py-10 md:py-12 lg:px-10 xl:max-w-6xl xl:mx-auto">
+    <>
       <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
         Contact Workbench now lives inside the Account Workspace.{" "}
         <Link href={`/projects/${project.id}/workspace`} className="text-emerald-200 underline">
@@ -160,6 +160,6 @@ export default async function ContactWorkbench({ params }: { params: { id: strin
           </Card>
         </div>
       </div>
-    </div>
+    </>
   );
 }

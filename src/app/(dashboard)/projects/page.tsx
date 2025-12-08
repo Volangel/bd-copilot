@@ -108,7 +108,7 @@ export default async function ProjectsPage({
   ];
 
   return (
-    <div className="flex flex-col gap-8 px-8 py-10 md:py-12 lg:px-10 xl:max-w-6xl xl:mx-auto">
+    <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <PageHeader
           title="Accounts"
@@ -323,6 +323,6 @@ export default async function ProjectsPage({
           </Table>
         </Card>
       )}
-    </div>
+    </>
   );
 }

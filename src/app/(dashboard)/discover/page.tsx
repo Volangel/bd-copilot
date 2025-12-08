@@ -94,7 +94,7 @@ export default async function DiscoverPage({
   if (sortParam && sortParam !== "mqa") sharedParams.set("sort", sortParam);
 
   return (
-    <div className="flex flex-col gap-8 px-8 py-10 md:py-12 lg:px-10 xl:max-w-6xl xl:mx-auto">
+    <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <PageHeader title="Discovery Feed" description="Ranked opportunities from scans. Convert or discard." mode="discover" />
         <Link
@@ -287,6 +287,6 @@ export default async function DiscoverPage({
           </div>
         ) : null}
       </div>
-    </div>
+    </>
   );
 }

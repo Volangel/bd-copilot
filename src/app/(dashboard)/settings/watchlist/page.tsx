@@ -35,7 +35,7 @@ export default async function WatchlistPage() {
   const addAction = addWatchlist.bind(null, userId);
 
   return (
-    <div className="flex flex-col gap-6 px-8 py-10 md:py-12 lg:px-10 xl:max-w-5xl xl:mx-auto">
+    <>
       <PageHeader title="Watchlist URLs" description="Curate sources to scan regularly (news pages, listings, etc.)." mode="discover" />
 
       <Card className="rounded-xl border border-white/10 bg-[#0F1012] px-6 py-5 shadow-lg shadow-black/20">
@@ -103,6 +103,6 @@ export default async function WatchlistPage() {
           </Table>
         )}
       </Card>
-    </div>
+    </>
   );
 }

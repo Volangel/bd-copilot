@@ -138,7 +138,7 @@ export default async function TodayPage() {
         : "Nothing urgent in the queue. Use the quick actions to keep momentum.";
 
   return (
-    <div className="flex flex-col gap-8 px-8 py-10 md:py-12 lg:px-10 xl:mx-auto xl:max-w-6xl">
+    <>
       <PageHeader
         title="Today"
         description="Top priorities for your BD workflow."
@@ -365,6 +365,6 @@ export default async function TodayPage() {
           nextSequenceStepDueAt: p.nextSequenceStepDueAt,
         }))}
       />
-    </div>
+    </>
   );
 }

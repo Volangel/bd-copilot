@@ -115,6 +115,8 @@ export default async function TodayPage() {
   const quickActions = [
     { label: "Add project", href: "/projects" },
     { label: "Scan leads", href: "/discover/scan" },
+    { label: "Create playbook", href: "/settings/playbooks" },
+    { label: "Add watchlist URL", href: "/settings/watchlist" },
     { label: "Session mode", href: "/session", tone: "primary" },
   ];
 
@@ -160,16 +162,38 @@ export default async function TodayPage() {
         }
       />
 
-      <Card className="flex flex-col gap-3 border-white/10 bg-gradient-to-r from-emerald-500/10 via-transparent to-transparent p-6 md:flex-row md:items-center md:justify-between">
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Focus for today</p>
-          <p className="text-lg font-semibold text-white">{focusTarget ? focusLabel : "You’re caught up"}</p>
-          <p className="text-sm text-[var(--text-secondary)]">{focusSummary}</p>
+      <Card className="flex flex-col gap-4 border-white/10 bg-gradient-to-r from-emerald-500/10 via-transparent to-transparent p-6 md:flex-row md:items-center md:justify-between">
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Focus for today</p>
+            {focusTarget ? (
+              <span
+                className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
+                  topOverdue[0]
+                    ? "bg-red-500/15 text-red-100"
+                    : nextStep
+                      ? "bg-amber-400/15 text-amber-100"
+                      : opportunities[0]
+                        ? "bg-blue-500/15 text-blue-100"
+                        : "bg-white/10 text-white"
+                }`}
+              >
+                {focusLabel}
+              </span>
+            ) : null}
+          </div>
+          <p className="text-lg font-semibold text-white">{focusTarget ? focusSummary : "You’re caught up"}</p>
           <div className="flex flex-wrap gap-2 text-[11px] text-[var(--text-tertiary)]">
             <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">Overdue: {stats[0].value}</span>
             <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">Due today: {stats[1].value}</span>
             <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">New opps: {stats[2].value}</span>
           </div>
+          {nextStep ? (
+            <div className="flex items-center gap-2 text-xs text-[var(--text-tertiary)]">
+              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1">Next step #{nextStep.stepNumber}</span>
+              <span>{nextStep.scheduledAt ? `Scheduled ${formatDate(nextStep.scheduledAt)}` : "Ready to schedule"}</span>
+            </div>
+          ) : null}
         </div>
         <div className="flex flex-col items-start gap-3 text-sm md:items-end">
           <Link
@@ -178,7 +202,12 @@ export default async function TodayPage() {
           >
             {focusCta.label}
           </Link>
-          {nextStep ? <p className="text-xs text-[var(--text-tertiary)]">Next touch {formatDate(nextStep.scheduledAt)}</p> : null}
+          <Link
+            href="/session"
+            className="text-xs text-emerald-300 underline-offset-2 hover:text-emerald-200 hover:underline"
+          >
+            Start with AI draft
+          </Link>
         </div>
       </Card>
 
@@ -218,9 +247,9 @@ export default async function TodayPage() {
       )}
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        <MetricsCard title="Overdue follow-ups" value={stats[0].value} helper="Across all projects" accent="danger" />
-        <MetricsCard title="Due today" value={stats[1].value} helper="Touches scheduled for today" accent="warning" />
-        <MetricsCard title="New leads to review" value={stats[2].value} helper="Lead review queue" accent="neutral" />
+        <MetricsCard title="Overdue follow-ups" value={stats[0].value} helper="Across all projects" accent="danger" cta={{ label: "Open Session", href: "/session" }} />
+        <MetricsCard title="Due today" value={stats[1].value} helper="Touches scheduled for today" accent="warning" cta={{ label: "Plan day", href: "/session" }} />
+        <MetricsCard title="New leads to review" value={stats[2].value} helper="Lead review queue" accent="neutral" cta={{ label: "Open Radar", href: "/radar" }} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">

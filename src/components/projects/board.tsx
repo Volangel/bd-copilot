@@ -6,6 +6,7 @@ import { Project } from "@prisma/client";
 import { PROJECT_STATUSES, formatDate } from "@/lib/utils";
 import { Toast } from "@/components/ui/toast";
 import { Badge } from "@/components/ui/badge";
+import { parseJsonString } from "@/lib/parsers";
 
 function StatusSelect({
   projectId,
@@ -80,6 +81,22 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
     } catch {
       return url;
     }
+  };
+
+  const deriveTags = (raw?: string | null) => {
+    const parsed = parseJsonString<string[]>(raw || null, []);
+    if (parsed.length > 0) return parsed;
+    if (!raw) return [];
+    return raw
+      .split(/[,;]+/)
+      .map((t) => t.trim())
+      .filter(Boolean);
+  };
+
+  const deriveSummary = (project: Project) => {
+    const summary = project.summary || project.painPoints || project.playbookSummary || project.stage || project.targetUsers;
+    if (!summary) return "Add a quick summary so anyone can scan this account.";
+    return summary.length > 160 ? `${summary.slice(0, 157)}…` : summary;
   };
 
   const urgencyLabel = (nextSequenceStepDueAt?: Date | null) => {
@@ -321,117 +338,108 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                 const domain = deriveDomain(project.url);
                 const missingNext = !project.nextSequenceStepDueAt;
                 const isDraggingCard = draggingId === project.id;
-                const icpPercent = Math.min(Math.max(project.icpScore ?? 0, 0), 100);
                 const cardAccent = project.hasOverdueSequenceStep
                   ? "border-red-500/40 shadow-red-500/10"
                   : missingNext
                     ? "border-amber-500/40 shadow-amber-500/10"
-                    : "border-[#232527] shadow-black/30";
+                    : "border-[#1F2529] shadow-black/30";
+                const tags = deriveTags(project.categoryTags);
+                const summary = deriveSummary(project);
                 return (
                   <div
                     key={project.id}
                     draggable
                     onDragStart={() => onDragStart(project.id)}
-                    className={`relative overflow-hidden rounded-xl border bg-gradient-to-br from-[#0F1114] via-[#0B0C0F] to-[#0B0C0E] p-4 backdrop-blur transition-all duration-150 ease-out hover:-translate-y-[3px] hover:shadow-2xl ${cardAccent} ${
+                    className={`relative overflow-hidden rounded-xl border bg-[#0F1114] p-3 transition-all duration-150 ease-out hover:-translate-y-[2px] hover:shadow-xl ${cardAccent} ${
                       isDraggingCard
                         ? "ring-2 ring-emerald-400/60 shadow-emerald-500/20"
-                        : "shadow-[0_8px_20px_rgba(0,0,0,0.45)]"
+                        : "shadow-[0_8px_16px_rgba(0,0,0,0.35)]"
                     }`}
                   >
-                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(52,211,153,0.15),_transparent_55%)]" />
-                    <div className="pointer-events-none absolute left-0 top-0 h-full w-[3px] bg-gradient-to-b from-emerald-400 via-cyan-400 to-blue-400" />
                     <div className="relative space-y-3">
-                      <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3">
-                          <div className="relative">
-                            <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-emerald-500/40 via-cyan-400/30 to-blue-400/30 blur" />
-                            <div className="relative flex h-10 w-10 items-center justify-center rounded-full border border-emerald-400/40 bg-[#0B0D10] text-xs font-semibold uppercase text-emerald-100 shadow-inner shadow-emerald-500/20">
-                              {name.slice(0, 2).toUpperCase()}
-                            </div>
+                          <div className="relative h-9 w-9 rounded-full border border-emerald-400/40 bg-[#0B0D10] text-[11px] font-semibold uppercase text-emerald-100 shadow-inner shadow-emerald-500/20">
+                            <div className="absolute -inset-[1px] rounded-full bg-gradient-to-br from-emerald-500/20 via-cyan-400/10 to-blue-400/20 blur" />
+                            <div className="relative flex h-full w-full items-center justify-center">{name.slice(0, 2).toUpperCase()}</div>
                           </div>
                           <div className="space-y-1">
                             <Link
                               href={`/projects/${project.id}/workspace`}
-                              className="text-sm font-semibold text-emerald-50 transition hover:text-emerald-200"
+                              className="block text-sm font-semibold text-white transition hover:text-emerald-200"
                             >
                               {name}
                             </Link>
-                            <p className="inline-flex items-center gap-2 rounded-full bg-white/5 px-2 py-1 text-[11px] text-slate-400 ring-1 ring-white/5">
-                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                              {domain || "No domain"}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="neutral" className="bg-white/10 text-[10px] uppercase tracking-wide text-slate-200">
-                            {project.status.replace(/_/g, " ")}
-                          </Badge>
-                          <span className="cursor-grab rounded-full border border-white/10 bg-[#181A1C] px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-slate-500 shadow-inner shadow-black/20">
-                            Move
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-2 text-[11px]">
-                        <Badge variant={icpBadgeVariant(project.icpScore)} className="bg-white/5 px-2 py-1">
-                          ICP {project.icpScore ?? "-"}
-                        </Badge>
-                        {missingNext ? <Badge variant="warning">Missing next touch</Badge> : null}
-                        {project.hasOverdueSequenceStep ? <Badge variant="error">Overdue</Badge> : null}
-                        {!project.hasOverdueSequenceStep && !missingNext ? (
-                          <Badge variant="success" className="bg-emerald-500/10 text-emerald-100">
-                            On track
-                          </Badge>
-                        ) : null}
-                      </div>
-
-                      <div className="space-y-2 rounded-lg border border-white/5 bg-[#0D0F11]/70 p-3 shadow-inner shadow-black/30">
-                        <div className="grid grid-cols-2 gap-3 text-[11px] text-slate-400">
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between">
-                              <span className="uppercase tracking-wide">ICP fit</span>
-                              <span className="font-semibold text-slate-200">{icpPercent}%</span>
-                            </div>
-                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#181A1C]">
-                              <div
-                                className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-500"
-                                style={{ width: `${icpPercent}%` }}
-                              />
-                            </div>
-                          </div>
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between">
-                              <span className="uppercase tracking-wide">Momentum</span>
-                              <span className={`flex items-center gap-1 text-[10px] ${project.hasOverdueSequenceStep ? "text-red-200" : "text-emerald-200"}`}>
-                                <span className={`h-2 w-2 rounded-full ${urgency.color}`} />
-                                {urgency.label}
+                            <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+                              <span className="truncate max-w-[180px]">{domain || "No domain"}</span>
+                              <span className="h-1 w-1 rounded-full bg-slate-600" />
+                              <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-wide text-slate-300">
+                                {project.status.replace(/_/g, " ")}
                               </span>
                             </div>
-                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#181A1C]">
-                              <div
-                                className={`h-full rounded-full ${project.hasOverdueSequenceStep ? "bg-gradient-to-r from-red-400 via-amber-400 to-amber-200" : "bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-400"}`}
-                                style={{ width: project.hasOverdueSequenceStep ? "100%" : `${Math.max(icpPercent, 35)}%` }}
-                              />
-                            </div>
                           </div>
                         </div>
-                        <div className="grid gap-2 rounded-md border border-white/5 bg-[#0B0D10] px-3 py-2 text-xs text-slate-300 md:grid-cols-[1.3fr_auto]">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className={`flex items-center gap-2 rounded-full px-2 py-1 text-[11px] ${project.nextSequenceStepDueAt ? "bg-white/5" : "bg-amber-500/10 text-amber-100"}`}>
-                              <span className={`h-2 w-2 rounded-full ${urgency.color}`} />
-                              {project.nextSequenceStepDueAt ? `Next touch by ${formatDate(project.nextSequenceStepDueAt)}` : "Add next touch"}
-                            </span>
-                            <span className="rounded-full bg-white/5 px-2 py-1 text-[11px] text-slate-400">ICP priority {sortMode === "icp" ? "(sorted)" : ""}</span>
+                        <div className="flex flex-col items-end gap-2 text-[11px] text-slate-300">
+                          <span
+                            className={`inline-flex items-center gap-2 rounded-full px-2 py-1 ${
+                              project.hasOverdueSequenceStep
+                                ? "border border-red-500/40 bg-red-500/10 text-red-100"
+                                : "border border-white/10 bg-white/5"
+                            }`}
+                          >
+                            <span className={`h-2 w-2 rounded-full ${urgency.color}`} />
+                            {project.nextSequenceStepDueAt ? `Next by ${formatDate(project.nextSequenceStepDueAt)}` : "Add next touch"}
+                          </span>
+                          <StatusSelect projectId={project.id} status={project.status} onChange={(val) => handleStatusChange(project.id, val)} />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 text-[11px] text-slate-300">
+                        <div className="rounded-lg border border-white/5 bg-white/5 p-2">
+                          <p className="text-[10px] uppercase tracking-wide text-slate-500">ICP fit</p>
+                          <p className="text-sm font-semibold text-white">{project.icpScore ?? "–"}</p>
+                        </div>
+                        <div className="rounded-lg border border-white/5 bg-white/5 p-2">
+                          <p className="text-[10px] uppercase tracking-wide text-slate-500">MQA</p>
+                          <p className="text-sm font-semibold text-white">{project.mqaScore ?? "–"}</p>
+                        </div>
+                        <div className="rounded-lg border border-white/5 bg-white/5 p-2">
+                          <p className="text-[10px] uppercase tracking-wide text-slate-500">Momentum</p>
+                          <p className={`flex items-center gap-1 text-xs ${project.hasOverdueSequenceStep ? "text-red-100" : "text-emerald-100"}`}>
+                            <span className={`h-2 w-2 rounded-full ${urgency.color}`} />
+                            {urgency.label}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 rounded-lg border border-white/5 bg-[#0B0D10]/80 p-3 shadow-inner shadow-black/20">
+                        <p className="text-xs text-slate-200 line-clamp-2">{summary}</p>
+                        {tags.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {tags.slice(0, 4).map((tag) => (
+                              <span key={tag} className="rounded-full bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-100">
+                                {tag}
+                              </span>
+                            ))}
+                            {tags.length > 4 ? (
+                              <span className="rounded-full bg-white/5 px-2 py-1 text-[11px] text-slate-300">+{tags.length - 4} more</span>
+                            ) : null}
                           </div>
-                          <div className="flex flex-wrap items-center justify-end gap-2 text-[11px] text-slate-400">
-                            <Link
-                              href={`/projects/${project.id}/workspace`}
-                              className="rounded border border-white/10 px-2 py-1 text-emerald-200 transition hover:border-emerald-300 hover:bg-emerald-500/10"
-                            >
-                              Open workspace
-                            </Link>
-                            <StatusSelect projectId={project.id} status={project.status} onChange={(val) => handleStatusChange(project.id, val)} />
+                        ) : null}
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400">
+                          <div className="flex flex-wrap gap-2">
+                            <Badge variant={icpBadgeVariant(project.icpScore)} className="bg-white/5 px-2 py-1">
+                              ICP {project.icpScore ?? "-"}
+                            </Badge>
+                            {missingNext ? <Badge variant="warning">Missing next touch</Badge> : null}
+                            {project.hasOverdueSequenceStep ? <Badge variant="error">Overdue</Badge> : null}
                           </div>
+                          <Link
+                            href={`/projects/${project.id}/workspace`}
+                            className="rounded border border-white/10 px-2 py-1 text-emerald-200 transition hover:border-emerald-300 hover:bg-emerald-500/10"
+                          >
+                            Open workspace
+                          </Link>
                         </div>
                       </div>
                     </div>

@@ -40,6 +40,7 @@ export default function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const gPressed = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const filtered = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -47,12 +48,18 @@ export default function CommandPalette() {
     return commands.filter((cmd) => cmd.label.toLowerCase().includes(normalizedQuery));
   }, [query]);
 
+  const featured = useMemo(() => commands.filter((cmd) => cmd.shortcut), []);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const meta = e.metaKey || e.ctrlKey;
       if (meta && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setOpen((prev) => !prev);
+      }
+      if (open && e.key === "Escape") {
+        e.preventDefault();
+        setOpen(false);
       }
     };
 
@@ -77,13 +84,20 @@ export default function CommandPalette() {
       gPressed.current = false;
     };
 
+    const openEventHandler = () => setOpen(true);
+    const closeEventHandler = () => setOpen(false);
+
     window.addEventListener("keydown", handler);
     window.addEventListener("keydown", comboHandler);
+    document.addEventListener("open-command-palette", openEventHandler);
+    document.addEventListener("close-command-palette", closeEventHandler);
     return () => {
       window.removeEventListener("keydown", handler);
       window.removeEventListener("keydown", comboHandler);
+      document.removeEventListener("open-command-palette", openEventHandler);
+      document.removeEventListener("close-command-palette", closeEventHandler);
     };
-  }, [router]);
+  }, [open, router]);
 
   const activate = (action: string) => {
     router.push(action);
@@ -94,29 +108,83 @@ export default function CommandPalette() {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4">
-      <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-950 p-4 shadow-2xl">
-        <input
-          autoFocus
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Type a command..."
-          className="w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-white"
-        />
-        <div className="mt-3 max-h-64 space-y-1 overflow-auto">
-          {filtered.map((cmd) => (
-            <button
-              key={cmd.label}
-              onClick={() => activate(cmd.action)}
-              className="flex w-full items-center justify-between rounded-lg border border-transparent px-3 py-2 text-left text-sm text-slate-200 hover:border-slate-700"
-            >
-              <span>{cmd.label}</span>
-              {cmd.shortcut ? <span className="text-xs text-slate-500">{cmd.shortcut}</span> : null}
-            </button>
-          ))}
-          {filtered.length === 0 ? <p className="text-xs text-slate-500">No commands</p> : null}
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 p-4 backdrop-blur" ref={containerRef}>
+      <div className="w-full max-w-2xl rounded-3xl border border-white/10 bg-[var(--bg-secondary)]/95 p-5 shadow-[0_32px_120px_rgba(0,0,0,0.55)]">
+        <div className="flex flex-col gap-3 border-b border-white/5 pb-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--accent-primary)]">Command palette</p>
+            <p className="text-lg font-semibold text-white">Navigate faster with global actions</p>
+            <p className="text-sm text-[var(--text-tertiary)]">Type to filter or use the Go shortcuts (g + key).</p>
+          </div>
+          <div className="flex items-center gap-2 text-[11px] text-[var(--text-tertiary)]">
+            <kbd className="rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-white">⌘ / Ctrl</kbd>
+            <span className="opacity-60">+</span>
+            <kbd className="rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-white">K</kbd>
+            <span className="text-[var(--text-disabled)]">Toggle</span>
+          </div>
         </div>
-        <div className="mt-2 text-right text-xs text-slate-500">Cmd+K / Ctrl+K to close</div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <div className="md:col-span-2">
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Type a command, destination, or action..."
+              className="w-full rounded-xl border border-white/10 bg-[var(--bg-tertiary)] px-3 py-2 text-sm text-white shadow-inner shadow-black/30 focus:border-[var(--accent-primary)] focus:outline-none"
+            />
+            <div className="mt-3 max-h-72 space-y-1 overflow-auto pr-1">
+              {filtered.map((cmd) => (
+                <button
+                  key={cmd.label}
+                  onClick={() => activate(cmd.action)}
+                  className="flex w-full items-center justify-between rounded-lg border border-transparent px-3 py-2 text-left text-sm text-slate-200 transition hover:border-white/10 hover:bg-white/5"
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-primary)]" aria-hidden />
+                    {cmd.label}
+                  </span>
+                  {cmd.shortcut ? (
+                    <span className="text-[11px] text-[var(--text-tertiary)]">{cmd.shortcut}</span>
+                  ) : null}
+                </button>
+              ))}
+              {filtered.length === 0 ? <p className="px-2 py-4 text-xs text-[var(--text-tertiary)]">No commands match your search.</p> : null}
+            </div>
+            <div className="mt-2 flex items-center justify-between text-[11px] text-[var(--text-tertiary)]">
+              <span>Use Esc to close</span>
+              <span>Navigate instantly: type scan, board, playbook ...</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 rounded-2xl border border-white/5 bg-white/5 px-3 py-3 shadow-inner shadow-black/30">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-white">Featured shortcuts</p>
+            <div className="flex flex-wrap gap-2">
+              {featured.map((cmd) => (
+                <button
+                  key={cmd.label}
+                  onClick={() => activate(cmd.action)}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-[var(--bg-tertiary)] px-3 py-1.5 text-xs font-semibold text-white transition hover:border-[var(--accent-primary)]/60 hover:text-[var(--accent-primary)]"
+                >
+                  <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] text-[var(--text-tertiary)]">{cmd.shortcut || "Go"}</span>
+                  {cmd.label}
+                </button>
+              ))}
+            </div>
+            <div className="space-y-1.5 text-[11px] text-[var(--text-tertiary)]">
+              <p className="text-[12px] font-semibold text-white">Go shortcuts</p>
+              <div className="grid grid-cols-2 gap-1">
+                {Object.entries(goShortcuts).map(([key, href]) => (
+                  <div key={key} className="flex items-center justify-between rounded-lg border border-white/5 bg-white/5 px-2 py-1">
+                    <span className="text-white">g {key}</span>
+                    <span className="text-[var(--text-tertiary)]">{href}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="pt-1 text-[11px] text-[var(--text-disabled)]">Press g then the shortcut key to teleport.</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

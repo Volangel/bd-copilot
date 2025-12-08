@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { pickNextSequenceStep } from "@/lib/sequences/nextStep";
 import { sortProjectsByPriority } from "@/lib/pipeline/priority";
 import { formatDate } from "@/lib/utils";
-import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/header";
 import Link from "next/link";
 import { getServerSession } from "next-auth";
@@ -12,7 +11,7 @@ import { MetricsCard } from "./components/MetricsCard";
 import { SectionCard } from "./components/SectionCard";
 import { OnboardingChecklist } from "./components/OnboardingChecklist";
 import { TopPipelineList } from "./components/TopPipelineList";
-import { OpenCommandPaletteButton } from "@/components/ui/open-command-palette-button";
+import { FocusMomentumPanel } from "./components/FocusMomentumPanel";
 
 export default async function TodayPage() {
   const session = await getServerSession(authOptions);
@@ -78,26 +77,31 @@ export default async function TodayPage() {
       label: "Create your ICP profile",
       done: !!icp,
       href: "/settings",
+      preview: "Teach the copilot who you sell to so prioritization matches your ICP.",
     },
     {
       label: "Create your first playbook",
       done: playbooks.length > 0,
       href: "/settings/playbooks",
+      preview: "Launch reusable outreach rituals with AI steps baked in.",
     },
     {
       label: "Add a watchlist URL or scan for leads",
       done: watchlist.length > 0 || opportunities.length > 0,
       href: "/discover/scan",
+      preview: "Drop a URL to monitor or paste intel to generate leads instantly.",
     },
     {
       label: "Create your first project",
       done: projects.length > 0,
       href: "/projects",
+      preview: "Stand up an account with context and contacts in one place.",
     },
     {
       label: "Create your first contact & sequence",
       done: contacts.length > 0 && sequences.length > 0,
       href: firstProject ? `/projects/${firstProject.id}/contact-workbench` : "/projects",
+      preview: "Wire a contact to a sequence so follow-ups are scheduled automatically.",
     },
   ];
   const allOnboardingDone = onboardingSteps.every((s) => s.done);
@@ -141,7 +145,6 @@ export default async function TodayPage() {
       : opportunities[0]
         ? "New lead to review"
         : "Keep momentum";
-  const focusCta = topOverdue[0] || nextStep ? { label: "Open Session", href: "/session" } : { label: "Open Radar", href: "/radar" };
   const focusSummary = topOverdue[0]
     ? `${topOverdue[0].sequence.project.name || topOverdue[0].sequence.project.url} · ${topOverdue[0].channel}`
     : nextStep
@@ -149,6 +152,37 @@ export default async function TodayPage() {
       : opportunities[0]
         ? opportunities[0].title || opportunities[0].url
         : "Nothing urgent in the queue. Use the quick actions to keep momentum.";
+
+  const focusDetailsHref = topOverdue[0]
+    ? "/session"
+    : nextStep
+      ? "/session"
+      : opportunities[0]
+        ? `/leads/review?id=${opportunities[0].id}`
+        : "/today";
+
+  const timeline = [
+    ...topOverdue.map((s) => ({
+      id: `overdue-${s.id}`,
+      title: `${s.sequence.project.name || s.sequence.project.url} · ${s.channel}`,
+      due: s.scheduledAt,
+      type: "overdue" as const,
+      href: "/session",
+    })),
+    ...upcoming.map((s) => ({
+      id: `upcoming-${s.id}`,
+      title: `${s.sequence.project.name || s.sequence.project.url} · ${s.channel}`,
+      due: s.scheduledAt,
+      type: "upcoming" as const,
+      href: "/session",
+    })),
+    ...opportunities.map((o) => ({
+      id: `new-${o.id}`,
+      title: o.title || o.url,
+      type: "new" as const,
+      href: `/leads/review?id=${o.id}`,
+    })),
+  ];
 
   return (
     <>
@@ -175,144 +209,23 @@ export default async function TodayPage() {
         }
       />
 
-      <Card className="flex flex-col gap-4 border-white/10 bg-gradient-to-r from-emerald-500/10 via-transparent to-transparent p-6 md:flex-row md:items-center md:justify-between">
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Focus for today</p>
-            {focusTarget ? (
-              <span
-                className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
-                  topOverdue[0]
-                    ? "bg-red-500/15 text-red-100"
-                    : nextStep
-                      ? "bg-amber-400/15 text-amber-100"
-                      : opportunities[0]
-                        ? "bg-blue-500/15 text-blue-100"
-                        : "bg-white/10 text-white"
-                }`}
-              >
-                {focusLabel}
-              </span>
-            ) : null}
-          </div>
-          <p className="text-lg font-semibold text-white">{focusTarget ? focusSummary : "You’re caught up"}</p>
-          <div className="flex flex-wrap gap-2 text-[11px] text-[var(--text-tertiary)]">
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">Overdue: {stats[0].value}</span>
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">Due today: {stats[1].value}</span>
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">New opps: {stats[2].value}</span>
-          </div>
-          {nextStep ? (
-            <div className="flex items-center gap-2 text-xs text-[var(--text-tertiary)]">
-              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1">Next step #{nextStep.stepNumber}</span>
-              <span>{nextStep.scheduledAt ? `Scheduled ${formatDate(nextStep.scheduledAt)}` : "Ready to schedule"}</span>
-            </div>
-          ) : null}
-        </div>
-        <div className="flex flex-col items-start gap-3 text-sm md:items-end">
-          <Link
-            href={focusCta.href}
-            className="inline-flex items-center gap-2 rounded-full border border-emerald-400/60 bg-emerald-500/10 px-4 py-2 text-emerald-100 transition hover:border-emerald-300 hover:bg-emerald-500/20"
-          >
-            {focusCta.label}
-          </Link>
-          <Link
-            href="/session"
-            className="text-xs text-emerald-300 underline-offset-2 hover:text-emerald-200 hover:underline"
-          >
-            Start with AI draft
-          </Link>
-        </div>
-      </Card>
-
-      <Card className="grid gap-6 md:grid-cols-[1.4fr_1fr]">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-tertiary)]">Momentum pulse</p>
-            <span
-              className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
-                momentumScore >= 80
-                  ? "bg-emerald-500/15 text-emerald-100"
-                  : momentumScore >= 50
-                    ? "bg-amber-400/15 text-amber-100"
-                    : "bg-red-500/15 text-red-100"
-              }`}
-            >
-              {momentumLabel}
-            </span>
-          </div>
-          <div className="flex flex-col gap-3 rounded-2xl border border-white/5 bg-white/5 p-4 shadow-inner shadow-black/30">
-            <div className="flex items-center gap-4">
-              <div className="flex-1 overflow-hidden rounded-full bg-white/5">
-                <div
-                  className="h-3 rounded-full bg-gradient-to-r from-emerald-400 via-emerald-300 to-cyan-300 shadow-[0_10px_40px_rgba(16,185,129,0.4)]"
-                  style={{ width: `${momentumScore}%` }}
-                />
-              </div>
-              <div className="text-right">
-                <p className="text-3xl font-semibold leading-tight text-white">{momentumScore}%</p>
-                <p className="text-xs text-[var(--text-tertiary)]">Momentum for today</p>
-              </div>
-            </div>
-            <p className="text-sm text-[var(--text-secondary)]">{momentumCopy}</p>
-            <div className="flex flex-wrap gap-2 text-[11px] text-[var(--text-tertiary)]">
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">Overdue: {stats[0].value}</span>
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">Due today: {stats[1].value}</span>
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">New opps: {stats[2].value}</span>
-              <span className="rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-emerald-50">Press ⌘K / Ctrl+K</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-3 rounded-2xl border border-white/5 bg-white/5 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold text-white">Recommended next move</p>
-              <p className="text-xs text-[var(--text-tertiary)]">Built from your most urgent signals</p>
-            </div>
-            <OpenCommandPaletteButton className="hidden sm:inline-flex" />
-          </div>
-          <div className="space-y-2 rounded-xl border border-white/5 bg-[var(--bg-tertiary)]/80 p-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--accent-primary)]">Top focus</p>
-            <p className="text-sm font-semibold text-white">{focusTarget ? focusSummary : "You’re caught up—set the tone with a quick scan."}</p>
-            <p className="text-xs text-[var(--text-tertiary)]">{focusLabel}</p>
-            <div className="flex flex-wrap gap-2 pt-1 text-[11px] text-[var(--text-tertiary)]">
-              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1">Session-first clears overdue quickly</span>
-              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1">Radar surfaces brand-new leads</span>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href={focusCta.href}
-              className="inline-flex items-center gap-2 rounded-full border border-emerald-400/60 bg-emerald-500/15 px-4 py-2 text-sm font-semibold text-emerald-50 transition hover:border-emerald-300 hover:bg-emerald-500/25"
-            >
-              {focusCta.label}
-            </Link>
-            <Link
-              href="/radar"
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/10"
-            >
-              Open Radar
-            </Link>
-            <OpenCommandPaletteButton className="inline-flex sm:hidden" />
-          </div>
-          <div className="grid grid-cols-1 gap-2 text-sm text-[var(--text-secondary)] md:grid-cols-2">
-            <div className="flex items-start gap-2 rounded-lg border border-white/5 bg-white/5 px-3 py-2">
-              <span className="mt-0.5 text-lg">⏱️</span>
-              <div>
-                <p className="font-semibold text-white">Start with a 20-minute sprint</p>
-                <p className="text-xs text-[var(--text-tertiary)]">Batch overdue + due today tasks in Session mode.</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2 rounded-lg border border-white/5 bg-white/5 px-3 py-2">
-              <span className="mt-0.5 text-lg">🔍</span>
-              <div>
-                <p className="font-semibold text-white">Check for fresh signal</p>
-                <p className="text-xs text-[var(--text-tertiary)]">Run Radar to see what’s new before outreach.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Card>
+      <FocusMomentumPanel
+        focus={
+          focusTarget
+            ? {
+                summary: focusSummary,
+                label: focusLabel,
+                cta: { label: focusLabel === "New lead to review" ? "Review lead" : "Open Session", href: focusDetailsHref },
+                channel: "",
+                scheduledAt: topOverdue[0]?.scheduledAt || nextStep?.scheduledAt,
+              }
+            : null
+        }
+        stats={{ overdue: stats[0].value, dueToday: stats[1].value, newOpps: stats[2].value }}
+        momentum={{ score: momentumScore, label: momentumLabel, copy: momentumCopy }}
+        timeline={timeline}
+        secondaryCta={{ href: "/radar", label: "Open Radar" }}
+      />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <SectionCard title="Discover" description="Review new leads and scan for opportunities">
@@ -365,6 +278,9 @@ export default async function TodayPage() {
               <Link href="/session" className="mt-3 text-sm text-emerald-300 hover:underline">
                 Go to Session
               </Link>
+              <Link href="/session" className="mt-2 text-xs text-emerald-200 underline-offset-2 hover:underline">
+                Watch a 30s follow-up demo
+              </Link>
             </div>
           ) : (
             <div className="space-y-3 text-sm">
@@ -404,6 +320,9 @@ export default async function TodayPage() {
               <Link href="/session" className="mt-3 text-sm text-emerald-300 hover:underline">
                 Open Session
               </Link>
+              <Link href="/session" className="mt-2 text-xs text-emerald-200 underline-offset-2 hover:underline">
+                Watch how to plan a day
+              </Link>
             </div>
           ) : (
             <div className="space-y-3 text-sm">
@@ -435,6 +354,9 @@ export default async function TodayPage() {
                   Scan watchlist
                 </Link>
               </div>
+              <Link href="/radar" className="mt-2 text-xs text-emerald-200 underline-offset-2 hover:underline">
+                Watch a 30s lead capture walkthrough
+              </Link>
             </div>
           ) : (
             <div className="space-y-3 text-sm">

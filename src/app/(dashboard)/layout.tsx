@@ -2,6 +2,7 @@ import { LogoutButton } from "@/components/logout-button";
 import { SidebarNav, type NavGroup } from "@/components/ui/sidebar-nav";
 import { PageContainer } from "@/components/ui/page-container";
 import { ModeSelector } from "@/components/ui/mode-selector";
+import { MobileNavDrawer } from "@/components/ui/mobile-nav-drawer";
 import { authOptions } from "@/lib/auth";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
@@ -143,16 +144,15 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         </div>
       </aside>
       <div className="flex-1">
-        <div className="flex items-center justify-between border-b border-[var(--border-default)] bg-[var(--bg-secondary)]/95 px-5 py-4 shadow-md shadow-black/25 backdrop-blur lg:hidden">
-          <div>
-            <p className="text-sm font-semibold text-[var(--accent-primary)]">Web3 BD Copilot</p>
-            <p className="text-xs text-[var(--text-secondary)]">Plan: {session.user.plan}</p>
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--border-default)] bg-[var(--bg-secondary)]/95 px-5 py-4 shadow-md shadow-black/25 backdrop-blur lg:hidden">
+          <div className="flex items-center gap-3">
+            <MobileNavDrawer navGroups={navGroups} user={{ email: session.user.email, plan: session.user.plan }} />
+            <div>
+              <p className="text-sm font-semibold text-[var(--accent-primary)]">Web3 BD Copilot</p>
+              <p className="text-[11px] text-[var(--text-tertiary)]">Always know where you are</p>
+            </div>
           </div>
           <LogoutButton />
-        </div>
-        <div className="border-b border-[var(--border-default)] bg-[var(--bg-secondary)]/95 px-5 py-4 backdrop-blur lg:hidden">
-          <ModeSelector />
-          <SidebarNav groups={navGroups} />
         </div>
         <PageContainer>{children}</PageContainer>
       </div>

@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
-import { PROJECT_STATUSES } from "@/lib/utils";
 
 const updateSchema = z.object({
   status: z.enum(["NOT_CONTACTED", "CONTACTED", "WAITING_REPLY", "CALL_BOOKED", "WON", "LOST"] as const).optional(),

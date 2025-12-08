@@ -7,11 +7,12 @@ import { PageHeader, SectionHeader } from "@/components/ui/header";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate } from "@/lib/utils";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+import { NoteForm } from "@/components/projects/note-form";
 
 export default async function SessionPage() {
   const session = await getServerSession(authOptions);
@@ -49,10 +50,37 @@ export default async function SessionPage() {
         ? "Technical founder"
         : /engineer|developer|dev|protocol/i.test(contact.role)
           ? "Protocol engineer"
-          : /bd|business|growth|ecosystem/i.test(contact.role)
+            : /bd|business|growth|ecosystem/i.test(contact.role)
             ? "BD / ecosystem lead"
             : undefined));
   const angle = playbookAngles[0] || bdAngles[0];
+
+  const [sequence, interactions, notes] = await Promise.all([
+    prisma.sequence.findFirst({
+      where: { contactId: contact.id, userId: session.user.id },
+      include: { steps: { orderBy: [{ scheduledAt: "asc" }, { stepNumber: "asc" }] } },
+    }),
+    prisma.interaction.findMany({
+      where: { projectId: project.id, contactId: contact.id, userId: session.user.id },
+      orderBy: { occurredAt: "desc" },
+      take: 5,
+    }),
+    prisma.note.findMany({
+      where: { projectId: project.id },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    }),
+  ]);
+
+  const upcomingSteps = (sequence?.steps || [])
+    .filter((s) => s.status !== "SENT")
+    .sort((a, b) => {
+      if (a.scheduledAt && b.scheduledAt) return a.scheduledAt.getTime() - b.scheduledAt.getTime();
+      if (a.scheduledAt) return -1;
+      if (b.scheduledAt) return 1;
+      return a.stepNumber - b.stepNumber;
+    })
+    .slice(0, 4);
 
   return (
     <div className="flex flex-col gap-8 px-8 py-10 md:py-12 lg:px-10 xl:max-w-6xl xl:mx-auto">
@@ -154,11 +182,70 @@ export default async function SessionPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2 rounded-xl border border-white/10 bg-[#0F1012] px-6 py-5 shadow-lg shadow-black/20">
           <SectionHeader title="Upcoming steps" />
-          <Skeleton className="h-12 w-full" />
+          {upcomingSteps.length === 0 ? (
+            <p className="text-sm text-slate-400">No scheduled steps remain for this contact.</p>
+          ) : (
+            <div className="divide-y divide-white/5">{
+              upcomingSteps.map((step) => (
+                <div key={step.id} className="py-3 flex flex-wrap items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="text-xs uppercase text-slate-500">Step {step.stepNumber}</p>
+                    <p className="text-sm text-white">{step.channel}</p>
+                    <p className="text-xs text-slate-400">{step.content}</p>
+                  </div>
+                  <div className="text-right text-xs text-slate-300 space-y-1">
+                    <Badge variant="neutral">{step.status}</Badge>
+                    <p className="text-[11px] text-slate-400">
+                      {step.scheduledAt ? `Scheduled ${formatDate(step.scheduledAt)}` : "Not scheduled"}
+                    </p>
+                  </div>
+                </div>
+              ))
+            }</div>
+          )}
         </Card>
         <Card className="rounded-xl border border-white/10 bg-[#0F1012] px-6 py-5 shadow-lg shadow-black/20">
           <SectionHeader title="Quick notes" />
-          <Skeleton className="h-24 w-full" />
+          <div className="space-y-4">
+            <NoteForm projectId={project.id} />
+            <div className="space-y-2">
+              <p className="text-xs uppercase text-slate-500">Recent touches</p>
+              {interactions.length === 0 ? (
+                <p className="text-sm text-slate-400">No touchpoints logged yet.</p>
+              ) : (
+                <ul className="space-y-2 text-sm text-slate-200">
+                  {interactions.map((i) => (
+                    <li key={i.id} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                      <div className="flex items-center justify-between text-xs text-slate-400">
+                        <span className="uppercase">{i.channel}</span>
+                        <span>{formatDate(i.occurredAt)}</span>
+                      </div>
+                      <p className="text-sm text-white">{i.title || i.type}</p>
+                      {i.body ? <p className="text-xs text-slate-300">{i.body}</p> : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs uppercase text-slate-500">Recent notes</p>
+              {notes.length === 0 ? (
+                <p className="text-sm text-slate-400">No notes yet.</p>
+              ) : (
+                <ul className="space-y-2 text-sm text-slate-200">
+                  {notes.map((note) => (
+                    <li key={note.id} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                      <div className="flex items-center justify-between text-xs text-slate-400">
+                        <span>Note</span>
+                        <span>{formatDate(note.createdAt)}</span>
+                      </div>
+                      <p className="text-sm text-white whitespace-pre-wrap">{note.content}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
         </Card>
       </div>
     </div>

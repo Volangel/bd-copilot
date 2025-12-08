@@ -50,6 +50,7 @@ type BoardProject = Project & { nextSequenceStepDueAt?: Date | null; hasOverdueS
 export default function Board({ projects }: { projects: BoardProject[] }) {
   const [localProjects, setLocalProjects] = useState(projects);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [hoveredStatus, setHoveredStatus] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
@@ -174,58 +175,104 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
     LOST: "Inactive",
   };
 
+  const statusAccent: Record<string, string> = {
+    NOT_CONTACTED: "from-slate-800/40 via-slate-800/10 to-slate-900",
+    CONTACTED: "from-cyan-700/30 via-cyan-800/10 to-slate-900",
+    WAITING_REPLY: "from-amber-700/30 via-amber-800/10 to-slate-900",
+    CALL_BOOKED: "from-blue-700/30 via-blue-800/10 to-slate-900",
+    WON: "from-emerald-700/30 via-emerald-800/10 to-slate-900",
+    LOST: "from-rose-700/20 via-rose-800/10 to-slate-900",
+  };
+
+  const filterPills = [
+    {
+      key: "hotOnly" as const,
+      label: "ICP > 80",
+      description: "Top-fit accounts",
+      activeClass: "border-emerald-400 bg-emerald-500/10 text-emerald-200 shadow-[0_0_0_1px_rgba(52,211,153,0.25)]",
+      inactiveClass: "border-slate-700 bg-[#181A1C] hover:border-slate-500",
+    },
+    {
+      key: "missingNext" as const,
+      label: "Missing next touch",
+      description: "Add next step",
+      activeClass: "border-amber-400 bg-amber-500/10 text-amber-200 shadow-[0_0_0_1px_rgba(251,191,36,0.25)]",
+      inactiveClass: "border-slate-700 bg-[#181A1C] hover:border-slate-500",
+    },
+    {
+      key: "overdueOnly" as const,
+      label: "Overdue only",
+      description: "Needs rescue",
+      activeClass: "border-red-400 bg-red-500/10 text-red-200 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]",
+      inactiveClass: "border-slate-700 bg-[#181A1C] hover:border-slate-500",
+    },
+  ];
+
   return (
     <div className="space-y-4">
       <Toast message={message} onClear={() => setMessage(null)} />
       <Toast message={error} type="error" onClear={() => setError(null)} />
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#232527] bg-[#0E0F10] p-3 text-xs text-slate-200">
-        <p className="text-[11px] uppercase tracking-wide text-slate-400">Quick filters</p>
-        <button
-          type="button"
-          onClick={() => setFilters((f) => ({ ...f, hotOnly: !f.hotOnly }))}
-          className={`rounded-full border px-3 py-1 transition ${
-            filters.hotOnly ? "border-emerald-400 bg-emerald-500/10 text-emerald-200" : "border-slate-700 bg-[#181A1C] hover:border-slate-500"
-          }`}
-        >
-          ICP &gt; 80
-        </button>
-        <button
-          type="button"
-          onClick={() => setFilters((f) => ({ ...f, missingNext: !f.missingNext }))}
-          className={`rounded-full border px-3 py-1 transition ${
-            filters.missingNext ? "border-amber-400 bg-amber-500/10 text-amber-200" : "border-slate-700 bg-[#181A1C] hover:border-slate-500"
-          }`}
-        >
-          Missing next touch
-        </button>
-        <button
-          type="button"
-          onClick={() => setFilters((f) => ({ ...f, overdueOnly: !f.overdueOnly }))}
-          className={`rounded-full border px-3 py-1 transition ${
-            filters.overdueOnly ? "border-red-400 bg-red-500/10 text-red-200" : "border-slate-700 bg-[#181A1C] hover:border-slate-500"
-          }`}
-        >
-          Overdue only
-        </button>
-        <div className="ml-auto flex flex-1 min-w-[240px] items-center gap-2 rounded-md border border-[#232527] bg-[#181A1C] px-3 py-1.5 text-xs text-slate-200 shadow-inner shadow-black/40 md:max-w-sm">
-          <span className="text-slate-400">🔎</span>
-          <input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by name or domain"
-            className="w-full bg-transparent text-[13px] text-slate-100 placeholder:text-slate-500 focus:outline-none"
-          />
+      <div className="space-y-3 rounded-2xl border border-[#1D2024] bg-gradient-to-r from-[#0E1215] via-[#0E0F10] to-[#0D0E11] p-4 text-xs text-slate-200 shadow-inner shadow-emerald-900/30">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-emerald-100">
+            Curated controls
+          </p>
+          <p className="text-sm text-slate-300">
+            {activeFilterCount > 0 ? `${activeFilterCount} refinement${activeFilterCount > 1 ? "s" : ""} active` : "Fine-tune the board to focus on the highest-signal work."}
+          </p>
+          {activeFilterCount > 0 ? (
+            <button
+              type="button"
+              onClick={() => {
+                setFilters({ hotOnly: false, missingNext: false, overdueOnly: false });
+                setSearchTerm("");
+                setSortMode("next");
+              }}
+              className="ml-auto rounded-full border border-white/10 px-3 py-1 text-[11px] text-slate-200 transition hover:border-emerald-400 hover:bg-emerald-500/10"
+            >
+              Reset view
+            </button>
+          ) : null}
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] uppercase tracking-wide text-slate-400">Sort</span>
-          <select
-            value={sortMode}
-            onChange={(e) => setSortMode(e.target.value as "next" | "icp")}
-            className="rounded-md border border-[#232527] bg-[#181A1C] px-2 py-1 text-xs text-slate-100 shadow-sm"
-          >
-            <option value="next">Next touch</option>
-            <option value="icp">ICP</option>
-          </select>
+        <div className="flex flex-wrap items-center gap-2">
+          {filterPills.map((pill) => (
+            <button
+              key={pill.key}
+              type="button"
+              onClick={() => setFilters((f) => ({ ...f, [pill.key]: !f[pill.key] }))}
+              className={`flex items-center gap-2 rounded-full border px-3 py-1 transition focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${
+                filters[pill.key] ? pill.activeClass : pill.inactiveClass
+              }`}
+            >
+              <span className="text-[10px] uppercase tracking-wide text-slate-400">{pill.description}</span>
+              <span className="text-[13px] font-semibold text-slate-100">{pill.label}</span>
+            </button>
+          ))}
+        </div>
+        <div className="grid gap-2 md:grid-cols-[2fr_1fr] md:items-center">
+          <div className="flex items-center gap-2 rounded-lg border border-[#232527] bg-[#181A1C] px-3 py-2 text-xs text-slate-200 shadow-inner shadow-black/40">
+            <span className="rounded-full bg-[#0F1012] px-2 py-1 text-[10px] uppercase tracking-wide text-slate-400">Search</span>
+            <input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by name or domain"
+              className="w-full bg-transparent text-[13px] text-slate-100 placeholder:text-slate-500 focus:outline-none"
+            />
+          </div>
+          <div className="flex items-center justify-between gap-2 rounded-lg border border-[#232527] bg-[#181A1C] px-3 py-2 text-xs text-slate-200 shadow-inner shadow-black/40">
+            <div className="flex flex-col leading-tight text-[11px] text-slate-400">
+              <span className="uppercase tracking-wide">Sort lane</span>
+              <span className="text-[10px] text-slate-500">Next touch or ICP focus</span>
+            </div>
+            <select
+              value={sortMode}
+              onChange={(e) => setSortMode(e.target.value as "next" | "icp")}
+              className="rounded-md border border-[#232527] bg-[#0F1012] px-2 py-1 text-xs text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+            >
+              <option value="next">Next touch</option>
+              <option value="icp">ICP</option>
+            </select>
+          </div>
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[#1C1F23] bg-gradient-to-r from-[#0E0F10] via-[#0F1114] to-[#0E1012] p-4 text-xs text-slate-200 shadow-sm">
@@ -233,37 +280,39 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
           <span className="h-2 w-2 rounded-full bg-emerald-400" /> Premium view
         </div>
         <p className="text-sm text-slate-300">
-          {activeFilterCount > 0 ? `${activeFilterCount} refinement${activeFilterCount > 1 ? "s" : ""} active` : "No filters active"}
-          ; drag cards or use the status menu to move work forward.
+          Glide cards between lanes or use inline status controls to keep the pipeline crystal clear.
         </p>
-        {activeFilterCount > 0 ? (
-          <button
-            type="button"
-            onClick={() => {
-              setFilters({ hotOnly: false, missingNext: false, overdueOnly: false });
-              setSearchTerm("");
-              setSortMode("next");
-            }}
-            className="ml-auto rounded-full border border-white/10 px-3 py-1 text-[11px] text-slate-200 transition hover:border-emerald-400 hover:bg-emerald-500/10"
-          >
-            Reset view
-          </button>
-        ) : null}
+        <div className="ml-auto flex items-center gap-2 text-[11px] text-slate-400">
+          <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1">Drag glow</span>
+          <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1">Lane helpers</span>
+        </div>
       </div>
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         {grouped.map((column) => (
           <div
             key={column.status}
-            className={`min-h-[420px] rounded-xl border border-[#232527] bg-[#0E0F10] p-3 ${draggingId ? "ring-1 ring-emerald-500/30" : ""}`}
+            className={`group relative min-h-[420px] rounded-2xl border border-[#232527] bg-gradient-to-b ${
+              statusAccent[column.status]
+            } p-3 shadow-[0_15px_40px_rgba(0,0,0,0.35)] ${draggingId ? "ring-1 ring-emerald-500/30" : ""} ${
+              hoveredStatus === column.status ? "border-emerald-400/50 shadow-emerald-500/10" : ""
+            }`}
             onDragOver={(e) => e.preventDefault()}
-            onDrop={() => onDrop(column.status)}
+            onDragEnter={() => setHoveredStatus(column.status)}
+            onDragLeave={() => setHoveredStatus(null)}
+            onDrop={() => {
+              onDrop(column.status);
+              setHoveredStatus(null);
+            }}
           >
-            <div className="mb-2 flex items-center justify-between text-xs uppercase tracking-wide text-slate-300">
-              <div>
+            <div className="mb-2 flex items-center justify-between gap-2 rounded-xl border border-white/5 bg-white/5 px-3 py-2 text-xs uppercase tracking-wide text-slate-300 shadow-inner shadow-black/30">
+              <div className="space-y-0.5">
                 <span className="text-white">{column.status.replace(/_/g, " ")}</span>
-                <p className="text-[11px] text-slate-500">{helperByStatus[column.status] || ""}</p>
+                <p className="text-[11px] text-slate-400">{helperByStatus[column.status] || ""}</p>
               </div>
-              <span className="rounded-full border border-[#232527] bg-[#181A1C] px-2 py-0.5 text-slate-200">{column.items.length}</span>
+              <div className="flex items-center gap-2">
+                <span className="rounded-full border border-[#232527] bg-[#181A1C] px-2 py-0.5 text-slate-200">{column.items.length}</span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-slate-300">{sortMode === "icp" ? "ICP" : "Next"}</span>
+              </div>
             </div>
             <div className="space-y-3">
               {column.items.map((project) => {
@@ -283,21 +332,27 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                     key={project.id}
                     draggable
                     onDragStart={() => onDragStart(project.id)}
-                    className={`space-y-2 rounded-lg bg-[#111214] p-3 transition-all duration-150 ease-out hover:-translate-y-[1px] hover:shadow-lg ${cardAccent} ${isDraggingCard ? "ring-1 ring-emerald-400/60" : ""}`}
+                    className={`space-y-3 rounded-xl bg-[#0F1012]/90 p-4 backdrop-blur transition-all duration-150 ease-out hover:-translate-y-[2px] hover:shadow-2xl ${
+                      cardAccent
+                    } ${
+                      isDraggingCard
+                        ? "ring-2 ring-emerald-400/60 shadow-emerald-500/20"
+                        : "shadow-[0_8px_20px_rgba(0,0,0,0.45)]"
+                    }`}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#181A1C] text-xs font-semibold text-slate-200">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 text-xs font-semibold text-emerald-100 ring-1 ring-emerald-500/30">
                           {name.slice(0, 2).toUpperCase()}
                         </div>
-                        <div>
-                          <Link href={`/projects/${project.id}/workspace`} className="text-sm font-semibold text-emerald-300 hover:text-emerald-200">
+                        <div className="space-y-0.5">
+                          <Link href={`/projects/${project.id}/workspace`} className="text-sm font-semibold text-emerald-200 hover:text-emerald-100">
                             {name}
                           </Link>
                           <p className="text-[11px] text-slate-500">{domain}</p>
                         </div>
                       </div>
-                      <span className="cursor-grab text-slate-600">⋮⋮</span>
+                      <span className="cursor-grab rounded-full bg-[#181A1C] px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-slate-500">Move</span>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 text-[11px]">
                       <Badge variant={icpBadgeVariant(project.icpScore)}>ICP {project.icpScore ?? "-"}</Badge>
@@ -305,32 +360,50 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                       {missingNext ? <Badge variant="warning">Missing next touch</Badge> : null}
                       {project.hasOverdueSequenceStep ? <Badge variant="error">Overdue</Badge> : null}
                     </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-[11px] text-slate-400">
-                        <span>ICP fit</span>
-                        <span className="font-semibold text-slate-200">{icpPercent}%</span>
+                    <div className="space-y-2 rounded-lg border border-white/5 bg-white/5 p-3">
+                      <div className="grid grid-cols-2 gap-3 text-[11px] text-slate-400">
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="uppercase tracking-wide">ICP fit</span>
+                            <span className="font-semibold text-slate-200">{icpPercent}%</span>
+                          </div>
+                          <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#181A1C]">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-500"
+                              style={{ width: `${icpPercent}%` }}
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="uppercase tracking-wide">Momentum</span>
+                            <span className={`flex items-center gap-1 text-[10px] ${project.hasOverdueSequenceStep ? "text-red-200" : "text-emerald-200"}`}>
+                              <span className={`h-2 w-2 rounded-full ${urgency.color}`} />
+                              {urgency.label}
+                            </span>
+                          </div>
+                          <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#181A1C]">
+                            <div
+                              className={`h-full rounded-full ${project.hasOverdueSequenceStep ? "bg-gradient-to-r from-red-400 via-amber-400 to-amber-200" : "bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-400"}`}
+                              style={{ width: project.hasOverdueSequenceStep ? "100%" : `${Math.max(icpPercent, 35)}%` }}
+                            />
+                          </div>
+                        </div>
                       </div>
-                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#181A1C]">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-500"
-                          style={{ width: `${icpPercent}%` }}
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-300">
-                      <span className={`h-2 w-2 rounded-full ${urgency.color}`}></span>
-                      <span>{urgency.label}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-slate-400">
-                      <span>{project.nextSequenceStepDueAt ? `Next: ${formatDate(project.nextSequenceStepDueAt)}` : "Next touch: —"}</span>
-                      <div className="flex items-center gap-2">
-                        <Link
-                          href={`/projects/${project.id}/workspace`}
-                          className="rounded border border-white/10 px-2 py-1 text-[11px] text-emerald-200 transition hover:border-emerald-300 hover:bg-emerald-500/10"
-                        >
-                          Open workspace
-                        </Link>
-                        <StatusSelect projectId={project.id} status={project.status} onChange={(val) => handleStatusChange(project.id, val)} />
+                      <div className="flex items-center justify-between rounded-md border border-white/5 bg-[#0D0F11] px-3 py-2 text-xs text-slate-300">
+                        <span className="flex items-center gap-2">
+                          <span className={`h-2 w-2 rounded-full ${urgency.color}`} />
+                          {project.nextSequenceStepDueAt ? `Next: ${formatDate(project.nextSequenceStepDueAt)}` : "Next touch: —"}
+                        </span>
+                        <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                          <Link
+                            href={`/projects/${project.id}/workspace`}
+                            className="rounded border border-white/10 px-2 py-1 text-emerald-200 transition hover:border-emerald-300 hover:bg-emerald-500/10"
+                          >
+                            Open workspace
+                          </Link>
+                          <StatusSelect projectId={project.id} status={project.status} onChange={(val) => handleStatusChange(project.id, val)} />
+                        </div>
                       </div>
                     </div>
                   </div>

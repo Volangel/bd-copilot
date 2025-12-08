@@ -31,7 +31,7 @@ export default async function SettingsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 px-8 py-10 md:py-12 lg:px-10 xl:max-w-5xl xl:mx-auto">
+    <>
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold text-white">Settings</h1>
         <p className="text-sm text-slate-400">
@@ -85,6 +85,6 @@ export default async function SettingsPage() {
           </form>
         </Card>
       ) : null}
-    </div>
+    </>
   );
 }

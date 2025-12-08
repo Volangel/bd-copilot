@@ -74,7 +74,7 @@ export default function QuickCapturePage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 px-8 py-10 md:py-12 lg:px-10 xl:max-w-5xl xl:mx-auto">
+    <>
       <PageHeader title="Quick Capture" description="Save accounts and people in seconds." mode="execute" />
       <div className="flex items-center gap-2">
         {tabButton("projects", "Projects")}
@@ -124,7 +124,7 @@ export default function QuickCapturePage() {
           {status ? <p className="text-xs text-emerald-300">{status}</p> : null}
           {error ? <p className="text-xs text-red-300">{error}</p> : null}
         </Card>
-      ) : null}
-    </div>
+        ) : null}
+    </>
   );
 }

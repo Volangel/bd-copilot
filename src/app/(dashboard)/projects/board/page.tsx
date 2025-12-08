@@ -36,7 +36,7 @@ export default async function ProjectBoardPage() {
   const noNext = projectsWithMeta.filter((p) => !p.nextSequenceStepDueAt).length;
 
   return (
-    <div className="flex flex-col gap-8 px-8 py-10 md:py-12 lg:px-10 xl:max-w-6xl xl:mx-auto">
+    <>
       <PageHeader
         title="Pipeline Board"
         description="Drag cards between columns or use the dropdown to update status. Designed to keep momentum without sacrificing clarity."
@@ -69,6 +69,6 @@ export default async function ProjectBoardPage() {
         Statuses: {PROJECT_STATUSES.join(" · ")} · Tip: click a card to open the project.
       </Card>
       <Board projects={projectsWithMeta} />
-    </div>
+    </>
   );
 }

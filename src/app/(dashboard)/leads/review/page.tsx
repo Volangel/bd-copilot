@@ -48,7 +48,7 @@ export default async function LeadReviewPage({
 
   if (!opp) {
     return (
-      <div className="flex flex-col gap-6 px-8 py-10 md:py-12 lg:px-10 xl:max-w-5xl xl:mx-auto">
+      <>
         <PageHeader title="Lead Review" description="Work new leads one by one." />
         <EmptyState
           title="Nothing in your review queue"
@@ -57,7 +57,7 @@ export default async function LeadReviewPage({
           primaryAction={{ label: "Go to Radar", href: "/radar" }}
           secondaryAction={{ label: "Scan text", href: "/discover/scan" }}
         />
-      </div>
+      </>
     );
   }
 
@@ -114,7 +114,7 @@ export default async function LeadReviewPage({
   }
 
   return (
-    <div className="flex flex-col gap-8 px-8 py-10 md:py-12 lg:px-10 xl:max-w-5xl xl:mx-auto">
+    <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <PageHeader title="Lead Review" description="Work new leads one by one." />
         {positionLabel ? (
@@ -195,6 +195,6 @@ export default async function LeadReviewPage({
           </div>
         </div>
       </Card>
-    </div>
+    </>
   );
 }

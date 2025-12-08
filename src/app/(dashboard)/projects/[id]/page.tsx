@@ -242,7 +242,7 @@ export default async function ProjectDetail({ params }: { params: { id: string }
   );
 
   return (
-    <div className="flex flex-col gap-8 px-8 py-10 md:py-12 lg:px-10 xl:max-w-6xl xl:mx-auto">
+    <>
       <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
         This view is being replaced by the Account Workspace.{" "}
         <Link href={`/projects/${project.id}/workspace`} className="text-emerald-200 underline">
@@ -322,6 +322,6 @@ export default async function ProjectDetail({ params }: { params: { id: string }
       </div>
 
       <AccountTabs overview={overviewTab} contacts={contactsTab} notes={notesTab} />
-    </div>
+    </>
   );
 }

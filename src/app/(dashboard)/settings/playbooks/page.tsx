@@ -51,7 +51,7 @@ export default async function PlaybooksPage() {
   const playbooks = await prisma.playbook.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
 
   return (
-    <div className="flex flex-col gap-6 px-8 py-10 md:py-12 lg:px-10 xl:max-w-5xl xl:mx-auto">
+    <>
       <PageHeader title="Playbooks" description="Boost or penalize leads based on keywords (chains, verticals, GTM plays)." />
 
       <Card className="rounded-xl border border-white/10 bg-[#0F1012] px-6 py-5 shadow-lg shadow-black/20">
@@ -120,6 +120,6 @@ export default async function PlaybooksPage() {
           </Table>
         )}
       </Card>
-    </div>
+    </>
   );
 }

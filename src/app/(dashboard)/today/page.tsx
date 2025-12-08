@@ -12,6 +12,7 @@ import { MetricsCard } from "./components/MetricsCard";
 import { SectionCard } from "./components/SectionCard";
 import { OnboardingChecklist } from "./components/OnboardingChecklist";
 import { TopPipelineList } from "./components/TopPipelineList";
+import { OpenCommandPaletteButton } from "@/components/ui/open-command-palette-button";
 
 export default async function TodayPage() {
   const session = await getServerSession(authOptions);
@@ -112,6 +113,18 @@ export default async function TodayPage() {
     { label: "New opps", value: newOppCount },
   ];
 
+  const momentumScore = Math.max(
+    0,
+    Math.min(100, 100 - uniqueOverdueProjects.size * 12 - upcoming.length * 6 + Math.min(newOppCount, 6) * 3),
+  );
+  const momentumLabel = momentumScore >= 80 ? "In flow" : momentumScore >= 50 ? "Manageable" : "Needs attention";
+  const momentumCopy =
+    momentumScore >= 80
+      ? "You’re ahead of risk. Protect the streak with a fast session."
+      : momentumScore >= 50
+        ? "A few items need touchpoints—batch them and move together."
+        : "Overdue risk detected. Clear the red items first, then jump into execution.";
+
   const quickActions = [
     { label: "Add project", href: "/projects" },
     { label: "Scan leads", href: "/discover/scan" },
@@ -208,6 +221,96 @@ export default async function TodayPage() {
           >
             Start with AI draft
           </Link>
+        </div>
+      </Card>
+
+      <Card className="grid gap-6 md:grid-cols-[1.4fr_1fr]">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-tertiary)]">Momentum pulse</p>
+            <span
+              className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
+                momentumScore >= 80
+                  ? "bg-emerald-500/15 text-emerald-100"
+                  : momentumScore >= 50
+                    ? "bg-amber-400/15 text-amber-100"
+                    : "bg-red-500/15 text-red-100"
+              }`}
+            >
+              {momentumLabel}
+            </span>
+          </div>
+          <div className="flex flex-col gap-3 rounded-2xl border border-white/5 bg-white/5 p-4 shadow-inner shadow-black/30">
+            <div className="flex items-center gap-4">
+              <div className="flex-1 overflow-hidden rounded-full bg-white/5">
+                <div
+                  className="h-3 rounded-full bg-gradient-to-r from-emerald-400 via-emerald-300 to-cyan-300 shadow-[0_10px_40px_rgba(16,185,129,0.4)]"
+                  style={{ width: `${momentumScore}%` }}
+                />
+              </div>
+              <div className="text-right">
+                <p className="text-3xl font-semibold leading-tight text-white">{momentumScore}%</p>
+                <p className="text-xs text-[var(--text-tertiary)]">Momentum for today</p>
+              </div>
+            </div>
+            <p className="text-sm text-[var(--text-secondary)]">{momentumCopy}</p>
+            <div className="flex flex-wrap gap-2 text-[11px] text-[var(--text-tertiary)]">
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">Overdue: {stats[0].value}</span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">Due today: {stats[1].value}</span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">New opps: {stats[2].value}</span>
+              <span className="rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-emerald-50">Press ⌘K / Ctrl+K</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-3 rounded-2xl border border-white/5 bg-white/5 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-white">Recommended next move</p>
+              <p className="text-xs text-[var(--text-tertiary)]">Built from your most urgent signals</p>
+            </div>
+            <OpenCommandPaletteButton className="hidden sm:inline-flex" />
+          </div>
+          <div className="space-y-2 rounded-xl border border-white/5 bg-[var(--bg-tertiary)]/80 p-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--accent-primary)]">Top focus</p>
+            <p className="text-sm font-semibold text-white">{focusTarget ? focusSummary : "You’re caught up—set the tone with a quick scan."}</p>
+            <p className="text-xs text-[var(--text-tertiary)]">{focusLabel}</p>
+            <div className="flex flex-wrap gap-2 pt-1 text-[11px] text-[var(--text-tertiary)]">
+              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1">Session-first clears overdue quickly</span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1">Radar surfaces brand-new leads</span>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={focusCta.href}
+              className="inline-flex items-center gap-2 rounded-full border border-emerald-400/60 bg-emerald-500/15 px-4 py-2 text-sm font-semibold text-emerald-50 transition hover:border-emerald-300 hover:bg-emerald-500/25"
+            >
+              {focusCta.label}
+            </Link>
+            <Link
+              href="/radar"
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/10"
+            >
+              Open Radar
+            </Link>
+            <OpenCommandPaletteButton className="inline-flex sm:hidden" />
+          </div>
+          <div className="grid grid-cols-1 gap-2 text-sm text-[var(--text-secondary)] md:grid-cols-2">
+            <div className="flex items-start gap-2 rounded-lg border border-white/5 bg-white/5 px-3 py-2">
+              <span className="mt-0.5 text-lg">⏱️</span>
+              <div>
+                <p className="font-semibold text-white">Start with a 20-minute sprint</p>
+                <p className="text-xs text-[var(--text-tertiary)]">Batch overdue + due today tasks in Session mode.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2 rounded-lg border border-white/5 bg-white/5 px-3 py-2">
+              <span className="mt-0.5 text-lg">🔍</span>
+              <div>
+                <p className="font-semibold text-white">Check for fresh signal</p>
+                <p className="text-xs text-[var(--text-tertiary)]">Run Radar to see what’s new before outreach.</p>
+              </div>
+            </div>
+          </div>
         </div>
       </Card>
 

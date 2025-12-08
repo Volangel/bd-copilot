@@ -108,7 +108,15 @@ export default function CommandPalette() {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 p-4 backdrop-blur" ref={containerRef}>
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 p-4 backdrop-blur"
+      ref={containerRef}
+      onMouseDown={(event) => {
+        if (event.target === containerRef.current) {
+          setOpen(false);
+        }
+      }}
+    >
       <div className="w-full max-w-2xl rounded-3xl border border-white/10 bg-[var(--bg-secondary)]/95 p-5 shadow-[0_32px_120px_rgba(0,0,0,0.55)]">
         <div className="flex flex-col gap-3 border-b border-white/5 pb-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -152,7 +160,7 @@ export default function CommandPalette() {
               {filtered.length === 0 ? <p className="px-2 py-4 text-xs text-[var(--text-tertiary)]">No commands match your search.</p> : null}
             </div>
             <div className="mt-2 flex items-center justify-between text-[11px] text-[var(--text-tertiary)]">
-              <span>Use Esc to close</span>
+              <span>Use Esc or click outside to close</span>
               <span>Navigate instantly: type scan, board, playbook ...</span>
             </div>
           </div>

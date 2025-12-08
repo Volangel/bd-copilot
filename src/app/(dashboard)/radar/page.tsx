@@ -57,6 +57,10 @@ export default async function RadarPage() {
     { label: "All opportunities", value: allOpps.length, helper: "Across every status" },
   ];
   const progressLabel = reviewable.length > 0 ? `Lead review queue: ${reviewable.length} ready` : "Lead review queue empty";
+  const quickActions = [
+    { label: "Scan sources", href: "/discover/scan" },
+    { label: "Start lead review", href: "/leads/review", tone: "primary" },
+  ];
 
   if (allOpps.length === 0) {
     return (
@@ -86,23 +90,28 @@ export default async function RadarPage() {
 
   return (
     <div className="flex flex-col gap-8 px-8 py-10 md:py-12 lg:px-10 xl:max-w-6xl xl:mx-auto">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <PageHeader title="Lead Radar" description="Ranked opportunities by lead score, ICP fit, and signals." mode="discover" />
-        <div className="flex flex-wrap gap-3">
-          <Link
-            href="/discover/scan"
-            className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
-          >
-            Scan sources
-          </Link>
-          <Link
-            href="/leads/review"
-            className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-200 transition hover:border-emerald-400 hover:bg-emerald-500/20"
-          >
-            Start lead review
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title="Lead Radar"
+        description="Ranked opportunities by lead score, ICP fit, and signals."
+        mode="discover"
+        actions={
+          <div className="flex flex-wrap gap-2">
+            {quickActions.map((action) => (
+              <Link
+                key={action.label}
+                href={action.href}
+                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400 ${
+                  action.tone === "primary"
+                    ? "border-emerald-400/60 bg-emerald-500/10 text-emerald-100 hover:border-emerald-300 hover:bg-emerald-500/20"
+                    : "border-white/10 bg-white/5 text-white hover:border-white/20 hover:bg-white/10"
+                }`}
+              >
+                {action.label}
+              </Link>
+            ))}
+          </div>
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-3">
         {metrics.map((m) => (
@@ -110,8 +119,8 @@ export default async function RadarPage() {
         ))}
       </div>
 
-      <Card className="space-y-4 rounded-xl border border-white/10 bg-[#0F1012] px-6 py-5 shadow-lg shadow-black/20">
-        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
+      <Card className="space-y-4 border-white/10 bg-gradient-to-r from-emerald-500/10 via-transparent to-transparent px-6 py-5">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-200">
           {chips.map((c) => (
             <span key={c.label} className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
               {c.label}: <span className="font-semibold text-white">{c.value}</span>
@@ -119,7 +128,7 @@ export default async function RadarPage() {
           ))}
           <Link
             href="/leads/review"
-            className="rounded-full border border-emerald-600/60 bg-emerald-500/10 px-3 py-1 text-emerald-200 transition hover:border-emerald-400"
+            className="inline-flex items-center gap-2 rounded-full border border-emerald-500/60 bg-emerald-500/10 px-3 py-1 text-emerald-100 transition hover:border-emerald-400 hover:bg-emerald-500/20"
           >
             {progressLabel}
           </Link>

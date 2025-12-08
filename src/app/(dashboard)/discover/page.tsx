@@ -16,29 +16,82 @@ const STATUS_TABS = [
   { key: "ALL", label: "All" },
 ];
 
+const SORT_OPTIONS = [
+  { key: "mqa", label: "MQA priority" },
+  { key: "icp", label: "ICP strength" },
+  { key: "recent", label: "Most recent" },
+];
+
+const parseNumberParam = (value: string | undefined) => {
+  if (value === undefined || value === null || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 export default async function DiscoverPage({
   searchParams,
 }: {
   searchParams?: Record<string, string | string[] | undefined>;
 }) {
   const params = searchParams || {};
-  const statusParam = typeof params?.status === "string" ? params.status : "NEW";
+  const rawStatus = typeof params?.status === "string" ? params.status : "NEW";
+  const statusParam = STATUS_TABS.some((tab) => tab.key === rawStatus) ? rawStatus : "NEW";
+  const rawSort = typeof params?.sort === "string" ? params.sort : "mqa";
+  const sortParam = SORT_OPTIONS.some((opt) => opt.key === rawSort) ? rawSort : "mqa";
+  const sourceParam = typeof params?.source === "string" ? params.source : undefined;
+  const tagParam = typeof params?.tag === "string" ? params.tag : undefined;
+  const minMqa = parseNumberParam(typeof params?.minMqa === "string" ? params.minMqa : undefined);
+  const minIcp = parseNumberParam(typeof params?.minIcp === "string" ? params.minIcp : undefined);
+  const minLead = parseNumberParam(typeof params?.minLead === "string" ? params.minLead : undefined);
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
   const where = {
     userId: session.user.id,
     ...(statusParam && statusParam !== "ALL" ? { status: statusParam } : {}),
+    ...(sourceParam ? { sourceType: sourceParam } : {}),
+    ...(tagParam ? { tags: { contains: tagParam } } : {}),
+    ...(minMqa !== null ? { mqaScore: { gte: minMqa } } : {}),
+    ...(minIcp !== null ? { icpScore: { gte: minIcp } } : {}),
+    ...(minLead !== null ? { leadScore: { gte: minLead } } : {}),
   } as const;
 
-  const opportunities = await prisma.opportunity.findMany({
-    where,
-    orderBy: [
-      { mqaScore: "desc" },
-      { icpScore: "desc" },
-      { createdAt: "desc" },
-    ],
-  });
+  const orderBy = (() => {
+    switch (sortParam) {
+      case "recent":
+        return [{ createdAt: "desc" }] as const;
+      case "icp":
+        return [
+          { icpScore: "desc" },
+          { mqaScore: "desc" },
+          { createdAt: "desc" },
+        ] as const;
+      default:
+        return [
+          { mqaScore: "desc" },
+          { icpScore: "desc" },
+          { createdAt: "desc" },
+        ] as const;
+    }
+  })();
+
+  const [opportunities, sourceTypes] = await Promise.all([
+    prisma.opportunity.findMany({ where, orderBy }),
+    prisma.opportunity.findMany({
+      where: { userId: session.user.id },
+      select: { sourceType: true },
+      distinct: ["sourceType"],
+      orderBy: { sourceType: "asc" },
+    }),
+  ]);
+
+  const sharedParams = new URLSearchParams();
+  if (sourceParam) sharedParams.set("source", sourceParam);
+  if (tagParam) sharedParams.set("tag", tagParam);
+  if (minMqa !== null) sharedParams.set("minMqa", String(minMqa));
+  if (minIcp !== null) sharedParams.set("minIcp", String(minIcp));
+  if (minLead !== null) sharedParams.set("minLead", String(minLead));
+  if (sortParam && sortParam !== "mqa") sharedParams.set("sort", sortParam);
 
   return (
     <div className="flex flex-col gap-8 px-8 py-10 md:py-12 lg:px-10 xl:max-w-6xl xl:mx-auto">
@@ -53,20 +106,127 @@ export default async function DiscoverPage({
       </div>
 
       <div className="flex flex-wrap gap-3 text-sm">
-        {STATUS_TABS.map((tab) => (
-          <Link
-            key={tab.key}
-            href={`/discover${tab.key === "NEW" ? "" : `?status=${tab.key}`}`}
-            className={`rounded-full px-3 py-1 transition ${
-              statusParam === tab.key || (tab.key === "NEW" && !statusParam)
-                ? "bg-emerald-500 text-slate-950"
-                : "border border-white/10 bg-white/5 text-slate-200 hover:border-white/20 hover:bg-white/10"
-            }`}
-          >
-            {tab.label}
-          </Link>
-        ))}
+        {STATUS_TABS.map((tab) => {
+          const params = new URLSearchParams(sharedParams);
+          if (tab.key === "NEW") {
+            params.delete("status");
+          } else {
+            params.set("status", tab.key);
+          }
+          const qs = params.toString();
+          return (
+            <Link
+              key={tab.key}
+              href={`/discover${qs ? `?${qs}` : ""}`}
+              className={`rounded-full px-3 py-1 transition ${
+                statusParam === tab.key
+                  ? "bg-emerald-500 text-slate-950"
+                  : "border border-white/10 bg-white/5 text-slate-200 hover:border-white/20 hover:bg-white/10"
+              }`}
+            >
+              {tab.label}
+            </Link>
+          );
+        })}
       </div>
+
+      <Card className="space-y-4 rounded-xl border border-white/10 bg-[#0F1012] px-5 py-4 shadow-lg shadow-black/20">
+        <form className="grid grid-cols-1 gap-4 md:grid-cols-5" method="get">
+          <input type="hidden" name="status" value={statusParam} />
+          <div className="space-y-1 md:col-span-2">
+            <label className="text-xs uppercase text-slate-500">Source</label>
+            <select
+              name="source"
+              defaultValue={sourceParam || ""}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-emerald-400 focus:outline-none"
+            >
+              <option value="">All sources</option>
+              {sourceTypes.map((s) => (
+                <option key={s.sourceType} value={s.sourceType} className="bg-slate-900">
+                  {s.sourceType}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs uppercase text-slate-500">Min MQA</label>
+            <input
+              type="number"
+              name="minMqa"
+              defaultValue={minMqa ?? ""}
+              placeholder="0"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-emerald-400 focus:outline-none"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs uppercase text-slate-500">Min ICP</label>
+            <input
+              type="number"
+              name="minIcp"
+              defaultValue={minIcp ?? ""}
+              placeholder="0"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-emerald-400 focus:outline-none"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs uppercase text-slate-500">Min Lead</label>
+            <input
+              type="number"
+              name="minLead"
+              defaultValue={minLead ?? ""}
+              placeholder="0"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-emerald-400 focus:outline-none"
+            />
+          </div>
+          <div className="space-y-1 md:col-span-2">
+            <label className="text-xs uppercase text-slate-500">Tag contains</label>
+            <input
+              type="text"
+              name="tag"
+              defaultValue={tagParam || ""}
+              placeholder="e.g. gaming"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-emerald-400 focus:outline-none"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs uppercase text-slate-500">Sort</label>
+            <select
+              name="sort"
+              defaultValue={sortParam || "mqa"}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-emerald-400 focus:outline-none"
+            >
+              {SORT_OPTIONS.map((opt) => (
+                <option key={opt.key} value={opt.key} className="bg-slate-900">
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-end gap-3 md:col-span-2">
+            <button
+              type="submit"
+              className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400"
+            >
+              Apply filters
+            </button>
+            <Link
+              href={`/discover${statusParam === "NEW" ? "" : `?status=${statusParam}`}`}
+              className="text-sm text-emerald-200 underline underline-offset-4"
+            >
+              Clear filters
+            </Link>
+          </div>
+        </form>
+        <p className="text-xs text-slate-400">
+          Showing {opportunities.length} opportunity{opportunities.length === 1 ? "" : "ies"}
+          {sourceParam ? ` • Source: ${sourceParam}` : ""}
+          {minMqa ? ` • MQA ≥ ${minMqa}` : ""}
+          {minIcp ? ` • ICP ≥ ${minIcp}` : ""}
+          {minLead ? ` • Lead ≥ ${minLead}` : ""}
+          {tagParam ? ` • Tag contains "${tagParam}"` : ""}
+          {sortParam ? ` • Sorted by ${SORT_OPTIONS.find((s) => s.key === sortParam)?.label ?? "MQA priority"}` : ""}
+        </p>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-2">
         {opportunities.map((opp) => {

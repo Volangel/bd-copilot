@@ -136,6 +136,8 @@ function LeadCard({
   onAddNote,
   onSelect,
 }: LeadCardProps) {
+  const [isNextPopoverOpen, setIsNextPopoverOpen] = useState(false);
+  const [customDate, setCustomDate] = useState("");
   const nextColor =
     urgency.label === "Overdue"
       ? "text-rose-300"
@@ -153,6 +155,16 @@ function LeadCard({
   const handleOpenWorkspace = onOpenWorkspace ?? ((projectId: string) => console.log("TODO: workspace", projectId));
   const handleOpenMessages = onOpenMessages ?? ((projectId: string) => console.log("TODO: messages", projectId));
   const handleAddNote = onAddNote ?? ((projectId: string) => console.log("TODO: add note", projectId));
+  const handleSetDateAndClose = (date: Date | null) => {
+    handleChangeNextTouch(project.id, date);
+    setIsNextPopoverOpen(false);
+  };
+
+  const today = new Date();
+  const tomorrow = new Date();
+  tomorrow.setDate(today.getDate() + 1);
+  const nextWeek = new Date();
+  nextWeek.setDate(today.getDate() + 7);
 
   return (
     <div className="group relative flex">
@@ -208,9 +220,68 @@ function LeadCard({
             {tags.length > 0 && ` · ${tags.slice(0, 2).join(" · ")}`}
           </span>
 
-          <span className={`text-gray-300 font-medium whitespace-nowrap ${nextColor}`}>
-            Next: {nextTouchLabel}
-          </span>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsNextPopoverOpen((open) => !open);
+              }}
+              className={`text-gray-300 font-medium whitespace-nowrap ${nextColor} hover:text-white`}
+            >
+              Next: {nextTouchLabel}
+            </button>
+
+            {isNextPopoverOpen ? (
+              <div
+                className="absolute right-0 mt-1 w-40 rounded-md border border-white/10 bg-black/90 p-2 text-[11px] text-slate-100 shadow-lg z-30"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  className="w-full rounded-md px-2 py-1 text-left hover:bg-white/10"
+                  onClick={() => handleSetDateAndClose(today)}
+                >
+                  Today
+                </button>
+                <button
+                  type="button"
+                  className="w-full rounded-md px-2 py-1 text-left hover:bg-white/10"
+                  onClick={() => handleSetDateAndClose(tomorrow)}
+                >
+                  Tomorrow
+                </button>
+                <button
+                  type="button"
+                  className="w-full rounded-md px-2 py-1 text-left hover:bg-white/10"
+                  onClick={() => handleSetDateAndClose(nextWeek)}
+                >
+                  Next week
+                </button>
+                <button
+                  type="button"
+                  className="w-full rounded-md px-2 py-1 text-left hover:bg-white/10 text-slate-300"
+                  onClick={() => handleSetDateAndClose(null)}
+                >
+                  Clear
+                </button>
+                <input
+                  type="date"
+                  value={customDate}
+                  onChange={(e) => {
+                    setCustomDate(e.target.value);
+                    if (e.target.value) {
+                      const [year, month, day] = e.target.value.split("-").map(Number);
+                      const date = new Date(year, month - 1, day, 12, 0, 0);
+                      handleSetDateAndClose(date);
+                    }
+                  }}
+                  className="mt-1 w-full rounded-md border border-white/15 bg-black/60 px-2 py-1 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500/60"
+                />
+                {/* TODO: Close popover on outside click */}
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>
@@ -264,7 +335,13 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
       .filter(Boolean);
   };
 
-  const TodayView = ({ projects }: { projects: BoardProject[] }) => {
+  const TodayView = ({
+    projects,
+    onChangeNextTouch,
+  }: {
+    projects: BoardProject[];
+    onChangeNextTouch: (projectId: string, nextTouch: Date | null) => void;
+  }) => {
     // TODO: Add keyboard up/down navigation for Today list
     // TODO: Focus first item automatically for keyboard workflows
 
@@ -291,6 +368,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                   tags={tags}
                   urgency={urgency}
                   dragging={false}
+                  onChangeNextTouch={onChangeNextTouch}
                   onSelect={() => setSelectedProject(project)}
                 />
               );
@@ -368,6 +446,40 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
     setLocalProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, status } : p)));
     setMessage("Status updated");
     setError(null);
+  };
+
+  const handleNextTouchChange = async (projectId: string, nextTouch: Date | null) => {
+    setLocalProjects((prev) =>
+      prev.map((p) => {
+        if (p.id !== projectId) return p;
+        return {
+          ...p,
+          nextSequenceStepDueAt: nextTouch,
+          hasOverdueSequenceStep: (() => {
+            if (!nextTouch) return false;
+            const now = new Date();
+            const startOfToday = new Date(now);
+            startOfToday.setHours(0, 0, 0, 0);
+            return nextTouch < startOfToday;
+          })(),
+        };
+      })
+    );
+
+    try {
+      await fetch(`/api/projects/${projectId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nextSequenceStepDueAt: nextTouch ? nextTouch.toISOString() : null,
+        }),
+      });
+      setMessage("Next touch updated");
+      setError(null);
+    } catch (err) {
+      console.error("Failed to update next touch", err);
+      setError("Failed to update next touch");
+    }
   };
 
   const onDragStart = (projectId: string) => {
@@ -550,6 +662,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                         urgency={urgency}
                         dragging={isDraggingCard}
                         onDragStart={() => onDragStart(project.id)}
+                        onChangeNextTouch={handleNextTouchChange}
                         onSelect={() => setSelectedProject(project)}
                       />
                     );
@@ -564,9 +677,9 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
             );
           })}
         </div>
-      ) : (
-        <TodayView projects={todayProjects} />
-      )}
+        ) : (
+          <TodayView projects={todayProjects} onChangeNextTouch={handleNextTouchChange} />
+        )}
 
       {selectedProject ? (
         <div className="fixed inset-0 z-40 flex justify-end">

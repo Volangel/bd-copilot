@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Project } from "@prisma/client";
 import { PROJECT_STATUSES, formatDate } from "@/lib/utils";
 import { Toast } from "@/components/ui/toast";
-import { Badge } from "@/components/ui/badge";
 import { parseJsonString } from "@/lib/parsers";
 
 function StatusSelect({
@@ -32,7 +31,7 @@ function StatusSelect({
 
   return (
     <select
-      className="rounded-md border border-white/10 bg-[#0F1012] px-2 py-1 text-xs text-slate-100 shadow-sm transition-all duration-200 ease-out hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+      className="rounded-md border border-white/10 bg-[#0F1012] px-2 py-1 text-[11px] text-slate-100 shadow-sm transition hover:border-emerald-400/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
       value={status}
       disabled={saving}
       onChange={(e) => updateStatus(e.target.value)}
@@ -48,12 +47,150 @@ function StatusSelect({
 
 type BoardProject = Project & { nextSequenceStepDueAt?: Date | null; hasOverdueSequenceStep?: boolean };
 
+type NextTouchMeta = { label: string; color: string; pill: string };
+
+type LeadCardProps = {
+  project: BoardProject;
+  name: string;
+  domain: string;
+  tags: string[];
+  urgency: NextTouchMeta;
+  dragging: boolean;
+  onDragStart?: () => void;
+  onSelect: () => void;
+  showStatus?: boolean;
+  onStatusChange?: (status: string) => void;
+};
+
+const helperByStatus: Record<string, string> = {
+  NOT_CONTACTED: "Cold leads",
+  CONTACTED: "Initial touch",
+  WAITING_REPLY: "Awaiting response",
+  CALL_BOOKED: "Meeting arranged",
+  WON: "Closed deals",
+  LOST: "Inactive",
+};
+
+const statusAccent: Record<string, string> = {
+  NOT_CONTACTED: "border-slate-700/60",
+  CONTACTED: "border-cyan-700/60",
+  WAITING_REPLY: "border-amber-700/60",
+  CALL_BOOKED: "border-blue-700/60",
+  WON: "border-emerald-700/60",
+  LOST: "border-rose-700/60",
+};
+
+function Avatar({ initials }: { initials: string }) {
+  return (
+    <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-[#111216] text-[11px] font-semibold uppercase text-white">
+      {initials}
+    </div>
+  );
+}
+
+function StatChip({ label, value }: { label: string; value: number }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-200">
+      {label} {value}
+    </span>
+  );
+}
+
+function LaneFocusBar({ label }: { label: string }) {
+  return <div className="mb-3 rounded-md border border-white/5 bg-white/5 px-3 py-1 text-[11px] text-slate-300">Focus: {label}</div>;
+}
+
+function LeadCard({
+  project,
+  name,
+  domain,
+  tags,
+  urgency,
+  dragging,
+  onDragStart,
+  onSelect,
+  showStatus = true,
+  onStatusChange,
+}: LeadCardProps) {
+  const isHot = (project.icpScore ?? 0) >= 80;
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onSelect();
+      }}
+      draggable={!!onDragStart}
+      onDragStart={onDragStart}
+      className={`group relative overflow-hidden rounded-xl border border-[#1C1F24] bg-[#0F1114] p-3 text-left shadow-[0_8px_20px_rgba(0,0,0,0.35)] transition-all duration-150 hover:-translate-y-[1px] hover:border-emerald-500/40 hover:shadow-emerald-500/10 ${
+        dragging ? "ring-2 ring-emerald-400/60" : ""
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <Avatar initials={name.slice(0, 2).toUpperCase()} />
+        <div className="flex-1 space-y-0.5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-white">{name}</p>
+              <p className="truncate text-[12px] text-slate-400">{domain || "No domain"}</p>
+            </div>
+            {showStatus ? (
+              <div
+                className="shrink-0"
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+              >
+                <StatusSelect
+                  projectId={project.id}
+                  status={project.status}
+                  onChange={(next) => onStatusChange?.(next)}
+                />
+              </div>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap items-center gap-1 text-[11px] text-slate-300">
+            <span className="rounded-full bg-white/5 px-2 py-1 text-[10px] uppercase tracking-wide text-slate-400">
+              {project.status.replace(/_/g, " ")}
+            </span>
+            {isHot ? <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-200">Hot</span> : null}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
+        <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1">ICP {project.icpScore ?? "–"}</span>
+        <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1">MQA {project.mqaScore ?? "–"}</span>
+        {tags.slice(0, 2).map((tag) => (
+          <span key={tag} className="rounded-full border border-white/5 bg-white/5 px-2 py-1 text-[11px] text-slate-200">
+            {tag}
+          </span>
+        ))}
+      </div>
+
+      <div className="mt-3 flex items-center justify-between gap-2 rounded-lg border border-white/5 bg-[#0B0D10] px-3 py-2 text-[12px]">
+        <div className={`flex items-center gap-2 font-medium ${urgency.color}`}>
+          <span className={`h-2 w-2 rounded-full ${urgency.color.replace("text-", "bg-")}`} />
+          <span className="text-slate-200">Next touch:</span>
+          <span>{urgency.label}</span>
+          {project.nextSequenceStepDueAt ? (
+            <span className="text-[11px] text-slate-500">· {formatDate(project.nextSequenceStepDueAt)}</span>
+          ) : null}
+        </div>
+        <span className="text-slate-500">›</span>
+      </div>
+    </div>
+  );
+}
+
 export default function Board({ projects }: { projects: BoardProject[] }) {
   const [localProjects, setLocalProjects] = useState(projects);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [hoveredStatus, setHoveredStatus] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedProject, setSelectedProject] = useState<BoardProject | null>(null);
+  const [mode, setMode] = useState<"board" | "focus">("board");
   const [filters, setFilters] = useState({
     hotOnly: false,
     missingNext: false,
@@ -93,22 +230,18 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
       .filter(Boolean);
   };
 
-  const deriveSummary = (project: Project) => {
-    const summary = project.summary || project.painPoints || project.playbookSummary || project.stage || project.targetUsers;
-    if (!summary) return "Add a quick summary so anyone can scan this account.";
-    return summary.length > 160 ? `${summary.slice(0, 157)}…` : summary;
-  };
-
-  const urgencyLabel = (nextSequenceStepDueAt?: Date | null) => {
-    if (!nextSequenceStepDueAt) return { label: "No next touch", color: "bg-slate-500" };
+  const urgencyLabel = (nextSequenceStepDueAt?: Date | null): NextTouchMeta => {
+    if (!nextSequenceStepDueAt) return { label: "Not set", color: "text-slate-400", pill: "bg-slate-700/30" };
     const now = new Date();
     const startOfToday = new Date(now);
     startOfToday.setHours(0, 0, 0, 0);
     const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
-    if (nextSequenceStepDueAt < startOfToday) return { label: "Overdue", color: "bg-red-500" };
-    if (nextSequenceStepDueAt >= startOfToday && nextSequenceStepDueAt < endOfToday) return { label: "Today", color: "bg-amber-500" };
+    if (nextSequenceStepDueAt < startOfToday) return { label: "Overdue", color: "text-red-300", pill: "bg-red-500/10" };
+    if (nextSequenceStepDueAt >= startOfToday && nextSequenceStepDueAt < endOfToday)
+      return { label: "Today", color: "text-emerald-300", pill: "bg-emerald-500/10" };
     const diffDays = Math.round((nextSequenceStepDueAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    return { label: diffDays <= 7 ? `In ${diffDays}d` : "Scheduled", color: "bg-teal-500" };
+    const label = diffDays <= 7 ? `In ${diffDays}d` : "Upcoming";
+    return { label, color: "text-amber-200", pill: "bg-amber-500/10" };
   };
 
   const laneSnapshot = (items: BoardProject[]) => {
@@ -127,13 +260,6 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
       .sort((a, b) => (a.nextSequenceStepDueAt && b.nextSequenceStepDueAt ? a.nextSequenceStepDueAt.getTime() - b.nextSequenceStepDueAt.getTime() : 0));
     if (nextByDate.length > 0) return nextByDate[0];
     return items[0];
-  };
-
-  const icpBadgeVariant = (icp?: number | null) => {
-    if (icp === null || icp === undefined) return "neutral";
-    if (icp >= 75) return "success";
-    if (icp >= 60) return "warning";
-    return "neutral";
   };
 
   const query = searchTerm.trim().toLowerCase();
@@ -156,6 +282,35 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
   });
 
   const activeFilterCount = Number(filters.hotOnly) + Number(filters.missingNext) + Number(filters.overdueOnly) + (query ? 1 : 0);
+
+  const focusList = useMemo(() => {
+    const now = new Date();
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
+    const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+
+    const candidates = filteredProjects.filter((p) => {
+      if (!p.nextSequenceStepDueAt) return p.hasOverdueSequenceStep;
+      return p.nextSequenceStepDueAt < endOfToday;
+    });
+
+    const urgencyRank = (project: BoardProject) => {
+      if (project.hasOverdueSequenceStep) return 0;
+      if (!project.nextSequenceStepDueAt) return 2;
+      const due = project.nextSequenceStepDueAt;
+      if (due < startOfToday) return 0;
+      if (due < endOfToday) return 1;
+      return 2;
+    };
+
+    return [...candidates].sort((a, b) => {
+      const urgencyDiff = urgencyRank(a) - urgencyRank(b);
+      if (urgencyDiff !== 0) return urgencyDiff;
+      const icpDiff = (b.icpScore ?? 0) - (a.icpScore ?? 0);
+      if (icpDiff !== 0) return icpDiff;
+      return (b.mqaScore ?? 0) - (a.mqaScore ?? 0);
+    });
+  }, [filteredProjects]);
 
   const grouped = PROJECT_STATUSES.map((status) => {
     const items = filteredProjects
@@ -183,7 +338,6 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
 
   const onDrop = async (status: string) => {
     if (!draggingId) return;
-    // optimistic update
     setLocalProjects((prev) => prev.map((p) => (p.id === draggingId ? { ...p, status } : p)));
     try {
       await fetch(`/api/projects/${draggingId}`, {
@@ -201,45 +355,21 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
     }
   };
 
-  const helperByStatus: Record<string, string> = {
-    NOT_CONTACTED: "Cold leads",
-    CONTACTED: "Initial touch",
-    WAITING_REPLY: "Awaiting response",
-    CALL_BOOKED: "Meeting arranged",
-    WON: "Closed deals",
-    LOST: "Inactive",
-  };
-
-  const statusAccent: Record<string, string> = {
-    NOT_CONTACTED: "from-slate-900 via-slate-900/80 to-slate-950",
-    CONTACTED: "from-cyan-950 via-cyan-900/50 to-slate-950",
-    WAITING_REPLY: "from-amber-950 via-amber-900/50 to-slate-950",
-    CALL_BOOKED: "from-blue-950 via-blue-900/50 to-slate-950",
-    WON: "from-emerald-950 via-emerald-900/50 to-slate-950",
-    LOST: "from-rose-950 via-rose-900/50 to-slate-950",
-  };
-
   const filterPills = [
     {
       key: "hotOnly" as const,
-      label: "ICP > 80",
-      description: "Top-fit accounts",
-      activeClass: "border-emerald-400 bg-emerald-500/10 text-emerald-200 shadow-[0_0_0_1px_rgba(52,211,153,0.25)]",
-      inactiveClass: "border-slate-700 bg-[#181A1C] hover:border-slate-500",
+      label: "Hot",
+      description: "ICP > 80",
     },
     {
       key: "missingNext" as const,
-      label: "Missing next touch",
-      description: "Add next step",
-      activeClass: "border-amber-400 bg-amber-500/10 text-amber-200 shadow-[0_0_0_1px_rgba(251,191,36,0.25)]",
-      inactiveClass: "border-slate-700 bg-[#181A1C] hover:border-slate-500",
+      label: "Missing next",
+      description: "No next touch",
     },
     {
       key: "overdueOnly" as const,
-      label: "Overdue only",
-      description: "Needs rescue",
-      activeClass: "border-red-400 bg-red-500/10 text-red-200 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]",
-      inactiveClass: "border-slate-700 bg-[#181A1C] hover:border-slate-500",
+      label: "Overdue",
+      description: "Needs action",
     },
   ];
 
@@ -247,14 +377,54 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
     <div className="space-y-4">
       <Toast message={message} onClear={() => setMessage(null)} />
       <Toast message={error} type="error" onClear={() => setError(null)} />
-      <div className="space-y-3 rounded-2xl border border-[#1D2024] bg-[#0C0D0F] p-4 text-xs text-slate-200 shadow-inner shadow-black/40">
+
+      <div className="space-y-3 rounded-2xl border border-[#1D2024] bg-[#0C0D0F] p-4 shadow-inner shadow-black/30">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-slate-100">
-            <span className="h-2 w-2 rounded-full bg-emerald-400" /> Guided focus
+            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            <span>{mode === "focus" ? "Today mode" : "Pipeline"}</span>
           </div>
           <p className="text-sm text-slate-300">
-            {activeFilterCount > 0 ? `${activeFilterCount} refinement${activeFilterCount > 1 ? "s" : ""} applied` : "Tune the board to spotlight the next best work."}
+            {mode === "focus"
+              ? "Accounts that need a touch today or are overdue."
+              : "Minimal, scannable lanes focused on next actions."}
           </p>
+          <div className="ml-auto flex gap-2">
+            <button
+              type="button"
+              onClick={() => setMode("board")}
+              className={`rounded-full px-3 py-1 text-sm transition ${
+                mode === "board" ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/5"
+              }`}
+            >
+              Board
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("focus")}
+              className={`rounded-full px-3 py-1 text-sm transition ${
+                mode === "focus" ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/5"
+              }`}
+            >
+              Today
+            </button>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {filterPills.map((pill) => (
+            <button
+              key={pill.key}
+              type="button"
+              onClick={() => setFilters((f) => ({ ...f, [pill.key]: !f[pill.key] }))}
+              className={`flex items-center gap-2 rounded-full border px-3 py-1 text-left text-[12px] transition focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${
+                filters[pill.key] ? "border-emerald-400/60 bg-emerald-500/10 text-emerald-100" : "border-white/10 bg-white/5 text-slate-200"
+              }`}
+            >
+              <span className="text-[11px] text-slate-400">{pill.description}</span>
+              <span className="font-semibold">{pill.label}</span>
+            </button>
+          ))}
           {activeFilterCount > 0 ? (
             <button
               type="button"
@@ -263,27 +433,13 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                 setSearchTerm("");
                 setSortMode("next");
               }}
-              className="ml-auto inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1 text-[11px] text-slate-200 transition hover:border-emerald-400 hover:bg-emerald-500/10"
+              className="ml-auto inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1 text-[12px] text-slate-200 transition hover:border-emerald-300 hover:text-white"
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" /> Reset view
+              Reset view
             </button>
           ) : null}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {filterPills.map((pill) => (
-            <button
-              key={pill.key}
-              type="button"
-              onClick={() => setFilters((f) => ({ ...f, [pill.key]: !f[pill.key] }))}
-              className={`flex items-center gap-2 rounded-full border px-3 py-1 text-left transition focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${
-                filters[pill.key] ? pill.activeClass : pill.inactiveClass
-              }`}
-            >
-              <span className="text-[10px] uppercase tracking-wide text-slate-400">{pill.description}</span>
-              <span className="text-[13px] font-semibold text-slate-100">{pill.label}</span>
-            </button>
-          ))}
-        </div>
+
         <div className="grid gap-3 md:grid-cols-[2fr_1fr] md:items-center">
           <div className="flex items-center gap-2 rounded-xl border border-[#232527] bg-[#111214] px-3 py-2 text-xs text-slate-200 shadow-inner shadow-black/50">
             <span className="rounded-full bg-[#0F1012] px-2 py-1 text-[10px] uppercase tracking-wide text-slate-400">Search</span>
@@ -294,15 +450,12 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
               className="w-full bg-transparent text-[13px] text-slate-100 placeholder:text-slate-500 focus:outline-none"
             />
           </div>
-          <div className="flex items-center justify-between gap-2 rounded-xl border border-[#232527] bg-[#111214] px-3 py-2 text-xs text-slate-200 shadow-inner shadow-black/50">
-            <div className="flex flex-col leading-tight text-[11px] text-slate-400">
-              <span className="uppercase tracking-wide text-slate-300">Lane sort</span>
-              <span className="text-[10px] text-slate-500">Next touch or ICP priority</span>
-            </div>
+          <div className="flex items-center justify-end gap-2 text-[12px] text-slate-300">
+            <span className="text-slate-400">Sort</span>
             <select
               value={sortMode}
               onChange={(e) => setSortMode(e.target.value as "next" | "icp")}
-              className="rounded-md border border-[#2D3136] bg-[#0F1012] px-2 py-1 text-xs text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+              className="rounded-md border border-[#2D3136] bg-[#0F1012] px-2 py-1 text-[12px] text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
             >
               <option value="next">Next touch</option>
               <option value="icp">ICP</option>
@@ -310,207 +463,200 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
           </div>
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[#1C1F23] bg-[#0D0E10] p-4 text-xs text-slate-200 shadow-inner shadow-black/40">
-        <div className="flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-500/5 px-3 py-1 text-[11px] uppercase tracking-wide text-emerald-100">
-          <span className="h-2 w-2 rounded-full bg-emerald-400" /> Calm view
-        </div>
-        <p className="text-sm text-slate-300">
-          Smooth drag, inline status, and guided cues keep the pipeline readable and fast to work.
-        </p>
-        <div className="ml-auto flex items-center gap-2 text-[11px] text-slate-400">
-          <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1">Drag glow</span>
-          <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1">Lane helpers</span>
-        </div>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-        {grouped.map((column) => {
-          const stats = laneSnapshot(column.items);
-          const laneFocus = priorityPick(column.items);
-          const laneFocusName = laneFocus ? deriveName(laneFocus.name, laneFocus.url) : null;
-          const laneFocusUrgency = laneFocus ? urgencyLabel(laneFocus.nextSequenceStepDueAt || undefined) : null;
 
-          return (
-            <div
-              key={column.status}
-              className={`group relative min-h-[420px] rounded-2xl border border-[#232527] bg-gradient-to-b ${
-                statusAccent[column.status]
-              } p-3 shadow-[0_10px_30px_rgba(0,0,0,0.35)] ${draggingId ? "ring-1 ring-emerald-500/30" : ""} ${
-                hoveredStatus === column.status ? "border-emerald-400/50 shadow-emerald-500/10" : ""
-              }`}
-              onDragOver={(e) => e.preventDefault()}
-              onDragEnter={() => setHoveredStatus(column.status)}
-              onDragLeave={() => setHoveredStatus(null)}
-              onDrop={() => {
-                onDrop(column.status);
-                setHoveredStatus(null);
-              }}
-            >
-              <div className="mb-3 flex items-start justify-between gap-3 rounded-xl border border-white/5 bg-black/20 px-3 py-2 text-xs text-slate-300 shadow-inner shadow-black/30">
-                <div className="space-y-1">
-                  <span className="text-sm font-semibold text-white">{column.status.replace(/_/g, " ")}</span>
-                  <p className="text-[11px] text-slate-400">{helperByStatus[column.status] || ""}</p>
-                  <div className="flex flex-wrap gap-2 text-[11px]">
-                    <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-slate-100">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Hot fit {stats.hot}
-                    </span>
-                    <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-slate-100">
-                      <span className="h-1.5 w-1.5 rounded-full bg-amber-300" /> Missing {stats.missingNext}
-                    </span>
-                    <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-slate-100">
-                      <span className="h-1.5 w-1.5 rounded-full bg-red-300" /> Overdue {stats.overdue}
-                    </span>
+      {mode === "focus" ? (
+        <div className="space-y-3 rounded-2xl border border-[#1C1F23] bg-[#0D0E10] p-4 shadow-inner shadow-black/30">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold text-white">Today / Focus mode</p>
+              <p className="text-[12px] text-slate-400">Overdue first, then highest-fit accounts.</p>
+            </div>
+            <span className="rounded-full bg-white/5 px-3 py-1 text-[12px] text-slate-200">{focusList.length} accounts</span>
+          </div>
+          <div className="space-y-3">
+            {focusList.map((project) => {
+              const name = deriveName(project.name, project.url);
+              const domain = deriveDomain(project.url);
+              const tags = deriveTags(project.categoryTags);
+              const urgency = urgencyLabel(project.nextSequenceStepDueAt || undefined);
+              return (
+                <LeadCard
+                  key={project.id}
+                  project={project}
+                  name={name}
+                  domain={domain}
+                  tags={tags}
+                  urgency={urgency}
+                  dragging={false}
+                  onSelect={() => setSelectedProject(project)}
+                  showStatus={false}
+                />
+              );
+            })}
+            {focusList.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-white/10 bg-[#0F1012] px-4 py-6 text-sm text-slate-400">
+                Nothing due today. Add next touches or open a card to plan work.
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+          {grouped.map((column) => {
+            const stats = laneSnapshot(column.items);
+            const laneFocus = priorityPick(column.items);
+            const laneFocusName = laneFocus ? deriveName(laneFocus.name, laneFocus.url) : null;
+            const laneFocusUrgency = laneFocus ? urgencyLabel(laneFocus.nextSequenceStepDueAt || undefined) : null;
+
+            return (
+              <div
+                key={column.status}
+                className={`relative min-h-[360px] rounded-2xl border bg-[#0D0E10] p-3 shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition ${
+                  statusAccent[column.status]
+                } ${draggingId ? "ring-1 ring-emerald-500/30" : ""} ${hoveredStatus === column.status ? "border-emerald-400/50 shadow-emerald-500/10" : ""}`}
+                onDragOver={(e) => e.preventDefault()}
+                onDragEnter={() => setHoveredStatus(column.status)}
+                onDragLeave={() => setHoveredStatus(null)}
+                onDrop={() => {
+                  onDrop(column.status);
+                  setHoveredStatus(null);
+                }}
+              >
+                <div className="mb-3 space-y-2">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <div>
+                      <p className="text-lg font-semibold text-white">{column.status.replace(/_/g, " ")}</p>
+                      <p className="text-[12px] text-slate-400">{helperByStatus[column.status] || ""}</p>
+                    </div>
+                    <span className="rounded-full bg-white/5 px-2 py-1 text-[12px] text-slate-200">{column.items.length}</span>
                   </div>
+                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
+                    <StatChip label="Hot" value={stats.hot} />
+                    <StatChip label="Missing" value={stats.missingNext} />
+                    <StatChip label="Overdue" value={stats.overdue} />
+                  </div>
+                  {laneFocus ? (
+                    <LaneFocusBar
+                      label={`${laneFocusName || ""}${laneFocusUrgency ? ` • ${laneFocusUrgency.label}` : ""} • Clear these first`}
+                    />
+                  ) : null}
                 </div>
-                <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-200">
-                  <span className="rounded-full bg-[#181A1C] px-2 py-0.5 text-white">{column.items.length}</span>
-                  <span className="rounded-full bg-[#111214] px-2 py-0.5 text-[10px] uppercase tracking-wide text-slate-300">{sortMode === "icp" ? "ICP" : "Next"}</span>
+
+                <div className="space-y-3">
+                  {column.items.map((project) => {
+                    const urgency = urgencyLabel(project.nextSequenceStepDueAt || undefined);
+                    const name = deriveName(project.name, project.url);
+                    const domain = deriveDomain(project.url);
+                    const tags = deriveTags(project.categoryTags);
+                    const isDraggingCard = draggingId === project.id;
+                    return (
+                      <LeadCard
+                        key={project.id}
+                        project={project}
+                        name={name}
+                        domain={domain}
+                        tags={tags}
+                        urgency={urgency}
+                        dragging={isDraggingCard}
+                        onDragStart={() => onDragStart(project.id)}
+                        onSelect={() => setSelectedProject(project)}
+                        showStatus
+                        onStatusChange={(next) => handleStatusChange(project.id, next)}
+                      />
+                    );
+                  })}
+                  {column.items.length === 0 ? (
+                    <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-[#232527] bg-[#111214] text-xs text-slate-500">
+                      No accounts here yet.
+                    </div>
+                  ) : null}
                 </div>
               </div>
-              {laneFocus ? (
-                <div className="mb-3 rounded-lg border border-white/10 bg-[#0F1012] px-3 py-2 text-[11px] text-slate-200 shadow-sm shadow-black/20">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="flex items-center gap-2 font-semibold text-white">
-                      <span className="h-2 w-2 rounded-full bg-emerald-400" /> Lane focus
+            );
+          })}
+        </div>
+      )}
+
+      {selectedProject ? (
+        <div className="fixed inset-0 z-40 flex justify-end">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setSelectedProject(null)} />
+          <div className="relative h-full w-full max-w-[420px] border-l border-white/10 bg-[#0B0C0F] px-5 py-6 shadow-2xl">
+            <div className="mb-4 flex items-start justify-between gap-2">
+              <div>
+                <p className="text-lg font-semibold text-white">{deriveName(selectedProject.name, selectedProject.url)}</p>
+                <p className="text-[12px] text-slate-400">{deriveDomain(selectedProject.url)}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedProject(null)}
+                className="rounded-full border border-white/10 px-2 py-1 text-sm text-slate-200 hover:border-emerald-300 hover:text-white"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="space-y-3 rounded-xl border border-white/10 bg-[#0F1114] p-3 text-sm text-slate-200">
+              <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                <span className="rounded-full bg-white/5 px-2 py-1 text-[10px] uppercase tracking-wide text-slate-300">
+                  {selectedProject.status.replace(/_/g, " ")}
+                </span>
+                <span className="rounded-full bg-white/5 px-2 py-1">ICP {selectedProject.icpScore ?? "-"}</span>
+                <span className="rounded-full bg-white/5 px-2 py-1">MQA {selectedProject.mqaScore ?? "-"}</span>
+                {selectedProject.hasOverdueSequenceStep ? (
+                  <span className="rounded-full bg-red-500/10 px-2 py-1 text-[11px] text-red-200">Overdue</span>
+                ) : null}
+              </div>
+              <div className="flex items-center justify-between text-[12px] text-slate-200">
+                <div className={`flex items-center gap-2 ${urgencyLabel(selectedProject.nextSequenceStepDueAt || undefined).color}`}>
+                  <span className="text-slate-400">Next touch:</span>
+                  <span className="font-medium">
+                    {urgencyLabel(selectedProject.nextSequenceStepDueAt || undefined).label}
+                  </span>
+                  {selectedProject.nextSequenceStepDueAt ? (
+                    <span className="text-[11px] text-slate-500">{formatDate(selectedProject.nextSequenceStepDueAt)}</span>
+                  ) : null}
+                </div>
+                <Link
+                  href={`/projects/${selectedProject.id}/workspace`}
+                  className="rounded-full border border-emerald-400/40 px-3 py-1 text-[12px] text-emerald-200 transition hover:border-emerald-300 hover:bg-emerald-500/10"
+                >
+                  Open workspace
+                </Link>
+              </div>
+              <div className="space-y-2 text-[13px] text-slate-300">
+                <p className="text-[12px] uppercase tracking-wide text-slate-500">Overview</p>
+                <p>{selectedProject.summary || selectedProject.playbookSummary || "Add a summary in the workspace."}</p>
+                <div className="flex flex-wrap gap-2">
+                  {deriveTags(selectedProject.categoryTags).map((tag) => (
+                    <span key={tag} className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-200">
+                      {tag}
                     </span>
-                    {laneFocusUrgency ? (
-                      <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 ${laneFocusUrgency.color === "bg-red-500" ? "border-red-400/60 bg-red-500/10 text-red-100" : "border-emerald-400/40 bg-emerald-500/10 text-emerald-100"}`}>
-                        <span className={`h-2 w-2 rounded-full ${laneFocusUrgency.color}`} />
-                        {laneFocusUrgency.label}
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="mt-1 line-clamp-1 text-[12px] font-semibold text-white">{laneFocusName}</p>
-                  <p className="text-[11px] text-slate-400">Clear this first to unlock the lane.</p>
+                  ))}
                 </div>
-              ) : null}
-              <div className="space-y-3">
-                {column.items.map((project) => {
-                const urgency = urgencyLabel(project.nextSequenceStepDueAt || undefined);
-                const name = deriveName(project.name, project.url);
-                const domain = deriveDomain(project.url);
-                const missingNext = !project.nextSequenceStepDueAt;
-                const isDraggingCard = draggingId === project.id;
-                const cardAccent = project.hasOverdueSequenceStep
-                  ? "border-red-500/40 shadow-red-500/10"
-                  : missingNext
-                    ? "border-amber-500/40 shadow-amber-500/10"
-                    : "border-[#1F2529] shadow-black/30";
-                const tags = deriveTags(project.categoryTags);
-                const summary = deriveSummary(project);
-                return (
-                  <div
-                    key={project.id}
-                    draggable
-                    onDragStart={() => onDragStart(project.id)}
-                    className={`relative overflow-hidden rounded-xl border bg-[#0F1114] p-3 transition-all duration-150 ease-out hover:-translate-y-[2px] hover:shadow-xl ${cardAccent} ${
-                      isDraggingCard
-                        ? "ring-2 ring-emerald-400/60 shadow-emerald-500/20"
-                        : "shadow-[0_8px_16px_rgba(0,0,0,0.35)]"
-                    }`}
-                  >
-                    <div className="relative space-y-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <div className="relative h-9 w-9 rounded-full border border-emerald-400/40 bg-[#0B0D10] text-[11px] font-semibold uppercase text-emerald-100 shadow-inner shadow-emerald-500/20">
-                            <div className="absolute -inset-[1px] rounded-full bg-gradient-to-br from-emerald-500/20 via-cyan-400/10 to-blue-400/20 blur" />
-                            <div className="relative flex h-full w-full items-center justify-center">{name.slice(0, 2).toUpperCase()}</div>
-                          </div>
-                          <div className="space-y-1">
-                            <Link
-                              href={`/projects/${project.id}/workspace`}
-                              className="block text-sm font-semibold text-white transition hover:text-emerald-200"
-                            >
-                              {name}
-                            </Link>
-                            <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
-                              <span className="truncate max-w-[180px]">{domain || "No domain"}</span>
-                              <span className="h-1 w-1 rounded-full bg-slate-600" />
-                              <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-wide text-slate-300">
-                                {project.status.replace(/_/g, " ")}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-end gap-2 text-[11px] text-slate-300">
-                          <span
-                            className={`inline-flex items-center gap-2 rounded-full px-2 py-1 ${
-                              project.hasOverdueSequenceStep
-                                ? "border border-red-500/40 bg-red-500/10 text-red-100"
-                                : "border border-white/10 bg-white/5"
-                            }`}
-                          >
-                            <span className={`h-2 w-2 rounded-full ${urgency.color}`} />
-                            {project.nextSequenceStepDueAt ? `Next by ${formatDate(project.nextSequenceStepDueAt)}` : "Add next touch"}
-                          </span>
-                          <StatusSelect projectId={project.id} status={project.status} onChange={(val) => handleStatusChange(project.id, val)} />
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
-                        <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2 py-1">
-                          <span className="text-[10px] uppercase tracking-wide text-slate-400">ICP</span>
-                          <span className="text-sm font-semibold text-white">{project.icpScore ?? "–"}</span>
-                        </span>
-                        <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2 py-1">
-                          <span className="text-[10px] uppercase tracking-wide text-slate-400">MQA</span>
-                          <span className="text-sm font-semibold text-white">{project.mqaScore ?? "–"}</span>
-                        </span>
-                        <span
-                          className={`inline-flex items-center gap-2 rounded-full border px-2 py-1 ${
-                            project.hasOverdueSequenceStep
-                              ? "border-red-500/40 bg-red-500/10 text-red-100"
-                              : "border-emerald-400/20 bg-emerald-500/10 text-emerald-100"
-                          }`}
-                        >
-                          <span className={`h-2 w-2 rounded-full ${urgency.color}`} />
-                          {urgency.label}
-                        </span>
-                      </div>
-
-                      <div className="space-y-2 rounded-lg border border-white/5 bg-[#0B0D10]/80 p-3 shadow-inner shadow-black/20">
-                        <p className="text-xs text-slate-200 line-clamp-2">{summary}</p>
-                        {tags.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {tags.slice(0, 4).map((tag) => (
-                              <span key={tag} className="rounded-full bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-100">
-                                {tag}
-                              </span>
-                            ))}
-                            {tags.length > 4 ? (
-                              <span className="rounded-full bg-white/5 px-2 py-1 text-[11px] text-slate-300">+{tags.length - 4} more</span>
-                            ) : null}
-                          </div>
-                        ) : null}
-                        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400">
-                          <div className="flex flex-wrap gap-2">
-                            <Badge variant={icpBadgeVariant(project.icpScore)} className="bg-white/5 px-2 py-1">
-                              ICP {project.icpScore ?? "-"}
-                            </Badge>
-                            {missingNext ? <Badge variant="warning">Missing next touch</Badge> : null}
-                            {project.hasOverdueSequenceStep ? <Badge variant="error">Overdue</Badge> : null}
-                          </div>
-                          <Link
-                            href={`/projects/${project.id}/workspace`}
-                            className="rounded border border-white/10 px-2 py-1 text-emerald-200 transition hover:border-emerald-300 hover:bg-emerald-500/10"
-                          >
-                            Open workspace
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              {column.items.length === 0 ? (
-                <div className="flex h-32 items-center justify-center rounded-lg border border-dashed border-[#232527] bg-[#111214] text-xs text-slate-500">
-                  🕳️ No items here. Move a project to this stage to see it.
-                </div>
-              ) : null}
+                {selectedProject.url ? (
+                  <Link href={selectedProject.url} className="text-[12px] text-emerald-200 underline-offset-2 hover:underline">
+                    {selectedProject.url}
+                  </Link>
+                ) : null}
+              </div>
+              <div className="space-y-2 text-[13px] text-slate-300">
+                <p className="text-[12px] uppercase tracking-wide text-slate-500">Stage</p>
+                <StatusSelect
+                  projectId={selectedProject.id}
+                  status={selectedProject.status}
+                  onChange={(next) => {
+                    handleStatusChange(selectedProject.id, next);
+                    setSelectedProject((prev) => (prev ? { ...prev, status: next } : prev));
+                  }}
+                />
+              </div>
+              <p className="text-[12px] text-slate-500">
+                Use the workspace to log touches, set next dates, or update contacts. This panel keeps context without leaving the board.
+              </p>
             </div>
           </div>
-        );
-      })}
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 }

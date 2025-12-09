@@ -80,7 +80,7 @@ const statusTopBorder: Record<string, string> = {
 
 function Avatar({ initials }: { initials: string }) {
   return (
-    <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-[#13141a] text-[11px] font-semibold uppercase text-white shadow-sm">
+    <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-[#13141a] text-[11px] font-semibold uppercase text-white shadow-sm">
       {initials}
     </div>
   );
@@ -102,10 +102,14 @@ function LeadCard({
       : urgency.label === "Today"
         ? "text-emerald-300"
         : urgency.label === "Not set"
-          ? "text-amber-200"
-          : "text-amber-200";
+          ? "text-slate-400"
+          : "text-amber-300";
 
-  const badgeTone = urgency.label === "Overdue" ? "bg-rose-500/15 border-rose-400/40" : "bg-emerald-500/10 border-emerald-400/40";
+  const metaParts = [
+    `ICP ${project.icpScore ?? "–"}`,
+    `MQA ${project.mqaScore ?? "–"}`,
+    ...tags.slice(0, 2),
+  ];
 
   return (
     <div
@@ -117,50 +121,25 @@ function LeadCard({
       }}
       draggable={!!onDragStart}
       onDragStart={onDragStart}
-      className={`group relative overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/80 px-3 py-3 text-left shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition-all duration-150 hover:-translate-y-[2px] hover:border-emerald-400/50 hover:shadow-[0_16px_40px_rgba(0,0,0,0.5)] ${
+      className={`group relative overflow-hidden rounded-md border border-zinc-800 bg-zinc-900/80 px-3 py-2 text-left shadow-sm transition-all duration-150 hover:-translate-y-[1px] hover:border-emerald-400/40 ${
         dragging ? "ring-2 ring-emerald-400/60" : ""
       }`}
     >
-      <div className="flex items-start gap-3">
-        <div className="min-w-0 flex-1 space-y-2">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 space-y-1">
-              <p className="truncate text-[13px] font-semibold leading-tight text-white">{name}</p>
-              <p className="truncate text-[11px] text-zinc-400">{domain || "No domain"}</p>
-            </div>
-            <Avatar initials={name.slice(0, 2).toUpperCase()} />
+      <div className="space-y-1">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold leading-tight text-white">{name}</p>
+            <p className="truncate text-[11px] text-zinc-400">{domain || "No domain"}</p>
           </div>
+          <Avatar initials={name.slice(0, 2).toUpperCase()} />
+        </div>
 
-          <div className="flex items-center gap-2 text-[11px] text-zinc-300">
-            <span className="rounded-full border border-zinc-700 bg-zinc-800/80 px-2 py-[3px] text-[10px] font-semibold uppercase tracking-wide text-zinc-200">
-              ICP {project.icpScore ?? "–"}
-            </span>
-            <span className="rounded-full border border-zinc-700 bg-zinc-800/80 px-2 py-[3px] text-[10px] font-semibold uppercase tracking-wide text-zinc-200">
-              MQA {project.mqaScore ?? "–"}
-            </span>
-            {tags.slice(0, 2).map((tag) => (
-              <span key={tag} className="rounded-full border border-zinc-800 bg-zinc-800/80 px-2 py-[3px] text-[10px] font-medium text-zinc-200">
-                {tag}
-              </span>
-            ))}
-          </div>
-
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-800/80 bg-zinc-900/70 px-2.5 py-2 text-[12px]">
-            <div className="flex items-center gap-2 text-zinc-300">
-              {urgency.label === "Not set" ? (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full border border-amber-400/50 text-amber-200">
-                  !
-                </span>
-              ) : (
-                <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_0_2px_rgba(16,185,129,0.15)]" />
-              )}
-              <span className="text-[11px] uppercase tracking-wide text-zinc-400">Next step</span>
-              <span className={`font-semibold ${nextColor}`}>{urgency.label}</span>
-            </div>
-            <span className={`rounded-full border px-2 py-[3px] text-[11px] font-medium ${badgeTone}`}>
-              {urgency.label === "Not set" ? "Missing" : urgency.label === "Overdue" ? "Act now" : "Scheduled"}
-            </span>
-          </div>
+        <div className="flex items-center justify-between text-[11px] text-zinc-400">
+          <span className="truncate">{metaParts.join(" · ")}</span>
+          <span className="ml-3 flex-shrink-0 whitespace-nowrap">
+            <span className="text-zinc-500">Next:</span>{" "}
+            <span className={`font-semibold ${nextColor}`}>{urgency.label}</span>
+          </span>
         </div>
       </div>
     </div>
@@ -476,11 +455,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           {grouped.map((column) => {
             const stats = laneSnapshot(column.items);
-            const statIndicators = [
-              { label: "Hot", value: stats.hot, color: "bg-pink-400" },
-              { label: "Missing", value: stats.missingNext, color: "bg-amber-400" },
-              { label: "Overdue", value: stats.overdue, color: "bg-rose-400" },
-            ].filter((item) => item.value > 0);
+            const statLine = `Hot ${stats.hot} · Missing ${stats.missingNext} · Overdue ${stats.overdue}`;
 
             return (
               <div
@@ -497,7 +472,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                 }}
               >
                 <div className={`absolute left-0 top-0 h-[2px] w-full ${statusTopBorder[column.status]}`} />
-                <div className="mb-2 space-y-2">
+                <div className="mb-2 space-y-1">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-sm font-semibold text-white">
                       <span>{column.status.replace(/_/g, " ")}</span>
@@ -506,25 +481,12 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                       </span>
                     </div>
                     {helperByStatus[column.status] ? (
-                      <span className="rounded-full border border-zinc-800 bg-zinc-900/80 px-2 py-[3px] text-[11px] text-zinc-400">
-                        {helperByStatus[column.status]}
-                      </span>
+                      <span className="text-[11px] text-zinc-500">{helperByStatus[column.status]}</span>
                     ) : null}
                   </div>
-                  {statIndicators.length ? (
-                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-300">
-                      {statIndicators.map((stat) => (
-                        <span
-                          key={stat.label}
-                          className="flex items-center gap-1 rounded-full border border-white/5 bg-zinc-900/80 px-2 py-[4px]"
-                        >
-                          <span className={`h-1.5 w-1.5 rounded-full ${stat.color}`} />
-                          <span className="font-medium text-zinc-200">{stat.value}</span>
-                          <span className="text-zinc-400">{stat.label}</span>
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
+                  <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                    <span>{statLine}</span>
+                  </div>
                 </div>
 
                 <div className="space-y-3">

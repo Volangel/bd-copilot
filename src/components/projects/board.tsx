@@ -86,17 +86,8 @@ function Avatar({ initials }: { initials: string }) {
   );
 }
 
-function StatChip({ label, value }: { label: string; value: number }) {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-[4px] bg-white/5 px-2 py-[3px] text-[11px] text-slate-200">
-      <span>{label}</span>
-      <span className="font-semibold text-slate-100">{value}</span>
-    </span>
-  );
-}
-
 function LaneFocusBar({ label }: { label: string }) {
-  return <div className="mb-1 px-1 py-[2px] text-[10px] text-slate-400">Focus: {label}</div>;
+  return <span className="text-xs text-gray-500">Focus: {label}</span>;
 }
 
 function LeadCard({
@@ -137,18 +128,20 @@ function LeadCard({
       }}
       draggable={!!onDragStart}
       onDragStart={onDragStart}
-      className={`group relative overflow-hidden rounded-[4px] border border-white/5 bg-[#0F1114] p-2 text-left transition-all duration-150 hover:-translate-y-[1px] hover:border-emerald-500/40 ${
+      className={`group relative overflow-hidden rounded-md border border-white/5 bg-[#0F1114] px-3 py-2 text-left transition-all duration-150 hover:-translate-y-[1px] hover:border-emerald-500/40 ${
         dragging ? "ring-2 ring-emerald-400/60" : ""
       }`}
     >
-      <div className="flex items-start gap-2">
+      <div className="flex items-start gap-3">
         <Avatar initials={name.slice(0, 2).toUpperCase()} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-semibold text-white">{name}</p>
-          <p className="truncate text-[11px] text-slate-400">{domain || "No domain"}</p>
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex flex-col leading-tight">
+            <p className="truncate text-[13px] font-semibold text-white">{name}</p>
+            <p className="truncate text-[10px] text-slate-500">{domain || "No domain"}</p>
+          </div>
 
-          <div className="mt-1 flex items-center justify-between gap-2 text-[11px]">
-            <div className="flex flex-1 items-center gap-1 truncate text-slate-300">
+          <div className="flex items-center justify-between gap-2 text-[11px] text-slate-300">
+            <div className="flex min-w-0 flex-1 items-center gap-1 truncate">
               <span className="shrink-0">ICP {project.icpScore ?? "–"}</span>
               <span className="text-slate-600">·</span>
               <span className="shrink-0">MQA {project.mqaScore ?? "–"}</span>
@@ -158,7 +151,7 @@ function LeadCard({
                 </span>
               ))}
             </div>
-            <div className={`shrink-0 whitespace-nowrap text-[12px] font-semibold ${nextColor}`}>
+            <div className={`shrink-0 whitespace-nowrap text-[11px] font-semibold ${nextColor}`}>
               {nextDescriptor}
             </div>
           </div>
@@ -495,7 +488,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
             return (
               <div
                 key={column.status}
-                className={`relative min-h-[360px] overflow-hidden rounded-[4px] bg-[#0D0E10] px-2 py-2.5 transition ${
+                className={`relative min-h-[360px] overflow-hidden rounded-[4px] bg-[#0D0E10] px-2 py-2 transition ${
                   draggingId ? "ring-1 ring-emerald-500/30" : ""
                 } ${hoveredStatus === column.status ? "ring-1 ring-emerald-400/40" : ""}`}
                 onDragOver={(e) => e.preventDefault()}
@@ -507,19 +500,19 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                 }}
               >
                 <div className={`absolute left-0 top-0 h-[3px] w-full ${statusTopBorder[column.status]}`} />
-                <div className="mb-2 space-y-1.5">
+                <div className="mb-1.5 space-y-1">
                   <div className="space-y-0.5">
                     <div className="flex items-center justify-between text-sm font-semibold text-white">
                       <span>{column.status.replace(/_/g, " ")}</span>
                       <span className="rounded-[4px] bg-white/5 px-2 py-[3px] text-[11px] text-slate-200">{column.items.length}</span>
                     </div>
                     <p className="text-[11px] text-slate-400">{helperByStatus[column.status] || ""}</p>
-                    <div className="flex flex-wrap items-center gap-1 text-[11px] text-slate-300">
-                      <StatChip label="Hot" value={stats.hot} />
+                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
+                      <span className="text-slate-400">Hot {stats.hot}</span>
                       <span className="text-slate-600">•</span>
-                      <StatChip label="Missing" value={stats.missingNext} />
+                      <span className="text-slate-400">Missing {stats.missingNext}</span>
                       <span className="text-slate-600">•</span>
-                      <StatChip label="Overdue" value={stats.overdue} />
+                      <span className="text-slate-400">Overdue {stats.overdue}</span>
                     </div>
                   </div>
                   {laneFocus ? (
@@ -529,7 +522,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                   ) : null}
                 </div>
 
-                <div className="space-y-2.5">
+                <div className="space-y-1.5">
                   {column.items.map((project) => {
                     const urgency = urgencyLabel(project.nextSequenceStepDueAt || undefined);
                     const name = deriveName(project.name, project.url);

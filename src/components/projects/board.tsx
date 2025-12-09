@@ -58,8 +58,6 @@ type LeadCardProps = {
   dragging: boolean;
   onDragStart?: () => void;
   onSelect: () => void;
-  showStatus?: boolean;
-  onStatusChange?: (status: string) => void;
 };
 
 const helperByStatus: Record<string, string> = {
@@ -98,7 +96,7 @@ function StatChip({ label, value }: { label: string; value: number }) {
 }
 
 function LaneFocusBar({ label }: { label: string }) {
-  return <div className="mb-2 px-2 py-1 text-[11px] text-slate-300">Focus: {label}</div>;
+  return <div className="mb-1 px-1 py-[2px] text-[10px] text-slate-400">Focus: {label}</div>;
 }
 
 function LeadCard({
@@ -110,8 +108,6 @@ function LeadCard({
   dragging,
   onDragStart,
   onSelect,
-  showStatus = true,
-  onStatusChange,
 }: LeadCardProps) {
   const nextDescriptor =
     urgency.label === "Overdue"
@@ -120,7 +116,9 @@ function LeadCard({
         ? "Next: Today"
         : urgency.label === "Not set"
           ? "Next: Not set"
-          : "Next: Upcoming";
+          : urgency.label.startsWith("In ")
+            ? `Next: ${urgency.label.replace("d", " days")}`
+            : `Next: ${urgency.label}`;
   const nextColor =
     urgency.label === "Overdue"
       ? "text-red-400"
@@ -143,39 +141,27 @@ function LeadCard({
         dragging ? "ring-2 ring-emerald-400/60" : ""
       }`}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-start gap-2">
         <Avatar initials={name.slice(0, 2).toUpperCase()} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-[13px] font-semibold text-white">{name}</p>
           <p className="truncate text-[11px] text-slate-400">{domain || "No domain"}</p>
-        </div>
-        {showStatus ? (
-          <div
-            className="shrink-0"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
-            <StatusSelect
-              projectId={project.id}
-              status={project.status}
-              onChange={(next) => onStatusChange?.(next)}
-            />
-          </div>
-        ) : null}
-      </div>
 
-      <div className="mt-2 flex items-center justify-between gap-2 text-[11px]">
-        <div className="flex flex-wrap items-center gap-1 text-slate-200">
-          <span className="rounded-[4px] bg-white/5 px-2 py-[3px]">ICP {project.icpScore ?? "–"}</span>
-          <span className="rounded-[4px] bg-white/5 px-2 py-[3px]">MQA {project.mqaScore ?? "–"}</span>
-          {tags.slice(0, 2).map((tag) => (
-            <span key={tag} className="rounded-[4px] bg-white/5 px-2 py-[3px] text-slate-200">
-              {tag}
-            </span>
-          ))}
-        </div>
-        <div className={`whitespace-nowrap text-[12px] font-semibold ${nextColor}`}>
-          {nextDescriptor}
+          <div className="mt-1 flex items-center justify-between gap-2 text-[11px]">
+            <div className="flex flex-1 items-center gap-1 truncate text-slate-300">
+              <span className="shrink-0">ICP {project.icpScore ?? "–"}</span>
+              <span className="text-slate-600">·</span>
+              <span className="shrink-0">MQA {project.mqaScore ?? "–"}</span>
+              {tags.slice(0, 2).map((tag) => (
+                <span key={tag} className="truncate">
+                  <span className="text-slate-600">·</span> {tag}
+                </span>
+              ))}
+            </div>
+            <div className={`shrink-0 whitespace-nowrap text-[12px] font-semibold ${nextColor}`}>
+              {nextDescriptor}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -488,7 +474,6 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                   urgency={urgency}
                   dragging={false}
                   onSelect={() => setSelectedProject(project)}
-                  showStatus={false}
                 />
               );
             })}
@@ -500,7 +485,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
           </div>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           {grouped.map((column) => {
             const stats = laneSnapshot(column.items);
             const laneFocus = priorityPick(column.items);
@@ -510,9 +495,9 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
             return (
               <div
                 key={column.status}
-                className={`relative min-h-[360px] overflow-hidden rounded-[4px] border border-white/5 bg-[#0D0E10] px-2.5 py-3 transition ${
+                className={`relative min-h-[360px] overflow-hidden rounded-[4px] bg-[#0D0E10] px-2 py-2.5 transition ${
                   draggingId ? "ring-1 ring-emerald-500/30" : ""
-                } ${hoveredStatus === column.status ? "border-emerald-400/50" : ""}`}
+                } ${hoveredStatus === column.status ? "ring-1 ring-emerald-400/40" : ""}`}
                 onDragOver={(e) => e.preventDefault()}
                 onDragEnter={() => setHoveredStatus(column.status)}
                 onDragLeave={() => setHoveredStatus(null)}
@@ -522,7 +507,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                 }}
               >
                 <div className={`absolute left-0 top-0 h-[3px] w-full ${statusTopBorder[column.status]}`} />
-                <div className="mb-2.5 space-y-1.5">
+                <div className="mb-2 space-y-1.5">
                   <div className="space-y-0.5">
                     <div className="flex items-center justify-between text-sm font-semibold text-white">
                       <span>{column.status.replace(/_/g, " ")}</span>
@@ -557,16 +542,14 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                         project={project}
                         name={name}
                         domain={domain}
-                        tags={tags}
-                        urgency={urgency}
-                        dragging={isDraggingCard}
-                        onDragStart={() => onDragStart(project.id)}
-                        onSelect={() => setSelectedProject(project)}
-                        showStatus
-                        onStatusChange={(next) => handleStatusChange(project.id, next)}
-                      />
-                    );
-                  })}
+                      tags={tags}
+                      urgency={urgency}
+                      dragging={isDraggingCard}
+                      onDragStart={() => onDragStart(project.id)}
+                      onSelect={() => setSelectedProject(project)}
+                    />
+                  );
+                })}
                   {column.items.length === 0 ? (
                     <div className="flex h-24 items-center justify-center rounded-[4px] border border-dashed border-[#232527] bg-[#111214] text-xs text-slate-500">
                       No accounts here yet.

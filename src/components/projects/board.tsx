@@ -138,17 +138,6 @@ function LeadCard({
 }: LeadCardProps) {
   const [isNextPopoverOpen, setIsNextPopoverOpen] = useState(false);
   const [customDate, setCustomDate] = useState("");
-  const nextColor =
-    urgency.label === "Overdue"
-      ? "text-rose-300"
-      : urgency.label === "Today"
-        ? "text-emerald-300"
-        : urgency.label === "Not set"
-          ? "text-slate-400"
-          : "text-amber-300";
-
-  const nextTouchLabel = urgency.label;
-
   const priorityBarClassName = getPriorityBarClasses(project.icpScore, (project.icpScore ?? 0) >= 80);
   const handleChangeNextTouch =
     onChangeNextTouch ?? ((projectId: string, nextTouch: Date | null) => console.log("TODO: change next touch", projectId, nextTouch));
@@ -166,6 +155,85 @@ function LeadCard({
   const nextWeek = new Date();
   nextWeek.setDate(today.getDate() + 7);
 
+  const nextTouch = normalizeNextTouch(project.nextSequenceStepDueAt);
+
+  const formatTime = (date: Date) =>
+    date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+  const describeNextTouch = (date: Date | null) => {
+    if (!date) {
+      return {
+        label: "No next touch",
+        accent: "text-slate-400",
+        border: "border-slate-800",
+        dot: "bg-slate-500",
+        helper: "⚠️",
+      } as const;
+    }
+
+    const now = new Date();
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
+    const startOfTomorrow = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+
+    if (date < startOfToday) {
+      const diffMs = startOfToday.getTime() - date.getTime();
+      const diffDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+      return {
+        label: `Overdue by ${diffDays}d`,
+        accent: "text-rose-300",
+        border: "border-rose-500/50",
+        dot: "bg-rose-400",
+        helper: "•",
+      } as const;
+    }
+
+    if (date < startOfTomorrow) {
+      return {
+        label: `Today at ${formatTime(date)}`,
+        accent: "text-emerald-200",
+        border: "border-emerald-400/40",
+        dot: "bg-emerald-400",
+        helper: "•",
+      } as const;
+    }
+
+    const diffDays = Math.round((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    const dayLabel = diffDays <= 1 ? "Tomorrow" : `In ${diffDays}d`;
+    return {
+      label: `${dayLabel} at ${formatTime(date)}`,
+      accent: "text-amber-200",
+      border: "border-amber-400/30",
+      dot: "bg-amber-300",
+      helper: "•",
+    } as const;
+  };
+
+  const nextMeta = describeNextTouch(nextTouch);
+
+  const channelIcon = (() => {
+    if (project.telegram) return "📨";
+    if (project.twitter) return "🐦";
+    return "✉";
+  })();
+
+  const ownerInitial = (name || domain || "?").trim().charAt(0).toUpperCase() || "?";
+
+  const heatChip = (score?: number | null) => {
+    if (score === null || score === undefined) return null;
+    if (score >= 80) return { label: "Hot", className: "bg-rose-500/15 text-rose-200 border border-rose-400/40" };
+    if (score >= 60) return { label: "Warm", className: "bg-amber-500/10 text-amber-200 border border-amber-400/30" };
+    return null;
+  };
+
+  const icpChipClass = (score?: number | null) => {
+    if ((score ?? 0) >= 80) return "border-emerald-400/70 bg-emerald-500/10 text-emerald-100";
+    return "border-white/10 bg-white/5 text-slate-200";
+  };
+
   return (
     <div className="group relative flex">
       <div className={priorityBarClassName} />
@@ -178,7 +246,8 @@ function LeadCard({
         }}
         draggable={!!onDragStart}
         onDragStart={onDragStart}
-        className={`relative flex-1 rounded-md px-3 py-2 space-y-2 text-left leading-tight transition-all duration-150 ${
+        data-urgency={urgency.label}
+        className={`relative flex-1 rounded-md px-3 py-3 space-y-3 text-left leading-tight transition-all duration-150 bg-[#0E1013]/70 border border-white/5 ${
           dragging ? "ring-2 ring-emerald-400/60" : ""
         }`}
       >
@@ -209,79 +278,118 @@ function LeadCard({
           </button>
         </div>
 
-        <div className="min-w-0 space-y-0.5 leading-tight">
-          <p className="max-w-full truncate text-sm font-semibold text-white">{name}</p>
-          <p className="block truncate text-xs text-gray-500">{domain || "No domain"}</p>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 space-y-0.5 leading-tight">
+            <p className="max-w-full truncate text-sm font-semibold text-white">{name}</p>
+            <p className="block truncate text-[12px] text-gray-500">{domain || "No domain"}</p>
+          </div>
+          <div className="flex items-center gap-1 text-[11px]">
+            <span
+              className={`inline-flex items-center gap-1 rounded-full border px-2 py-[2px] font-semibold ${icpChipClass(project.icpScore)}`}
+            >
+              ICP {project.icpScore ?? "–"}
+            </span>
+            {heatChip(project.icpScore) ? (
+              <span className={`inline-flex items-center rounded-full px-2 py-[2px] text-[11px] font-semibold ${heatChip(project.icpScore)?.className}`}>
+                {heatChip(project.icpScore)?.label}
+              </span>
+            ) : null}
+          </div>
         </div>
 
-        <div className="flex w-full items-center justify-between gap-2 text-xs text-gray-400 leading-tight">
-          <span className="block max-w-[65%] truncate">
-            ICP {project.icpScore ?? "–"} · MQA {project.mqaScore ?? "–"}
-            {tags.length > 0 && ` · ${tags.slice(0, 2).join(" · ")}`}
-          </span>
-
-          <div className="relative">
+        <div
+          className={`flex items-center justify-between gap-3 rounded-lg border bg-black/30 px-3 py-2 text-[12px] shadow-inner transition ${nextMeta.border}`}
+        >
+          <div className="flex items-center gap-2 text-left">
+            <span className={`h-2 w-2 rounded-full ${nextMeta.dot}`} />
             <button
               type="button"
+              className={`flex items-center gap-2 font-medium ${nextMeta.accent} hover:text-white`}
               onClick={(e) => {
                 e.stopPropagation();
                 setIsNextPopoverOpen((open) => !open);
               }}
-              className={`text-gray-300 font-medium whitespace-nowrap ${nextColor} hover:text-white`}
             >
-              Next: {nextTouchLabel}
+              <span className="text-slate-400">Next touch:</span>
+              <span className="flex items-center gap-1 whitespace-nowrap">
+                {nextMeta.helper ? <span className="text-[11px]">{nextMeta.helper}</span> : null}
+                <span>{nextMeta.label}</span>
+              </span>
             </button>
-
-            {isNextPopoverOpen ? (
-              <div
-                className="absolute right-0 mt-1 w-40 rounded-md border border-white/10 bg-black/90 p-2 text-[11px] text-slate-100 shadow-lg z-30"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button
-                  type="button"
-                  className="w-full rounded-md px-2 py-1 text-left hover:bg-white/10"
-                  onClick={() => handleSetDateAndClose(today)}
+            <span className="rounded-full bg-white/5 px-2 py-[2px] text-xs text-slate-200">{channelIcon}</span>
+            <div className="relative">
+              {isNextPopoverOpen ? (
+                <div
+                  className="absolute left-0 top-8 w-44 rounded-md border border-white/10 bg-black/90 p-2 text-[11px] text-slate-100 shadow-lg z-30"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  Today
-                </button>
-                <button
-                  type="button"
-                  className="w-full rounded-md px-2 py-1 text-left hover:bg-white/10"
-                  onClick={() => handleSetDateAndClose(tomorrow)}
-                >
-                  Tomorrow
-                </button>
-                <button
-                  type="button"
-                  className="w-full rounded-md px-2 py-1 text-left hover:bg-white/10"
-                  onClick={() => handleSetDateAndClose(nextWeek)}
-                >
-                  Next week
-                </button>
-                <button
-                  type="button"
-                  className="w-full rounded-md px-2 py-1 text-left hover:bg-white/10 text-slate-300"
-                  onClick={() => handleSetDateAndClose(null)}
-                >
-                  Clear
-                </button>
-                <input
-                  type="date"
-                  value={customDate}
-                  onChange={(e) => {
-                    setCustomDate(e.target.value);
-                    if (e.target.value) {
-                      const [year, month, day] = e.target.value.split("-").map(Number);
-                      const date = new Date(year, month - 1, day, 12, 0, 0);
-                      handleSetDateAndClose(date);
-                    }
-                  }}
-                  className="mt-1 w-full rounded-md border border-white/15 bg-black/60 px-2 py-1 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500/60"
-                />
-                {/* TODO: Close popover on outside click */}
-              </div>
-            ) : null}
+                  <button
+                    type="button"
+                    className="w-full rounded-md px-2 py-1 text-left hover:bg-white/10"
+                    onClick={() => handleSetDateAndClose(today)}
+                  >
+                    Today
+                  </button>
+                  <button
+                    type="button"
+                    className="w-full rounded-md px-2 py-1 text-left hover:bg-white/10"
+                    onClick={() => handleSetDateAndClose(tomorrow)}
+                  >
+                    Tomorrow
+                  </button>
+                  <button
+                    type="button"
+                    className="w-full rounded-md px-2 py-1 text-left hover:bg-white/10"
+                    onClick={() => handleSetDateAndClose(nextWeek)}
+                  >
+                    Next week
+                  </button>
+                  <button
+                    type="button"
+                    className="w-full rounded-md px-2 py-1 text-left text-slate-300 hover:bg-white/10"
+                    onClick={() => handleSetDateAndClose(null)}
+                  >
+                    Clear
+                  </button>
+                  <input
+                    type="date"
+                    value={customDate}
+                    onChange={(e) => {
+                      setCustomDate(e.target.value);
+                      if (e.target.value) {
+                        const [year, month, day] = e.target.value.split("-").map(Number);
+                        const date = new Date(year, month - 1, day, 12, 0, 0);
+                        handleSetDateAndClose(date);
+                      }
+                    }}
+                    className="mt-1 w-full rounded-md border border-white/15 bg-black/60 px-2 py-1 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500/60"
+                  />
+                </div>
+              ) : null}
+            </div>
           </div>
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/5 text-[11px] font-semibold text-slate-200">
+              {ownerInitial}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {tags.length === 0 ? (
+            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-400">Add tags</span>
+          ) : (
+            tags.slice(0, 4).map((tag) => (
+              <span key={tag} className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-200">
+                {tag}
+              </span>
+            ))
+          )}
+          {project.mqaScore ? (
+            <span className="rounded-full border border-blue-400/30 bg-blue-500/10 px-2 py-1 text-[11px] font-semibold text-blue-100">
+              MQA {project.mqaScore}
+            </span>
+          ) : null}
         </div>
       </div>
     </div>

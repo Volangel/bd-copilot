@@ -88,6 +88,40 @@ function getPriorityBarClasses(icpScore?: number, isHot?: boolean) {
   return "w-1 rounded-l-md bg-slate-600";
 }
 
+function normalizeNextTouch(value: unknown): Date | null {
+  if (value instanceof Date) return value;
+  if (typeof value === "string" || typeof value === "number") {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  return null;
+}
+
+export function selectTodayLeads(projects: BoardProject[], now: Date = new Date()): BoardProject[] {
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+
+  const overdue: { project: BoardProject; nextTouch: Date }[] = [];
+  const today: { project: BoardProject; nextTouch: Date }[] = [];
+
+  projects.forEach((project) => {
+    const nextTouch = normalizeNextTouch(project.nextSequenceStepDueAt);
+    if (!nextTouch) return;
+
+    if (nextTouch < startOfToday) {
+      overdue.push({ project, nextTouch });
+    } else if (nextTouch < endOfToday) {
+      today.push({ project, nextTouch });
+    }
+  });
+
+  overdue.sort((a, b) => a.nextTouch.getTime() - b.nextTouch.getTime());
+  today.sort((a, b) => (b.project.icpScore ?? 0) - (a.project.icpScore ?? 0));
+
+  return [...overdue, ...today].map((item) => item.project);
+}
+
 function LeadCard({
   project,
   name,
@@ -190,7 +224,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<BoardProject | null>(null);
-  const [mode, setMode] = useState<"board" | "focus">("board");
+  const [mode, setMode] = useState<"board" | "today">("board");
   const [filters, setFilters] = useState({
     hotOnly: false,
     missingNext: false,
@@ -228,6 +262,48 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
       .split(/[,;]+/)
       .map((t) => t.trim())
       .filter(Boolean);
+  };
+
+  const TodayView = ({ projects }: { projects: BoardProject[] }) => {
+    // TODO: Add keyboard up/down navigation for Today list
+    // TODO: Focus first item automatically for keyboard workflows
+
+    return (
+      <div className="w-full flex flex-col items-center mt-4">
+        <div className="w-full max-w-2xl px-4 space-y-2">
+          <div className="space-y-1">
+            <h2 className="text-xl font-semibold text-white">Today</h2>
+            <p className="text-sm text-slate-400">Overdue + due today accounts, sorted by priority.</p>
+          </div>
+          <div className="space-y-3">
+            {projects.map((project) => {
+              const name = deriveName(project.name, project.url);
+              const domain = deriveDomain(project.url);
+              const tags = deriveTags(project.categoryTags);
+              const urgency = urgencyLabel(project.nextSequenceStepDueAt || undefined);
+
+              return (
+                <LeadCard
+                  key={project.id}
+                  project={project}
+                  name={name}
+                  domain={domain}
+                  tags={tags}
+                  urgency={urgency}
+                  dragging={false}
+                  onSelect={() => setSelectedProject(project)}
+                />
+              );
+            })}
+            {projects.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-white/10 bg-[#0F1012] px-4 py-6 text-sm text-slate-400">
+                Nothing due today. Add next touches or open a card to plan work.
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const urgencyLabel = (nextSequenceStepDueAt?: Date | null): NextTouchMeta => {
@@ -272,34 +348,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
 
   const activeFilterCount = Number(filters.hotOnly) + Number(filters.missingNext) + Number(filters.overdueOnly) + (query ? 1 : 0);
 
-  const focusList = useMemo(() => {
-    const now = new Date();
-    const startOfToday = new Date(now);
-    startOfToday.setHours(0, 0, 0, 0);
-    const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
-
-    const candidates = filteredProjects.filter((p) => {
-      if (!p.nextSequenceStepDueAt) return p.hasOverdueSequenceStep;
-      return p.nextSequenceStepDueAt < endOfToday;
-    });
-
-    const urgencyRank = (project: BoardProject) => {
-      if (project.hasOverdueSequenceStep) return 0;
-      if (!project.nextSequenceStepDueAt) return 2;
-      const due = project.nextSequenceStepDueAt;
-      if (due < startOfToday) return 0;
-      if (due < endOfToday) return 1;
-      return 2;
-    };
-
-    return [...candidates].sort((a, b) => {
-      const urgencyDiff = urgencyRank(a) - urgencyRank(b);
-      if (urgencyDiff !== 0) return urgencyDiff;
-      const icpDiff = (b.icpScore ?? 0) - (a.icpScore ?? 0);
-      if (icpDiff !== 0) return icpDiff;
-      return (b.mqaScore ?? 0) - (a.mqaScore ?? 0);
-    });
-  }, [filteredProjects]);
+  const todayProjects = useMemo(() => selectTodayLeads(filteredProjects), [filteredProjects]);
 
   const grouped = PROJECT_STATUSES.map((status) => {
     const items = filteredProjects
@@ -371,10 +420,10 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-slate-100">
             <span className="h-2 w-2 rounded-full bg-emerald-400" />
-            <span>{mode === "focus" ? "Today mode" : "Pipeline"}</span>
+            <span>{mode === "today" ? "Today mode" : "Pipeline"}</span>
           </div>
           <p className="text-sm text-slate-300">
-            {mode === "focus"
+            {mode === "today"
               ? "Accounts that need a touch today or are overdue."
               : "Minimal, scannable lanes focused on next actions."}
           </p>
@@ -390,9 +439,9 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
             </button>
             <button
               type="button"
-              onClick={() => setMode("focus")}
+              onClick={() => setMode("today")}
               className={`rounded-full px-3 py-1 text-sm transition ${
-                mode === "focus" ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/5"
+                mode === "today" ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/5"
               }`}
             >
               Today
@@ -453,42 +502,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
         </div>
       </div>
 
-      {mode === "focus" ? (
-        <div className="space-y-3 rounded-2xl border border-[#1C1F23] bg-[#0D0E10] p-4 shadow-inner shadow-black/30">
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <p className="text-sm font-semibold text-white">Today / Focus mode</p>
-              <p className="text-[12px] text-slate-400">Overdue first, then highest-fit accounts.</p>
-            </div>
-            <span className="rounded-full bg-white/5 px-3 py-1 text-[12px] text-slate-200">{focusList.length} accounts</span>
-          </div>
-          <div className="space-y-3">
-            {focusList.map((project) => {
-              const name = deriveName(project.name, project.url);
-              const domain = deriveDomain(project.url);
-              const tags = deriveTags(project.categoryTags);
-              const urgency = urgencyLabel(project.nextSequenceStepDueAt || undefined);
-              return (
-                <LeadCard
-                  key={project.id}
-                  project={project}
-                  name={name}
-                  domain={domain}
-                  tags={tags}
-                  urgency={urgency}
-                  dragging={false}
-                  onSelect={() => setSelectedProject(project)}
-                />
-              );
-            })}
-            {focusList.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-white/10 bg-[#0F1012] px-4 py-6 text-sm text-slate-400">
-                Nothing due today. Add next touches or open a card to plan work.
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : (
+      {mode === "board" ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           {grouped.map((column) => {
             const stats = laneSnapshot(column.items);
@@ -550,6 +564,8 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
             );
           })}
         </div>
+      ) : (
+        <TodayView projects={todayProjects} />
       )}
 
       {selectedProject ? (

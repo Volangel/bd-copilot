@@ -31,7 +31,7 @@ function StatusSelect({
 
   return (
     <select
-      className="rounded-md border border-white/10 bg-[#0F1012] px-2 py-1 text-[11px] text-slate-100 shadow-sm transition hover:border-emerald-400/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+      className="rounded-md border border-white/10 bg-[#0F1012] px-3 py-2 text-xs font-medium text-slate-100 shadow-sm transition hover:border-emerald-400/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
       value={status}
       disabled={saving}
       onChange={(e) => updateStatus(e.target.value)}
@@ -247,8 +247,8 @@ function LeadCard({
         draggable={!!onDragStart}
         onDragStart={onDragStart}
         data-urgency={urgency.label}
-        className={`relative flex-1 rounded-md px-3 py-3 space-y-3 text-left leading-tight transition-all duration-150 bg-[#0E1013]/70 border border-white/5 ${
-          dragging ? "ring-2 ring-emerald-400/60" : ""
+        className={`relative flex-1 space-y-4 rounded-xl border border-white/10 bg-[#0E1013]/80 px-4 py-4 text-left leading-relaxed shadow-inner shadow-black/20 transition-all duration-150 ${
+          dragging ? "ring-2 ring-emerald-400/60" : "hover:-translate-y-1 hover:border-emerald-400/30 hover:shadow-[0_10px_35px_rgba(0,0,0,0.35)]"
         }`}
       >
         <div
@@ -256,8 +256,8 @@ function LeadCard({
             absolute top-1 right-1
             flex items-center gap-1
             rounded-full bg-black/70
-            px-2 py-1
-            text-[10px] text-gray-200
+            px-3 py-1.5
+            text-xs font-medium text-gray-100
             opacity-0 pointer-events-none
             group-hover:opacity-100 group-hover:pointer-events-auto
             transition
@@ -279,18 +279,20 @@ function LeadCard({
         </div>
 
         <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 space-y-0.5 leading-tight">
-            <p className="max-w-full truncate text-sm font-semibold text-white">{name}</p>
-            <p className="block truncate text-[12px] text-gray-500">{domain || "No domain"}</p>
+          <div className="min-w-0 space-y-1 leading-snug">
+            <p className="max-w-full truncate text-base font-semibold text-emerald-200 hover:underline decoration-emerald-400/50">
+              {name}
+            </p>
+            <p className="block truncate text-[13px] text-slate-300">{domain || "No domain"}</p>
           </div>
-          <div className="flex items-center gap-1 text-[11px]">
+          <div className="flex items-center gap-1 text-xs">
             <span
-              className={`inline-flex items-center gap-1 rounded-full border px-2 py-[2px] font-semibold ${icpChipClass(project.icpScore)}`}
+              className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-semibold ${icpChipClass(project.icpScore)}`}
             >
-              ICP {project.icpScore ?? "–"}
+              {project.icpScore && project.icpScore >= 80 ? "🔥" : null} ICP {project.icpScore ?? "–"}
             </span>
             {heatChip(project.icpScore) ? (
-              <span className={`inline-flex items-center rounded-full px-2 py-[2px] text-[11px] font-semibold ${heatChip(project.icpScore)?.className}`}>
+              <span className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold ${heatChip(project.icpScore)?.className}`}>
                 {heatChip(project.icpScore)?.label}
               </span>
             ) : null}
@@ -298,55 +300,65 @@ function LeadCard({
         </div>
 
         <div
-          className={`flex items-center justify-between gap-3 rounded-lg border bg-black/30 px-3 py-2 text-[12px] shadow-inner transition ${nextMeta.border}`}
+          className={`flex items-center justify-between gap-3 rounded-xl border bg-black/40 px-4 py-3 text-[13px] shadow-inner transition ${nextMeta.border}`}
         >
-          <div className="flex items-center gap-2 text-left">
-            <span className={`h-2 w-2 rounded-full ${nextMeta.dot}`} />
-            <button
-              type="button"
-              className={`flex items-center gap-2 font-medium ${nextMeta.accent} hover:text-white`}
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsNextPopoverOpen((open) => !open);
-              }}
-            >
-              <span className="text-slate-400">Next touch:</span>
-              <span className="flex items-center gap-1 whitespace-nowrap">
-                {nextMeta.helper ? <span className="text-[11px]">{nextMeta.helper}</span> : null}
-                <span>{nextMeta.label}</span>
-              </span>
-            </button>
-            <span className="rounded-full bg-white/5 px-2 py-[2px] text-xs text-slate-200">{channelIcon}</span>
+          <div className="flex flex-1 items-center gap-3 text-left">
+            <span className={`h-2.5 w-2.5 rounded-full ${nextMeta.dot}`} />
+            <div className="space-y-1">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Next touch</p>
+              <button
+                type="button"
+                className={`flex items-center gap-2 text-sm font-semibold ${nextMeta.accent} hover:text-white`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsNextPopoverOpen((open) => !open);
+                }}
+              >
+                {nextTouch ? (
+                  <>
+                    {nextMeta.helper ? <span className="text-xs text-slate-300">{nextMeta.helper}</span> : null}
+                    <span className="flex items-center gap-2 whitespace-nowrap">
+                      <span>{nextMeta.label}</span>
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-slate-300">No next touch scheduled</span>
+                )}
+              </button>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-slate-200">
+            <span className="rounded-md bg-white/10 px-2.5 py-1 text-xs font-semibold text-slate-100">{channelIcon}</span>
             <div className="relative">
               {isNextPopoverOpen ? (
                 <div
-                  className="absolute left-0 top-8 w-44 rounded-md border border-white/10 bg-black/90 p-2 text-[11px] text-slate-100 shadow-lg z-30"
+                  className="absolute left-0 top-10 z-30 w-48 rounded-lg border border-white/10 bg-black/90 p-3 text-[13px] text-slate-100 shadow-lg backdrop-blur"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <button
                     type="button"
-                    className="w-full rounded-md px-2 py-1 text-left hover:bg-white/10"
+                  className="w-full rounded-md px-2.5 py-1.5 text-left text-sm hover:bg-white/10"
                     onClick={() => handleSetDateAndClose(today)}
                   >
                     Today
                   </button>
                   <button
                     type="button"
-                    className="w-full rounded-md px-2 py-1 text-left hover:bg-white/10"
+                  className="w-full rounded-md px-2.5 py-1.5 text-left text-sm hover:bg-white/10"
                     onClick={() => handleSetDateAndClose(tomorrow)}
                   >
                     Tomorrow
                   </button>
                   <button
                     type="button"
-                    className="w-full rounded-md px-2 py-1 text-left hover:bg-white/10"
+                  className="w-full rounded-md px-2.5 py-1.5 text-left text-sm hover:bg-white/10"
                     onClick={() => handleSetDateAndClose(nextWeek)}
                   >
                     Next week
                   </button>
                   <button
                     type="button"
-                    className="w-full rounded-md px-2 py-1 text-left text-slate-300 hover:bg-white/10"
+                  className="w-full rounded-md px-2.5 py-1.5 text-left text-sm text-slate-200 hover:bg-white/10"
                     onClick={() => handleSetDateAndClose(null)}
                   >
                     Clear
@@ -362,14 +374,14 @@ function LeadCard({
                         handleSetDateAndClose(date);
                       }
                     }}
-                    className="mt-1 w-full rounded-md border border-white/15 bg-black/60 px-2 py-1 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500/60"
+                    className="mt-2 w-full rounded-md border border-white/15 bg-black/60 px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500/60"
                   />
                 </div>
               ) : null}
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/5 text-[11px] font-semibold text-slate-200">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-slate-100">
               {ownerInitial}
             </div>
           </div>
@@ -377,16 +389,19 @@ function LeadCard({
 
         <div className="flex flex-wrap gap-2">
           {tags.length === 0 ? (
-            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-400">Add tags</span>
+            <span className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium text-slate-300">Add tags</span>
           ) : (
             tags.slice(0, 4).map((tag) => (
-              <span key={tag} className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-200">
+              <span
+                key={tag}
+                className="rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-xs font-semibold text-slate-100 shadow-inner"
+              >
                 {tag}
               </span>
             ))
           )}
           {project.mqaScore ? (
-            <span className="rounded-full border border-blue-400/30 bg-blue-500/10 px-2 py-1 text-[11px] font-semibold text-blue-100">
+            <span className="rounded-md border border-blue-400/30 bg-blue-500/10 px-2.5 py-1 text-xs font-semibold text-blue-100">
               MQA {project.mqaScore}
             </span>
           ) : null}
@@ -638,7 +653,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
 
       <div className="space-y-3 rounded-2xl border border-[#1D2024] bg-[#0C0D0F] p-4 shadow-inner shadow-black/30">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-slate-100">
+          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-100">
             <span className="h-2 w-2 rounded-full bg-emerald-400" />
             <span>{mode === "today" ? "Today mode" : "Pipeline"}</span>
           </div>
@@ -675,12 +690,12 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
               key={pill.key}
               type="button"
               onClick={() => setFilters((f) => ({ ...f, [pill.key]: !f[pill.key] }))}
-              className={`flex items-center gap-2 rounded-full border px-3 py-1 text-left text-[12px] transition focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${
+              className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-left text-sm transition focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${
                 filters[pill.key] ? "border-emerald-400/60 bg-emerald-500/10 text-emerald-100" : "border-white/10 bg-white/5 text-slate-200"
               }`}
             >
-              <span className="text-[11px] text-slate-400">{pill.description}</span>
-              <span className="font-semibold">{pill.label}</span>
+              <span className="text-xs text-slate-400">{pill.description}</span>
+              <span className="text-sm font-semibold">{pill.label}</span>
             </button>
           ))}
           {activeFilterCount > 0 ? (
@@ -700,7 +715,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
 
         <div className="grid gap-3 md:grid-cols-[2fr_1fr] md:items-center">
           <div className="flex items-center gap-2 rounded-xl border border-[#232527] bg-[#111214] px-3 py-2 text-xs text-slate-200 shadow-inner shadow-black/50">
-            <span className="rounded-full bg-[#0F1012] px-2 py-1 text-[10px] uppercase tracking-wide text-slate-400">Search</span>
+            <span className="rounded-full bg-[#0F1012] px-2 py-1 text-xs uppercase tracking-wide text-slate-300">Search</span>
             <input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -723,7 +738,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
       </div>
 
       {mode === "board" ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+        <div className="grid grid-cols-1 gap-6 md:auto-cols-[minmax(300px,1fr)] md:grid-flow-col md:overflow-x-auto md:px-1 md:snap-x md:snap-mandatory">
           {grouped.map((column) => {
             const stats = laneSnapshot(column.items);
             const subtitle = helperByStatus[column.status] || column.status.replace(/_/g, " ");
@@ -731,7 +746,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
             return (
               <div
                 key={column.status}
-                className={`relative min-h-[360px] overflow-hidden rounded-xl border border-zinc-800/80 bg-zinc-900/40 px-3 py-3 shadow-[0_18px_60px_rgba(0,0,0,0.35)] backdrop-blur transition ${
+                className={`relative min-h-[360px] snap-start rounded-xl border border-zinc-800/80 bg-zinc-900/40 px-4 py-4 shadow-[0_18px_60px_rgba(0,0,0,0.35)] backdrop-blur transition ${
                   draggingId ? "ring-1 ring-emerald-500/40" : ""
                 } ${hoveredStatus === column.status ? "ring-1 ring-emerald-400/40" : ""}`}
                 onDragOver={(e) => e.preventDefault()}
@@ -743,17 +758,17 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                 }}
               >
                 <div className={`absolute left-0 top-0 h-[2px] w-full ${statusTopBorder[column.status]}`} />
-                <div className="mb-2 space-y-1 leading-tight">
-                  <h2 className="text-sm font-semibold tracking-wide">
+                <div className="mb-3 space-y-1 rounded-lg bg-white/5 px-3 py-2 backdrop-blur">
+                  <h2 className="text-base font-semibold tracking-wide text-slate-50">
                     {column.status.replace(/_/g, " ")} ({column.items.length})
                   </h2>
-                  <p className="text-xs text-gray-400 whitespace-nowrap leading-tight">
+                  <p className="text-sm text-gray-300 whitespace-nowrap leading-snug">
                     {subtitle} · Hot {stats.hot} · Missing {stats.missingNext} · Overdue {stats.overdue}
                   </p>
-                  <p className="text-xs text-gray-500 whitespace-nowrap leading-tight">Focus: Clear accounts with &quot;Not set&quot;</p>
+                  <p className="text-xs text-gray-400 whitespace-nowrap leading-snug">Focus: Clear accounts with &quot;Not set&quot;</p>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {column.items.map((project) => {
                     const urgency = urgencyLabel(project.nextSequenceStepDueAt || undefined);
                     const name = deriveName(project.name, project.url);
@@ -808,14 +823,14 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
             </div>
 
             <div className="space-y-3 rounded-xl border border-white/10 bg-[#0F1114] p-3 text-sm text-slate-200">
-              <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                <span className="rounded-full bg-white/5 px-2 py-1 text-[10px] uppercase tracking-wide text-slate-300">
+              <div className="flex items-center gap-2 text-xs text-slate-400">
+                <span className="rounded-full bg-white/5 px-2 py-1 text-xs uppercase tracking-wide text-slate-300">
                   {selectedProject.status.replace(/_/g, " ")}
                 </span>
                 <span className="rounded-full bg-white/5 px-2 py-1">ICP {selectedProject.icpScore ?? "-"}</span>
                 <span className="rounded-full bg-white/5 px-2 py-1">MQA {selectedProject.mqaScore ?? "-"}</span>
                 {selectedProject.hasOverdueSequenceStep ? (
-                  <span className="rounded-full bg-red-500/10 px-2 py-1 text-[11px] text-red-200">Overdue</span>
+                  <span className="rounded-full bg-red-500/10 px-2 py-1 text-xs text-red-200">Overdue</span>
                 ) : null}
               </div>
               <div className="flex items-center justify-between text-[12px] text-slate-200">
@@ -825,7 +840,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                     {urgencyLabel(selectedProject.nextSequenceStepDueAt || undefined).label}
                   </span>
                   {selectedProject.nextSequenceStepDueAt ? (
-                    <span className="text-[11px] text-slate-500">{formatDate(selectedProject.nextSequenceStepDueAt)}</span>
+                    <span className="text-xs text-slate-500">{formatDate(selectedProject.nextSequenceStepDueAt)}</span>
                   ) : null}
                 </div>
                 <Link
@@ -840,7 +855,10 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                 <p>{selectedProject.summary || selectedProject.playbookSummary || "Add a summary in the workspace."}</p>
                 <div className="flex flex-wrap gap-2">
                   {deriveTags(selectedProject.categoryTags).map((tag) => (
-                    <span key={tag} className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-200">
+                    <span
+                      key={tag}
+                      className="rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-xs font-semibold text-slate-100"
+                    >
                       {tag}
                     </span>
                   ))}

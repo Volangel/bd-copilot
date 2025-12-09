@@ -125,20 +125,19 @@ function LeadCard({
         dragging ? "ring-2 ring-emerald-400/60" : ""
       }`}
     >
-      <div className="space-y-1">
+      <div className="space-y-2">
         <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold leading-tight text-white">{name}</p>
-            <p className="truncate text-[11px] text-zinc-400">{domain || "No domain"}</p>
+          <div className="min-w-0 space-y-0.5 leading-tight">
+            <p className="truncate text-sm font-semibold text-white">{name}</p>
+            <p className="text-xs text-gray-500">{domain || "No domain"}</p>
           </div>
           <Avatar initials={name.slice(0, 2).toUpperCase()} />
         </div>
 
-        <div className="flex items-center justify-between text-xs text-gray-400">
-          <span className="truncate">{metaParts.join(" · ")}</span>
-          <span className="flex-shrink-0 whitespace-nowrap text-gray-500">
-            Next:{" "}
-            <span className={`text-gray-300 font-medium ${nextColor}`}>{urgency.label}</span>
+        <div className="flex items-center justify-between text-xs text-gray-400 leading-tight">
+          <span className="block max-w-[65%] truncate">{metaParts.join(" · ")}</span>
+          <span className={`text-gray-300 font-medium whitespace-nowrap ${nextColor}`}>
+            Next: {urgency.label}
           </span>
         </div>
       </div>
@@ -472,14 +471,14 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                 }}
               >
                 <div className={`absolute left-0 top-0 h-[2px] w-full ${statusTopBorder[column.status]}`} />
-                <div className="mb-2 space-y-1">
+                <div className="mb-2 space-y-1 leading-tight text-xs text-gray-400">
                   <h2 className="text-sm font-semibold text-white">
                     {column.status.replace(/_/g, " ")} ({column.items.length})
                   </h2>
-                  <p className="text-xs text-gray-400">
+                  <p className="whitespace-nowrap">
                     {(helperByStatus[column.status] || column.status.replace(/_/g, " ")) + " · " + statLine}
                   </p>
-                  <p className="text-xs text-gray-500">Focus: Clear accounts with “Not set”</p>
+                  <p className="whitespace-nowrap text-gray-500">Focus: Clear accounts with “Not set”</p>
                 </div>
 
                 <div className="space-y-3">

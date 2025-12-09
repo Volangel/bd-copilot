@@ -5,7 +5,7 @@ export function PageContainer({ children, className }: { children: ReactNode; cl
   return (
     <div
       className={cn(
-        "mx-auto flex max-w-6xl flex-col gap-8 px-8 py-10 md:py-12 lg:px-10",
+        "mx-auto flex max-w-screen-2xl flex-col gap-8 px-8 py-10 md:py-12 lg:px-10",
         className,
       )}
     >

@@ -738,7 +738,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
       </div>
 
       {mode === "board" ? (
-        <div className="grid grid-cols-1 gap-6 lg:gap-8 md:auto-cols-[minmax(320px,1fr)] md:grid-flow-col md:overflow-x-auto md:px-2 md:pb-3 md:snap-x md:snap-mandatory md:scroll-smooth">
+        <div className="grid grid-cols-1 gap-6 lg:gap-8 md:auto-cols-[minmax(360px,1fr)] md:grid-flow-col md:overflow-x-auto md:px-2 md:pb-3 md:snap-x md:snap-mandatory md:scroll-smooth">
           {grouped.map((column) => {
             const stats = laneSnapshot(column.items);
             const subtitle = helperByStatus[column.status] || column.status.replace(/_/g, " ");

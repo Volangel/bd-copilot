@@ -78,14 +78,6 @@ const statusTopBorder: Record<string, string> = {
   LOST: "bg-rose-500",
 };
 
-function Avatar({ initials }: { initials: string }) {
-  return (
-    <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-[#13141a] text-[11px] font-semibold uppercase text-white shadow-sm">
-      {initials}
-    </div>
-  );
-}
-
 function LeadCard({
   project,
   name,
@@ -105,12 +97,6 @@ function LeadCard({
           ? "text-slate-400"
           : "text-amber-300";
 
-  const metaParts = [
-    `ICP ${project.icpScore ?? "–"}`,
-    `MQA ${project.mqaScore ?? "–"}`,
-    ...tags.slice(0, 2),
-  ];
-
   return (
     <div
       role="button"
@@ -121,25 +107,24 @@ function LeadCard({
       }}
       draggable={!!onDragStart}
       onDragStart={onDragStart}
-      className={`group relative rounded-md border border-zinc-800 bg-zinc-900/80 px-3 py-2 text-left shadow-sm transition-all duration-150 hover:-translate-y-[1px] hover:border-emerald-400/40 ${
+      className={`group relative rounded-md px-3 py-2 text-left leading-tight space-y-2 transition-all duration-150 ${
         dragging ? "ring-2 ring-emerald-400/60" : ""
       }`}
     >
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0 space-y-0.5 leading-tight">
-            <p className="truncate text-sm font-semibold text-white">{name}</p>
-            <p className="text-xs text-gray-500">{domain || "No domain"}</p>
-          </div>
-          <Avatar initials={name.slice(0, 2).toUpperCase()} />
-        </div>
+      <div className="min-w-0 space-y-0.5 leading-tight">
+        <p className="max-w-full truncate text-sm font-semibold text-white">{name}</p>
+        <p className="text-xs text-gray-500 truncate">{domain || "No domain"}</p>
+      </div>
 
-        <div className="flex items-center justify-between text-xs text-gray-400 leading-tight">
-          <span className="block max-w-[65%] truncate">{metaParts.join(" · ")}</span>
-          <span className={`text-gray-300 font-medium whitespace-nowrap ${nextColor}`}>
-            Next: {urgency.label}
-          </span>
-        </div>
+      <div className="flex justify-between items-center text-xs text-gray-400 leading-tight gap-2">
+        <span className="truncate block max-w-[65%]">
+          ICP {project.icpScore ?? "–"} · MQA {project.mqaScore ?? "–"}
+          {tags.length > 0 && ` · ${tags.slice(0, 2).join(" · ")}`}
+        </span>
+
+        <span className={`text-gray-300 font-medium whitespace-nowrap ${nextColor}`}>
+          Next: {urgency.label}
+        </span>
       </div>
     </div>
   );
@@ -471,14 +456,14 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                 }}
               >
                 <div className={`absolute left-0 top-0 h-[2px] w-full ${statusTopBorder[column.status]}`} />
-                <div className="mb-2 space-y-1 leading-tight text-xs text-gray-400">
-                  <h2 className="text-sm font-semibold text-white">
+                <div className="mb-2 space-y-1 leading-tight">
+                  <h2 className="text-sm font-semibold tracking-wide">
                     {column.status.replace(/_/g, " ")} ({column.items.length})
                   </h2>
-                  <p className="whitespace-nowrap">
+                  <p className="text-xs text-gray-400 whitespace-nowrap leading-tight">
                     {(helperByStatus[column.status] || column.status.replace(/_/g, " ")) + " · " + statLine}
                   </p>
-                  <p className="whitespace-nowrap text-gray-500">Focus: Clear accounts with “Not set”</p>
+                  <p className="text-xs text-gray-500 whitespace-nowrap leading-tight">Focus: Clear accounts with "Not set"</p>
                 </div>
 
                 <div className="space-y-3">

@@ -18,7 +18,7 @@ const accentMap: Record<NonNullable<MetricsCardProps["accent"]>, string> = {
 
 export function MetricsCard({ title, value, helper, accent = "neutral", cta }: MetricsCardProps) {
   return (
-    <Card className="relative overflow-hidden border-white/10 bg-[color:var(--pipeline-panel,_#0F1116)]">
+    <Card className="relative overflow-hidden border-white/10 bg-gradient-to-br from-[#0F1116] to-[#0B0C10]">
       <div
         className={`pointer-events-none absolute inset-0 h-full w-full bg-gradient-to-br ${accentMap[accent]} opacity-40 blur-3xl`}
         aria-hidden

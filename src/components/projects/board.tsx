@@ -247,45 +247,39 @@ function LeadCard({
         draggable={!!onDragStart}
         onDragStart={onDragStart}
         data-urgency={urgency.label}
-        className={`relative flex-1 space-y-3 rounded-xl border border-white/8 bg-[#11141a]/85 px-3.5 py-3 text-left leading-relaxed shadow-md shadow-black/25 transition-all duration-150 ${
-          dragging ? "ring-2 ring-emerald-400/60" : "hover:-translate-y-1 hover:border-emerald-400/30 hover:shadow-[0_10px_35px_rgba(0,0,0,0.35)]"
+        className={`relative flex-1 space-y-4 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#10131b] via-[#0d1118] to-[#0b0f15] px-4 py-4 text-left leading-relaxed shadow-[0_10px_35px_rgba(0,0,0,0.4)] transition-all duration-150 ${
+          dragging
+            ? "ring-2 ring-emerald-400/60"
+            : "hover:-translate-y-1 hover:border-emerald-400/30 hover:shadow-[0_18px_50px_rgba(0,0,0,0.45)]"
         }`}
       >
-        <div
-          className="
-            absolute top-1 right-1
-            flex items-center gap-1
-            rounded-full bg-black/70
-            px-3 py-1.5
-            text-xs font-medium text-gray-100
-            opacity-0 pointer-events-none
-            group-hover:opacity-100 group-hover:pointer-events-auto
-            transition
-            z-20
-          "
-        >
-          <button className="hover:text-white" onClick={() => handleChangeNextTouch(project.id, null)}>
-            Next
-          </button>
-          <button className="hover:text-white" onClick={() => handleOpenWorkspace(project.id)}>
-            WS
-          </button>
-          <button className="hover:text-white" onClick={() => handleOpenMessages(project.id)}>
-            Msg
-          </button>
-          <button className="hover:text-white" onClick={() => handleAddNote(project.id)}>
-            Note
-          </button>
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.06),transparent_32%),radial-gradient(circle_at_80%_0%,rgba(52,211,153,0.08),transparent_30%)] opacity-90" aria-hidden="true" />
+
+        <div className="flex items-center justify-between gap-2">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[12px] font-semibold text-emerald-100">
+            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            {urgency.label}
+          </div>
+          <span className="rounded-full bg-white/5 px-3 py-1 text-[12px] font-semibold text-slate-200 border border-white/10">
+            {channelIcon} Priority
+          </span>
         </div>
 
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 space-y-1 leading-snug">
-            <p className="max-w-full truncate text-base font-semibold text-emerald-100 hover:underline decoration-emerald-400/50">
+            <p className="max-w-full truncate text-lg font-semibold text-white hover:text-emerald-100 hover:underline decoration-emerald-400/50">
               {name}
             </p>
-            <p className="block truncate text-xs text-slate-400">{domain || "No domain"}</p>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-1 text-[11px] uppercase tracking-wide text-slate-300">
+                {domain || "No domain"}
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-1 text-[11px] font-semibold text-amber-100">
+                {urgency.label}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-1 text-xs">
+          <div className="flex items-center gap-2 text-xs">
             <span
               className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-semibold ${icpChipClass(project.icpScore)}`}
             >
@@ -300,89 +294,92 @@ function LeadCard({
         </div>
 
         <div
-          className={`flex items-center justify-between gap-3 rounded-lg border bg-black/35 px-3 py-2.5 text-[13px] shadow-inner transition ${nextMeta.border}`}
+          className={`flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-[13px] shadow-inner transition ${nextMeta.border}`}
         >
-          <div className="flex flex-1 items-center gap-3 text-left">
-            <span className={`h-2.5 w-2.5 rounded-full ${nextMeta.dot}`} />
-            <div className="space-y-1">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Next touch</p>
-              <button
-                type="button"
-                className={`flex items-center gap-2 text-sm font-semibold ${nextMeta.accent} hover:text-white`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsNextPopoverOpen((open) => !open);
-                }}
-              >
-                {nextTouch ? (
-                  <>
-                    {nextMeta.helper ? <span className="text-xs text-slate-300">{nextMeta.helper}</span> : null}
-                    <span className="flex items-center gap-2 whitespace-nowrap">
-                      <span>{nextMeta.label}</span>
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-slate-300">No next touch scheduled</span>
-                )}
-              </button>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-slate-200">
-            <span className="rounded-md bg-white/10 px-2.5 py-1 text-xs font-semibold text-slate-100">{channelIcon}</span>
-            <div className="relative">
-              {isNextPopoverOpen ? (
-                <div
-                  className="absolute left-0 top-10 z-30 w-48 rounded-lg border border-white/10 bg-black/90 p-3 text-[13px] text-slate-100 shadow-lg backdrop-blur"
-                  onClick={(e) => e.stopPropagation()}
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-1 items-center gap-3 text-left">
+              <span className={`h-2.5 w-2.5 rounded-full ${nextMeta.dot}`} />
+              <div className="space-y-1">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Next touch</p>
+                <button
+                  type="button"
+                  className={`flex items-center gap-2 text-sm font-semibold ${nextMeta.accent} hover:text-white`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsNextPopoverOpen((open) => !open);
+                  }}
                 >
-                  <button
-                    type="button"
-                  className="w-full rounded-md px-2.5 py-1.5 text-left text-sm hover:bg-white/10"
-                    onClick={() => handleSetDateAndClose(today)}
-                  >
-                    Today
-                  </button>
-                  <button
-                    type="button"
-                  className="w-full rounded-md px-2.5 py-1.5 text-left text-sm hover:bg-white/10"
-                    onClick={() => handleSetDateAndClose(tomorrow)}
-                  >
-                    Tomorrow
-                  </button>
-                  <button
-                    type="button"
-                  className="w-full rounded-md px-2.5 py-1.5 text-left text-sm hover:bg-white/10"
-                    onClick={() => handleSetDateAndClose(nextWeek)}
-                  >
-                    Next week
-                  </button>
-                  <button
-                    type="button"
-                  className="w-full rounded-md px-2.5 py-1.5 text-left text-sm text-slate-200 hover:bg-white/10"
-                    onClick={() => handleSetDateAndClose(null)}
-                  >
-                    Clear
-                  </button>
-                  <input
-                    type="date"
-                    value={customDate}
-                    onChange={(e) => {
-                      setCustomDate(e.target.value);
-                      if (e.target.value) {
-                        const [year, month, day] = e.target.value.split("-").map(Number);
-                        const date = new Date(year, month - 1, day, 12, 0, 0);
-                        handleSetDateAndClose(date);
-                      }
-                    }}
-                    className="mt-2 w-full rounded-md border border-white/15 bg-black/60 px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500/60"
-                  />
-                </div>
-              ) : null}
+                  {nextTouch ? (
+                    <>
+                      {nextMeta.helper ? <span className="text-xs text-slate-300">{nextMeta.helper}</span> : null}
+                      <span className="flex items-center gap-2 whitespace-nowrap">
+                        <span>{nextMeta.label}</span>
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-slate-300">No next touch scheduled</span>
+                  )}
+                </button>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-slate-100">
-              {ownerInitial}
+            <div className="flex items-center gap-2 text-sm text-slate-200">
+              <span className="rounded-md bg-white/10 px-2.5 py-1 text-xs font-semibold text-slate-100">{channelIcon}</span>
+              <div className="relative">
+                {isNextPopoverOpen ? (
+                  <div
+                    className="absolute right-0 top-10 z-30 w-48 rounded-lg border border-white/10 bg-[#0d1015] p-3 text-[13px] text-slate-100 shadow-lg backdrop-blur"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <p className="pb-2 text-[12px] uppercase tracking-wide text-slate-400">Schedule</p>
+                    <button
+                      type="button"
+                      className="w-full rounded-md px-2.5 py-1.5 text-left text-sm transition hover:bg-white/10"
+                      onClick={() => handleSetDateAndClose(today)}
+                    >
+                      Today
+                    </button>
+                    <button
+                      type="button"
+                      className="w-full rounded-md px-2.5 py-1.5 text-left text-sm transition hover:bg-white/10"
+                      onClick={() => handleSetDateAndClose(tomorrow)}
+                    >
+                      Tomorrow
+                    </button>
+                    <button
+                      type="button"
+                      className="w-full rounded-md px-2.5 py-1.5 text-left text-sm transition hover:bg-white/10"
+                      onClick={() => handleSetDateAndClose(nextWeek)}
+                    >
+                      Next week
+                    </button>
+                    <button
+                      type="button"
+                      className="w-full rounded-md px-2.5 py-1.5 text-left text-sm text-slate-200 transition hover:bg-white/10"
+                      onClick={() => handleSetDateAndClose(null)}
+                    >
+                      Clear
+                    </button>
+                    <input
+                      type="date"
+                      value={customDate}
+                      onChange={(e) => {
+                        setCustomDate(e.target.value);
+                        if (e.target.value) {
+                          const [year, month, day] = e.target.value.split("-").map(Number);
+                          const date = new Date(year, month - 1, day, 12, 0, 0);
+                          handleSetDateAndClose(date);
+                        }
+                      }}
+                      className="mt-2 w-full rounded-md border border-white/15 bg-black/60 px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500/60"
+                    />
+                  </div>
+                ) : null}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-slate-100 shadow-inner">
+                {ownerInitial}
+              </div>
             </div>
           </div>
         </div>
@@ -405,6 +402,53 @@ function LeadCard({
               MQA {project.mqaScore}
             </span>
           ) : null}
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/5 pt-3 text-[12px] text-slate-200">
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleChangeNextTouch(project.id, null);
+              }}
+              className="rounded-full border border-white/10 bg-white/5 px-3 py-1 font-semibold transition hover:border-emerald-300 hover:text-white"
+            >
+              Clear next
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenWorkspace(project.id);
+              }}
+              className="rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 font-semibold text-emerald-100 transition hover:bg-emerald-500/20"
+            >
+              Workspace
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenMessages(project.id);
+              }}
+              className="rounded-full border border-white/10 bg-white/5 px-3 py-1 font-semibold transition hover:border-emerald-300 hover:text-white"
+            >
+              Messages
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAddNote(project.id);
+              }}
+              className="rounded-full border border-white/10 bg-white/5 px-3 py-1 font-semibold transition hover:border-emerald-300 hover:text-white"
+            >
+              Note
+            </button>
+          </div>
+          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-wide text-slate-400">
+            Drag to move stage
+          </span>
         </div>
       </div>
     </div>
@@ -646,94 +690,126 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
     },
   ];
 
-  return (
-    <div className="space-y-4 w-full max-w-7xl mx-auto px-4 sm:px-6">
-      <Toast message={message} onClear={() => setMessage(null)} />
-      <Toast message={error} type="error" onClear={() => setError(null)} />
+  const totalProjects = localProjects.length;
+  const totalHot = localProjects.filter((p) => (p.icpScore ?? 0) >= 80).length;
+  const totalOverdue = localProjects.filter((p) => p.nextSequenceStepDueAt && urgencyLabel(p.nextSequenceStepDueAt).label === "Overdue").length;
+  const totalMissingNext = localProjects.filter((p) => !p.nextSequenceStepDueAt).length;
 
-      <div className="space-y-3 rounded-2xl border border-[#1D2024] bg-[#0C0D0F] p-5 shadow-inner shadow-black/30">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-100">
-            <span className="h-2 w-2 rounded-full bg-emerald-400" />
-            <span>{mode === "today" ? "Today mode" : "Pipeline"}</span>
+  return (
+    <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 py-4">
+      <div className="pointer-events-none absolute inset-x-0 -top-10 h-48 bg-gradient-to-b from-emerald-500/15 via-emerald-500/5 to-transparent blur-3xl" />
+      <div className="pointer-events-none absolute inset-0 rounded-[32px] border border-white/5" aria-hidden="true" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_20%,rgba(52,211,153,0.08),transparent_25%),radial-gradient(circle_at_90%_10%,rgba(59,130,246,0.07),transparent_22%)]" />
+      <div className="relative z-10 space-y-4">
+        <Toast message={message} onClear={() => setMessage(null)} />
+        <Toast message={error} type="error" onClear={() => setError(null)} />
+
+        <div className="relative space-y-4 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#0F1115] via-[#0C0D0F] to-[#07080c] p-5 shadow-[0_15px_60px_rgba(0,0,0,0.35)] backdrop-blur">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(52,211,153,0.12),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.15),transparent_45%)] opacity-70" />
+        <div className="relative flex flex-wrap items-start gap-4">
+          <div className="space-y-2">
+            <p className="inline-flex items-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-[12px] font-semibold uppercase tracking-wide text-emerald-100 shadow-inner">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)]" />
+              {mode === "today" ? "Focus: Today" : "Pipeline board"}
+            </p>
+            <div className="space-y-1">
+              <h1 className="text-2xl font-semibold text-white">Keep momentum with a crisp pipeline</h1>
+              <p className="max-w-2xl text-sm text-slate-300">
+                Designed for scanning signal and acting fast. Prioritize overdue accounts, keep next touches crystal clear, and glide between board and today views.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-[12px] text-slate-200">
+              {[{ label: "Total", value: totalProjects }, { label: "Hot", value: totalHot }, { label: "Overdue", value: totalOverdue }, { label: "Missing next", value: totalMissingNext }].map((stat) => (
+                <span
+                  key={stat.label}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 font-semibold shadow-inner"
+                >
+                  <span className="text-[11px] text-slate-400">{stat.label}</span>
+                  <span className="text-sm text-white">{stat.value}</span>
+                </span>
+              ))}
+            </div>
           </div>
-          <p className="text-sm text-slate-300">
-            {mode === "today"
-              ? "Accounts that need a touch today or are overdue."
-              : "Minimal, scannable lanes focused on next actions."}
-          </p>
-          <div className="ml-auto flex gap-2">
-            <button
-              type="button"
-              onClick={() => setMode("board")}
-              className={`rounded-full px-3 py-1 text-sm transition ${
-                mode === "board" ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/5"
-              }`}
-            >
-              Board
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("today")}
-              className={`rounded-full px-3 py-1 text-sm transition ${
-                mode === "today" ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/5"
-              }`}
-            >
-              Today
-            </button>
+          <div className="ml-auto flex items-start gap-2 rounded-full border border-white/10 bg-white/5 p-1 shadow-inner">
+            {[{ key: "board", label: "Board" }, { key: "today", label: "Today" }].map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setMode(tab.key as "board" | "today")}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  mode === tab.key ? "bg-white/90 text-slate-900 shadow" : "text-slate-200 hover:bg-white/10"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="relative grid gap-3 md:grid-cols-[2fr_1fr] md:items-center">
+          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-xs text-slate-200 shadow-inner">
+            <span className="rounded-md bg-white/10 px-2 py-1 text-[11px] uppercase tracking-wide text-slate-300">Search</span>
+            <input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Find by company, domain, or contact"
+              className="w-full bg-transparent text-[13px] text-slate-100 placeholder:text-slate-500 focus:outline-none"
+            />
+            {searchTerm ? (
+              <button
+                type="button"
+                onClick={() => setSearchTerm("")}
+                className="rounded-full bg-white/10 px-3 py-1 text-[12px] text-slate-200 transition hover:bg-white/20"
+              >
+                Clear
+              </button>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-3 text-[12px] text-slate-300">
+            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+              <span className="text-slate-400">Sort</span>
+              <select
+                value={sortMode}
+                onChange={(e) => setSortMode(e.target.value as "next" | "icp")}
+                className="rounded-md border border-transparent bg-[#0F1012] px-2 py-1 text-[12px] text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/60"
+              >
+                <option value="next">Next touch</option>
+                <option value="icp">ICP</option>
+              </select>
+            </div>
+            {activeFilterCount > 0 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setFilters({ hotOnly: false, missingNext: false, overdueOnly: false });
+                  setSearchTerm("");
+                  setSortMode("next");
+                }}
+                className="inline-flex items-center gap-2 rounded-full border border-emerald-400/60 bg-emerald-500/10 px-3 py-1 text-[12px] font-semibold text-emerald-100 transition hover:bg-emerald-500/20"
+              >
+                Reset view
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="relative flex flex-wrap items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
           {filterPills.map((pill) => (
             <button
               key={pill.key}
               type="button"
               onClick={() => setFilters((f) => ({ ...f, [pill.key]: !f[pill.key] }))}
-              className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-left text-sm transition focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${
-                filters[pill.key] ? "border-emerald-400/60 bg-emerald-500/10 text-emerald-100" : "border-white/10 bg-white/5 text-slate-200"
+              className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-left text-sm shadow-sm transition focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${
+                filters[pill.key] ? "border-emerald-400/70 bg-emerald-500/15 text-emerald-50" : "border-white/10 bg-white/10 text-slate-100 hover:border-white/20"
               }`}
             >
-              <span className="text-xs text-slate-400">{pill.description}</span>
+              <span className="text-[11px] uppercase tracking-wide text-slate-400">{pill.description}</span>
               <span className="text-sm font-semibold">{pill.label}</span>
             </button>
           ))}
-          {activeFilterCount > 0 ? (
-            <button
-              type="button"
-              onClick={() => {
-                setFilters({ hotOnly: false, missingNext: false, overdueOnly: false });
-                setSearchTerm("");
-                setSortMode("next");
-              }}
-              className="ml-auto inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1 text-[12px] text-slate-200 transition hover:border-emerald-300 hover:text-white"
-            >
-              Reset view
-            </button>
+          {activeFilterCount === 0 ? (
+            <span className="text-[12px] text-slate-400">No filters applied.</span>
           ) : null}
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-[2fr_1fr] md:items-center">
-          <div className="flex items-center gap-2 rounded-xl border border-[#232527] bg-[#111214] px-3 py-2 text-xs text-slate-200 shadow-inner shadow-black/50">
-            <span className="rounded-full bg-[#0F1012] px-2 py-1 text-xs uppercase tracking-wide text-slate-300">Search</span>
-            <input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by name or domain"
-              className="w-full bg-transparent text-[13px] text-slate-100 placeholder:text-slate-500 focus:outline-none"
-            />
-          </div>
-          <div className="flex items-center justify-end gap-2 text-[12px] text-slate-300">
-            <span className="text-slate-400">Sort</span>
-            <select
-              value={sortMode}
-              onChange={(e) => setSortMode(e.target.value as "next" | "icp")}
-              className="rounded-md border border-[#2D3136] bg-[#0F1012] px-2 py-1 text-[12px] text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-            >
-              <option value="next">Next touch</option>
-              <option value="icp">ICP</option>
-            </select>
-          </div>
         </div>
       </div>
 
@@ -746,7 +822,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
             return (
               <div
                 key={column.status}
-                className={`relative min-h-[360px] snap-start rounded-xl border border-white/5 bg-[#0f1115]/80 px-5 py-5 shadow-[0_18px_60px_rgba(0,0,0,0.28)] backdrop-blur transition ${
+                className={`relative min-h-[380px] snap-start rounded-2xl border border-white/10 bg-gradient-to-b from-[#0d1118] via-[#0b0f14] to-[#090c11] px-5 py-5 shadow-[0_18px_60px_rgba(0,0,0,0.32)] backdrop-blur transition ${
                   draggingId ? "ring-1 ring-emerald-500/40" : ""
                 } ${hoveredStatus === column.status ? "ring-1 ring-emerald-400/40" : ""}`}
                 onDragOver={(e) => e.preventDefault()}
@@ -757,15 +833,18 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                   setHoveredStatus(null);
                 }}
               >
-                <div className={`absolute left-0 top-0 h-[2px] w-full ${statusTopBorder[column.status]}`} />
-                <div className="mb-3 space-y-1 rounded-lg bg-white/5 px-3 py-2 backdrop-blur">
-                  <h2 className="text-base font-semibold tracking-wide text-slate-50">
-                    {column.status.replace(/_/g, " ")} ({column.items.length})
-                  </h2>
-                  <p className="text-sm text-gray-300 whitespace-nowrap leading-snug">
-                    {subtitle} · Hot {stats.hot} · Missing {stats.missingNext} · Overdue {stats.overdue}
-                  </p>
-                  <p className="text-xs text-gray-400 whitespace-nowrap leading-snug">Focus: Clear accounts with &quot;Not set&quot;</p>
+                <div className={`absolute left-0 top-0 h-[3px] w-full ${statusTopBorder[column.status]} opacity-80`} />
+                <div className="mb-3 flex items-start justify-between gap-2">
+                  <div className="space-y-1">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-slate-400">{subtitle}</p>
+                    <h2 className="text-lg font-semibold tracking-tight text-white">
+                      {column.status.replace(/_/g, " ")} <span className="text-slate-400">({column.items.length})</span>
+                    </h2>
+                    <p className="text-xs text-slate-400">Hot {stats.hot} · Missing {stats.missingNext} · Overdue {stats.overdue}</p>
+                  </div>
+                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[12px] font-semibold text-slate-200 shadow-inner">
+                    Focus: next touch
+                  </span>
                 </div>
 
                 <div className="space-y-4">

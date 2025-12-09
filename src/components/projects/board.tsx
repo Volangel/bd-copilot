@@ -247,7 +247,7 @@ function LeadCard({
         draggable={!!onDragStart}
         onDragStart={onDragStart}
         data-urgency={urgency.label}
-        className={`relative flex-1 space-y-4 rounded-xl border border-white/10 bg-[#0E1013]/80 px-4 py-4 text-left leading-relaxed shadow-inner shadow-black/20 transition-all duration-150 ${
+        className={`relative flex-1 space-y-3 rounded-xl border border-white/8 bg-[#11141a]/85 px-3.5 py-3 text-left leading-relaxed shadow-md shadow-black/25 transition-all duration-150 ${
           dragging ? "ring-2 ring-emerald-400/60" : "hover:-translate-y-1 hover:border-emerald-400/30 hover:shadow-[0_10px_35px_rgba(0,0,0,0.35)]"
         }`}
       >
@@ -280,10 +280,10 @@ function LeadCard({
 
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 space-y-1 leading-snug">
-            <p className="max-w-full truncate text-base font-semibold text-emerald-200 hover:underline decoration-emerald-400/50">
+            <p className="max-w-full truncate text-base font-semibold text-emerald-100 hover:underline decoration-emerald-400/50">
               {name}
             </p>
-            <p className="block truncate text-[13px] text-slate-300">{domain || "No domain"}</p>
+            <p className="block truncate text-xs text-slate-400">{domain || "No domain"}</p>
           </div>
           <div className="flex items-center gap-1 text-xs">
             <span
@@ -300,7 +300,7 @@ function LeadCard({
         </div>
 
         <div
-          className={`flex items-center justify-between gap-3 rounded-xl border bg-black/40 px-4 py-3 text-[13px] shadow-inner transition ${nextMeta.border}`}
+          className={`flex items-center justify-between gap-3 rounded-lg border bg-black/35 px-3 py-2.5 text-[13px] shadow-inner transition ${nextMeta.border}`}
         >
           <div className="flex flex-1 items-center gap-3 text-left">
             <span className={`h-2.5 w-2.5 rounded-full ${nextMeta.dot}`} />
@@ -647,11 +647,11 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full max-w-7xl mx-auto px-4 sm:px-6">
       <Toast message={message} onClear={() => setMessage(null)} />
       <Toast message={error} type="error" onClear={() => setError(null)} />
 
-      <div className="space-y-3 rounded-2xl border border-[#1D2024] bg-[#0C0D0F] p-4 shadow-inner shadow-black/30">
+      <div className="space-y-3 rounded-2xl border border-[#1D2024] bg-[#0C0D0F] p-5 shadow-inner shadow-black/30">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-100">
             <span className="h-2 w-2 rounded-full bg-emerald-400" />
@@ -738,7 +738,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
       </div>
 
       {mode === "board" ? (
-        <div className="grid grid-cols-1 gap-6 md:auto-cols-[minmax(300px,1fr)] md:grid-flow-col md:overflow-x-auto md:px-1 md:snap-x md:snap-mandatory">
+        <div className="grid grid-cols-1 gap-6 lg:gap-8 md:auto-cols-[minmax(320px,1fr)] md:grid-flow-col md:overflow-x-auto md:px-2 md:pb-3 md:snap-x md:snap-mandatory md:scroll-smooth">
           {grouped.map((column) => {
             const stats = laneSnapshot(column.items);
             const subtitle = helperByStatus[column.status] || column.status.replace(/_/g, " ");
@@ -746,7 +746,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
             return (
               <div
                 key={column.status}
-                className={`relative min-h-[360px] snap-start rounded-xl border border-zinc-800/80 bg-zinc-900/40 px-4 py-4 shadow-[0_18px_60px_rgba(0,0,0,0.35)] backdrop-blur transition ${
+                className={`relative min-h-[360px] snap-start rounded-xl border border-white/5 bg-[#0f1115]/80 px-5 py-5 shadow-[0_18px_60px_rgba(0,0,0,0.28)] backdrop-blur transition ${
                   draggingId ? "ring-1 ring-emerald-500/40" : ""
                 } ${hoveredStatus === column.status ? "ring-1 ring-emerald-400/40" : ""}`}
                 onDragOver={(e) => e.preventDefault()}

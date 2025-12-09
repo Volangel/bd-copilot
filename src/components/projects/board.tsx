@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { KeyboardEvent, useState } from "react";
 import { Project } from "@prisma/client";
 import { PROJECT_STATUSES, formatDate } from "@/lib/utils";
 import { Toast } from "@/components/ui/toast";
@@ -47,7 +47,7 @@ function StatusSelect({
 
 type BoardProject = Project & { nextSequenceStepDueAt?: Date | null; hasOverdueSequenceStep?: boolean };
 
-type NextTouchMeta = { label: string; color: string };
+type NextTouchMeta = { label: string; color: string; background: string };
 
 type LeadCardProps = {
   project: BoardProject;
@@ -58,10 +58,14 @@ type LeadCardProps = {
   dragging: boolean;
   onDragStart?: () => void;
   onChangeNextTouch?: (projectId: string, nextTouch: Date | null) => void;
+  onMove?: (projectId: string, status: string) => void;
+  onLogTouch?: (projectId: string, channel: string, note: string) => void;
+  onOpenCrm?: (projectId: string) => void;
   onOpenWorkspace?: (projectId: string) => void;
   onOpenMessages?: (projectId: string) => void;
   onAddNote?: (projectId: string) => void;
-  onSelect: () => void;
+  onSelect: (options: { multi: boolean }) => void;
+  isSelected?: boolean;
 };
 
 const helperByStatus: Record<string, string> = {
@@ -111,6 +115,12 @@ const laneCopy: Record<string, { subtitle: string; tooltip: string }> = {
 
 const ACTIVE_STATUSES = ["NOT_CONTACTED", "CONTACTED", "WAITING_REPLY", "CALL_BOOKED"] as const;
 const ARCHIVE_STATUSES = ["WON", "LOST"] as const;
+const laneLimits: Partial<Record<string, number>> = {
+  NOT_CONTACTED: 30,
+  CONTACTED: 25,
+  WAITING_REPLY: 15,
+  CALL_BOOKED: 10,
+};
 
 function getPriorityBarClasses(icpScore?: number, isHot?: boolean) {
   if (isHot || (icpScore ?? 0) >= 80) return "w-1 rounded-l-md bg-emerald-500";
@@ -135,17 +145,27 @@ function LeadCard({
   urgency,
   dragging,
   onDragStart,
+  onMove,
+  onLogTouch,
+  onOpenCrm,
   onChangeNextTouch,
   onOpenWorkspace,
   onOpenMessages,
   onAddNote,
   onSelect,
+  isSelected = false,
 }: LeadCardProps) {
   const [isNextPopoverOpen, setIsNextPopoverOpen] = useState(false);
   const [customDate, setCustomDate] = useState("");
+  const [logChannel, setLogChannel] = useState("email");
+  const [logNote, setLogNote] = useState("");
   const priorityBarClassName = getPriorityBarClasses(project.icpScore, (project.icpScore ?? 0) >= 80);
   const handleChangeNextTouch =
     onChangeNextTouch ?? ((projectId: string, nextTouch: Date | null) => console.log("TODO: change next touch", projectId, nextTouch));
+  const handleMove = onMove ?? ((projectId: string, status: string) => console.log("TODO: move", projectId, status));
+  const handleLogTouch =
+    onLogTouch ?? ((projectId: string, channel: string, note: string) => console.log("TODO: log touch", projectId, channel, note));
+  const handleOpenCrm = onOpenCrm ?? ((projectId: string) => console.log("TODO: open CRM", projectId));
   const handleOpenWorkspace = onOpenWorkspace ?? ((projectId: string) => console.log("TODO: workspace", projectId));
   const handleOpenMessages = onOpenMessages ?? ((projectId: string) => console.log("TODO: messages", projectId));
   const handleAddNote = onAddNote ?? ((projectId: string) => console.log("TODO: add note", projectId));
@@ -175,6 +195,7 @@ function LeadCard({
         accent: "text-slate-400",
         border: "border-slate-800",
         dot: "bg-slate-500",
+        background: "bg-[#0E1013]/70",
         helper: "⚠️",
       } as const;
     }
@@ -192,6 +213,7 @@ function LeadCard({
         accent: "text-rose-300",
         border: "border-rose-500/50",
         dot: "bg-rose-400",
+        background: "bg-rose-500/5",
         helper: "•",
       } as const;
     }
@@ -202,6 +224,7 @@ function LeadCard({
         accent: "text-emerald-200",
         border: "border-emerald-400/40",
         dot: "bg-emerald-400",
+        background: "bg-amber-400/10",
         helper: "•",
       } as const;
     }
@@ -213,6 +236,7 @@ function LeadCard({
       accent: "text-amber-200",
       border: "border-amber-400/30",
       dot: "bg-amber-300",
+      background: "bg-[#0E1013]/70",
       helper: "•",
     } as const;
   };
@@ -245,42 +269,103 @@ function LeadCard({
       <div
         role="button"
         tabIndex={0}
-        onClick={onSelect}
+        onClick={(e) => {
+          onSelect({ multi: e.shiftKey });
+        }}
         onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") onSelect();
+          if (e.key === "Enter" || e.key === " ") onSelect({ multi: e.shiftKey });
         }}
         draggable={!!onDragStart}
         onDragStart={onDragStart}
         data-urgency={urgency.label}
-        className={`relative flex-1 rounded-md px-3 py-3 space-y-3 text-left leading-tight transition-all duration-150 bg-[#0E1013]/70 border border-white/5 ${
-          dragging ? "ring-2 ring-emerald-400/60" : ""
+        className={`relative flex-1 rounded-md px-3 py-3 space-y-3 text-left leading-tight transition-all duration-150 border ${
+          nextMeta.background
+        } ${dragging ? "ring-2 ring-emerald-400/60" : "border-white/5"} ${
+          isSelected ? "ring-2 ring-emerald-500/60" : ""
         }`}
       >
         <div
           className="
             absolute top-1 right-1
-            flex items-center gap-1
-            rounded-full bg-black/70
-            px-2 py-1
-            text-[10px] text-gray-200
+            flex flex-col gap-1
+            rounded-lg bg-black/75
+            p-2
+            text-[11px] text-gray-200
             opacity-0 pointer-events-none
             group-hover:opacity-100 group-hover:pointer-events-auto
             transition
             z-20
           "
         >
-          <button className="hover:text-white" onClick={() => handleChangeNextTouch(project.id, null)}>
-            Next
-          </button>
-          <button className="hover:text-white" onClick={() => handleOpenWorkspace(project.id)}>
-            WS
-          </button>
-          <button className="hover:text-white" onClick={() => handleOpenMessages(project.id)}>
-            Msg
-          </button>
-          <button className="hover:text-white" onClick={() => handleAddNote(project.id)}>
-            Note
-          </button>
+          <div className="flex items-center gap-1">
+            <select
+              value={logChannel}
+              onChange={(e) => setLogChannel(e.target.value)}
+              className="rounded border border-white/10 bg-white/5 px-1 py-[2px] text-[10px]"
+            >
+              <option value="email">Email</option>
+              <option value="telegram">Telegram</option>
+              <option value="x">X</option>
+              <option value="call">Call</option>
+            </select>
+            <input
+              type="text"
+              value={logNote}
+              onChange={(e) => setLogNote(e.target.value)}
+              placeholder="Log touch"
+              className="w-28 rounded border border-white/10 bg-white/5 px-2 py-[3px] text-[10px] focus:outline-none focus:ring-1 focus:ring-emerald-400/60"
+            />
+            <button
+              type="button"
+              className="rounded bg-emerald-500/20 px-2 py-[2px] text-[10px] text-emerald-100 hover:bg-emerald-500/30"
+              onClick={() => handleLogTouch(project.id, logChannel, logNote)}
+            >
+              Log
+            </button>
+          </div>
+          <div className="flex items-center gap-1">
+            <input
+              type="date"
+              className="w-30 rounded border border-white/10 bg-white/5 px-2 py-[3px] text-[10px]"
+              onChange={(e) => {
+                if (!e.target.value) return;
+                const [year, month, day] = e.target.value.split("-").map(Number);
+                handleChangeNextTouch(project.id, new Date(year, month - 1, day, 12));
+              }}
+            />
+            <select
+              className="rounded border border-white/10 bg-white/5 px-1 py-[2px] text-[10px]"
+              onChange={(e) => {
+                if (!e.target.value) return;
+                handleMove(project.id, e.target.value);
+              }}
+            >
+              <option value="">Move to…</option>
+              {PROJECT_STATUSES.map((status) => (
+                <option key={status} value={status} className="bg-[#0F1012]">
+                  {status.replace(/_/g, " ")}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="rounded border border-white/20 px-2 py-[2px] text-[10px] hover:border-emerald-300"
+              onClick={() => handleOpenCrm(project.id)}
+            >
+              Open CRM
+            </button>
+          </div>
+          <div className="flex items-center gap-2 text-[10px]">
+            <button className="rounded px-2 py-[2px] hover:bg-white/10" onClick={() => handleOpenWorkspace(project.id)}>
+              Workspace
+            </button>
+            <button className="rounded px-2 py-[2px] hover:bg-white/10" onClick={() => handleOpenMessages(project.id)}>
+              Messages
+            </button>
+            <button className="rounded px-2 py-[2px] hover:bg-white/10" onClick={() => handleAddNote(project.id)}>
+              Add note
+            </button>
+          </div>
         </div>
 
         <div className="flex items-start justify-between gap-2">
@@ -408,6 +493,8 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<BoardProject | null>(null);
+  const [focusedCardId, setFocusedCardId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [mode, setMode] = useState<"board" | "today" | "overdue">("board");
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [filters, setFilters] = useState({
@@ -451,17 +538,18 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
   };
 
   const urgencyLabel = (nextSequenceStepDueAt?: Date | null): NextTouchMeta => {
-    if (!nextSequenceStepDueAt) return { label: "Not set", color: "text-slate-400" };
+    if (!nextSequenceStepDueAt) return { label: "Not set", color: "text-slate-400", background: "bg-[#0E1013]/70" };
     const now = new Date();
     const startOfToday = new Date(now);
     startOfToday.setHours(0, 0, 0, 0);
     const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
-    if (nextSequenceStepDueAt < startOfToday) return { label: "Overdue", color: "text-red-300" };
+    if (nextSequenceStepDueAt < startOfToday)
+      return { label: "Overdue", color: "text-red-300", background: "bg-rose-500/5" };
     if (nextSequenceStepDueAt >= startOfToday && nextSequenceStepDueAt < endOfToday)
-      return { label: "Today", color: "text-emerald-300" };
+      return { label: "Today", color: "text-emerald-300", background: "bg-amber-400/10" };
     const diffDays = Math.round((nextSequenceStepDueAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     const label = diffDays <= 7 ? `In ${diffDays}d` : "Upcoming";
-    return { label, color: "text-amber-200" };
+    return { label, color: "text-amber-200", background: "bg-[#0E1013]/70" };
   };
 
   const laneSnapshot = (items: BoardProject[]) => {
@@ -476,6 +564,8 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
   const startOfToday = new Date(now);
   startOfToday.setHours(0, 0, 0, 0);
   const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+  const tomorrow = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+  const nextWeek = new Date(startOfToday.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   const filteredProjects = localProjects.filter((p) => {
     if (filters.icp80Plus && (p.icpScore ?? 0) < 80) return false;
@@ -560,6 +650,11 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
     }
   };
 
+  const logTouch = (projectId: string, channel: string, note: string) => {
+    setMessage(`Logged ${channel} touch${note ? `: ${note}` : ""}`);
+    console.log("Logged touch", { projectId, channel, note, at: new Date().toISOString() });
+  };
+
   const onDragStart = (projectId: string) => {
     setDraggingId(projectId);
   };
@@ -618,10 +713,196 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
     { count: 0, hot: 0, overdue: 0 }
   );
 
+  const orderedStatuses = [...ACTIVE_STATUSES, ...ARCHIVE_STATUSES];
+  const visibleCardOrder: BoardProject[] = [...groupedActive, ...groupedArchive].flatMap((lane) => lane.items);
+
+  const selectSingleCard = (project: BoardProject) => {
+    setSelectedProject(project);
+    setFocusedCardId(project.id);
+    setSelectedIds(new Set([project.id]));
+  };
+
+  const toggleMultiSelect = (project: BoardProject) => {
+    setSelectedProject(null);
+    setFocusedCardId(project.id);
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(project.id)) {
+        next.delete(project.id);
+      } else {
+        next.add(project.id);
+      }
+      return next;
+    });
+  };
+
+  const handleBoardKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (visibleCardOrder.length === 0) return;
+    const currentIndex = focusedCardId ? visibleCardOrder.findIndex((p) => p.id === focusedCardId) : 0;
+    let nextIndex = currentIndex;
+    const goToIndex = (idx: number) => {
+      const clamped = Math.min(Math.max(idx, 0), visibleCardOrder.length - 1);
+      const project = visibleCardOrder[clamped];
+      setFocusedCardId(project.id);
+      setSelectedIds(new Set([project.id]));
+    };
+
+    switch (event.key) {
+      case "ArrowRight":
+      case "l":
+        nextIndex = Math.min(currentIndex + 1, visibleCardOrder.length - 1);
+        goToIndex(nextIndex);
+        event.preventDefault();
+        break;
+      case "ArrowLeft":
+      case "h":
+        nextIndex = Math.max(currentIndex - 1, 0);
+        goToIndex(nextIndex);
+        event.preventDefault();
+        break;
+      case "ArrowDown":
+      case "j":
+        nextIndex = Math.min(currentIndex + 1, visibleCardOrder.length - 1);
+        goToIndex(nextIndex);
+        event.preventDefault();
+        break;
+      case "ArrowUp":
+      case "k":
+        nextIndex = Math.max(currentIndex - 1, 0);
+        goToIndex(nextIndex);
+        event.preventDefault();
+        break;
+      case "Enter":
+      case "o":
+        if (focusedCardId) {
+          const found = visibleCardOrder.find((p) => p.id === focusedCardId);
+          if (found) selectSingleCard(found);
+          event.preventDefault();
+        }
+        break;
+      case "t":
+        if (focusedCardId) {
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          handleNextTouchChange(focusedCardId, tomorrow);
+          event.preventDefault();
+        }
+        break;
+      case "n":
+        if (focusedCardId) {
+          const nextWeek = new Date();
+          nextWeek.setDate(nextWeek.getDate() + 7);
+          handleNextTouchChange(focusedCardId, nextWeek);
+          event.preventDefault();
+        }
+        break;
+      case "m":
+        if (focusedCardId) {
+          const found = visibleCardOrder.find((p) => p.id === focusedCardId);
+          if (found) {
+            const currentIdx = orderedStatuses.indexOf(found.status as (typeof orderedStatuses)[number]);
+            const targetStatus = orderedStatuses[Math.min(currentIdx + 1, orderedStatuses.length - 1)] || found.status;
+            handleStatusChange(found.id, targetStatus);
+          }
+          event.preventDefault();
+        }
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleOpenCrm = (projectId: string) => {
+    if (typeof window !== "undefined") {
+      window.open(`/projects/${projectId}/workspace`, "_blank");
+    }
+  };
+
+  const bulkSelection = Array.from(selectedIds);
+
+  const bulkActions = {
+    markHot: () => {
+      setLocalProjects((prev) => prev.map((p) => (selectedIds.has(p.id) ? { ...p, icpScore: Math.max(p.icpScore ?? 0, 85) } : p)));
+      setMessage("Flagged as hot");
+    },
+    moveToLost: () => {
+      bulkSelection.forEach((id) => handleStatusChange(id, "LOST"));
+    },
+    moveToNotContacted: () => {
+      bulkSelection.forEach((id) => handleStatusChange(id, "NOT_CONTACTED"));
+    },
+    pushNextTouch: (days: number) => {
+      bulkSelection.forEach((id) => {
+        const date = new Date();
+        date.setDate(date.getDate() + days);
+        handleNextTouchChange(id, date);
+      });
+    },
+  };
+
+  const stageStrip = orderedStatuses.map((status) => {
+    const count = filteredProjects.filter((p) => p.status === status).length;
+    const valueLabel = status.replace(/_/g, " ");
+    return `${count} ${valueLabel.toLowerCase()}`;
+  });
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" tabIndex={0} onKeyDown={handleBoardKeyDown}>
       <Toast message={message} onClear={() => setMessage(null)} />
       <Toast message={error} type="error" onClear={() => setError(null)} />
+
+      {selectedIds.size > 0 ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-[12px] text-emerald-50">
+          <span className="rounded-full bg-emerald-500/30 px-2 py-[2px] text-[11px] font-semibold">
+            {selectedIds.size} selected
+          </span>
+          <button
+            type="button"
+            className="rounded-full border border-white/20 px-3 py-1 transition hover:border-white hover:text-white"
+            onClick={bulkActions.markHot}
+          >
+            Bulk mark hot
+          </button>
+          <button
+            type="button"
+            className="rounded-full border border-white/20 px-3 py-1 transition hover:border-white hover:text-white"
+            onClick={() => bulkActions.pushNextTouch(1)}
+          >
+            Next touch +1d
+          </button>
+          <button
+            type="button"
+            className="rounded-full border border-white/20 px-3 py-1 transition hover:border-white hover:text-white"
+            onClick={() => bulkActions.pushNextTouch(2)}
+          >
+            Next touch +2d
+          </button>
+          <button
+            type="button"
+            className="rounded-full border border-white/20 px-3 py-1 transition hover:border-white hover:text-white"
+            onClick={bulkActions.moveToLost}
+          >
+            Move to Lost
+          </button>
+          <button
+            type="button"
+            className="rounded-full border border-white/20 px-3 py-1 transition hover:border-white hover:text-white"
+            onClick={bulkActions.moveToNotContacted}
+          >
+            Move to Not Contacted
+          </button>
+          <button
+            type="button"
+            className="ml-auto rounded-full border border-white/20 px-3 py-1 text-slate-200 hover:border-white"
+            onClick={() => {
+              setSelectedIds(new Set());
+              setFocusedCardId(null);
+            }}
+          >
+            Clear
+          </button>
+        </div>
+      ) : null}
 
       <div className="rounded-2xl border border-[#1D2024] bg-[#0C0D0F] p-4 shadow-inner shadow-black/30">
         <div className="flex flex-wrap items-center gap-2">
@@ -696,6 +977,20 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
         </div>
       </div>
 
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-zinc-800/80 bg-zinc-950/60 px-4 py-3 text-[12px] text-slate-100">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-white/5 px-2 py-[2px] text-[11px] uppercase tracking-wide text-slate-300">Pipeline health</span>
+          {stageStrip.map((label) => (
+            <span key={label} className="rounded-full bg-white/5 px-2 py-[2px] text-[11px] text-slate-200">
+              {label}
+            </span>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 text-[11px] text-slate-400">
+          <span>Shortcuts: hjkl to move, Enter to open, t/n set next touch, m move forward.</span>
+        </div>
+      </div>
+
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(260px,0.9fr)]">
         <div className="relative space-y-3 rounded-2xl border border-zinc-800/70 bg-zinc-900/40 px-3 py-4 shadow-[0_18px_60px_rgba(0,0,0,0.35)]">
           <div className="flex items-center justify-between">
@@ -719,13 +1014,17 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
             {groupedActive.map((column) => {
               const stats = laneSnapshot(column.items);
               const subtitle = laneCopy[column.status]?.subtitle || helperByStatus[column.status] || column.status.replace(/_/g, " ");
+              const laneLimit = laneLimits[column.status];
+              const overLimit = laneLimit ? column.items.length > laneLimit : false;
 
               return (
                 <div
                   key={column.status}
                   className={`relative min-h-[320px] overflow-hidden rounded-xl border border-zinc-800/80 bg-zinc-950/50 px-3 py-3 backdrop-blur transition ${
                     draggingId ? "ring-1 ring-emerald-500/40" : ""
-                  } ${hoveredStatus === column.status ? "ring-1 ring-emerald-400/40" : ""}`}
+                  } ${hoveredStatus === column.status ? "ring-1 ring-emerald-400/40" : ""} ${
+                    overLimit ? "ring-1 ring-amber-400/60" : ""
+                  }`}
                   onDragOver={(e) => e.preventDefault()}
                   onDragEnter={() => setHoveredStatus(column.status)}
                   onDragLeave={() => setHoveredStatus(null)}
@@ -771,6 +1070,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                       const domain = deriveDomain(project.url);
                       const tags = deriveTags(project.categoryTags);
                       const isDraggingCard = draggingId === project.id;
+                      const isSelectedCard = selectedIds.has(project.id);
                       return (
                         <LeadCard
                           key={project.id}
@@ -781,8 +1081,12 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                           urgency={urgency}
                           dragging={isDraggingCard}
                           onDragStart={() => onDragStart(project.id)}
+                          onMove={handleStatusChange}
+                          onLogTouch={logTouch}
+                          onOpenCrm={handleOpenCrm}
                           onChangeNextTouch={handleNextTouchChange}
-                          onSelect={() => setSelectedProject(project)}
+                          onSelect={({ multi }) => (multi ? toggleMultiSelect(project) : selectSingleCard(project))}
+                          isSelected={isSelectedCard || project.id === focusedCardId}
                         />
                       );
                     })}
@@ -826,11 +1130,11 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
-              {groupedArchive.map((column) => {
-                const stats = laneSnapshot(column.items);
-                const subtitle = laneCopy[column.status]?.subtitle || helperByStatus[column.status] || column.status.replace(/_/g, " ");
+                {groupedArchive.map((column) => {
+                  const stats = laneSnapshot(column.items);
+                  const subtitle = laneCopy[column.status]?.subtitle || helperByStatus[column.status] || column.status.replace(/_/g, " ");
 
-                return (
+                  return (
                   <div
                     key={column.status}
                     className={`relative min-h-[260px] overflow-hidden rounded-xl border border-zinc-800/80 bg-zinc-950/60 px-3 py-3 backdrop-blur transition ${
@@ -846,13 +1150,13 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                   >
                     <div className={`absolute left-0 top-0 h-[2px] w-full ${statusTopBorder[column.status]}`} />
                     <div className="mb-2 space-y-1 leading-tight">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-sm font-semibold tracking-wide">
-                            <span>{column.status.replace(/_/g, " ")}</span>
-                            <span className="rounded-full bg-white/5 px-2 py-[2px] text-[11px] text-slate-200">{column.items.length}</span>
-                          </div>
-                          <p className="text-xs text-gray-400 leading-tight">{subtitle}</p>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 text-sm font-semibold tracking-wide">
+                              <span>{column.status.replace(/_/g, " ")}</span>
+                              <span className="rounded-full bg-white/5 px-2 py-[2px] text-[11px] text-slate-200">{column.items.length}</span>
+                            </div>
+                            <p className="text-xs text-gray-400 leading-tight">{subtitle}</p>
                           <div className="flex flex-wrap gap-2 text-[11px] text-slate-200">
                             <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-[2px] text-[11px] text-amber-100">
                               🔥 {stats.hot} hot
@@ -881,6 +1185,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                         const domain = deriveDomain(project.url);
                         const tags = deriveTags(project.categoryTags);
                         const isDraggingCard = draggingId === project.id;
+                        const isSelectedCard = selectedIds.has(project.id);
                         return (
                           <LeadCard
                             key={project.id}
@@ -891,8 +1196,12 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                             urgency={urgency}
                             dragging={isDraggingCard}
                             onDragStart={() => onDragStart(project.id)}
+                            onMove={handleStatusChange}
+                            onLogTouch={logTouch}
+                            onOpenCrm={handleOpenCrm}
                             onChangeNextTouch={handleNextTouchChange}
-                            onSelect={() => setSelectedProject(project)}
+                            onSelect={({ multi }) => (multi ? toggleMultiSelect(project) : selectSingleCard(project))}
+                            isSelected={isSelectedCard || project.id === focusedCardId}
                           />
                         );
                       })}
@@ -982,6 +1291,85 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                     setSelectedProject((prev) => (prev ? { ...prev, status: next } : prev));
                   }}
                 />
+              </div>
+              <div className="space-y-2 text-[13px] text-slate-300">
+                <p className="text-[12px] uppercase tracking-wide text-slate-500">Quick actions</p>
+                <div className="flex flex-wrap gap-2 text-[12px]">
+                  <button
+                    type="button"
+                    className="rounded-lg border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-emerald-100 hover:border-emerald-300"
+                    onClick={() => handleStatusChange(selectedProject.id, "CALL_BOOKED")}
+                  >
+                    Book call
+                  </button>
+                  {selectedProject.telegram ? (
+                    <button
+                      type="button"
+                      className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-slate-100 hover:border-emerald-300"
+                      onClick={() => handleOpenCrm(selectedProject.id)}
+                    >
+                      Open Telegram
+                    </button>
+                  ) : null}
+                  {selectedProject.twitter ? (
+                    <button
+                      type="button"
+                      className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-slate-100 hover:border-emerald-300"
+                      onClick={() => handleOpenCrm(selectedProject.id)}
+                    >
+                      Open X
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-slate-100 hover:border-emerald-300"
+                    onClick={() => handleNextTouchChange(selectedProject.id, tomorrow)}
+                  >
+                    Next touch tomorrow
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-slate-100 hover:border-emerald-300"
+                    onClick={() => handleNextTouchChange(selectedProject.id, nextWeek)}
+                  >
+                    Next touch next week
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2 text-[13px] text-slate-300">
+                <p className="text-[12px] uppercase tracking-wide text-slate-500">Activity timeline</p>
+                <div className="space-y-2 rounded-lg border border-white/5 bg-black/30 p-3 text-[12px] text-slate-200">
+                  <div className="flex items-start gap-2">
+                    <span className="mt-[2px] h-2 w-2 rounded-full bg-emerald-400" />
+                    <div>
+                      <p className="font-semibold">Next touch</p>
+                      <p className="text-slate-400">
+                        {selectedProject.nextSequenceStepDueAt
+                          ? formatDate(selectedProject.nextSequenceStepDueAt)
+                          : "No next touch set"}
+                      </p>
+                    </div>
+                  </div>
+                  {selectedProject.updatedAt ? (
+                    <div className="flex items-start gap-2">
+                      <span className="mt-[2px] h-2 w-2 rounded-full bg-blue-400" />
+                      <div>
+                        <p className="font-semibold">Last updated</p>
+                        <p className="text-slate-400">{formatDate(selectedProject.updatedAt)}</p>
+                      </div>
+                    </div>
+                  ) : null}
+                  {selectedProject.createdAt ? (
+                    <div className="flex items-start gap-2">
+                      <span className="mt-[2px] h-2 w-2 rounded-full bg-slate-400" />
+                      <div>
+                        <p className="font-semibold">Added to pipeline</p>
+                        <p className="text-slate-400">{formatDate(selectedProject.createdAt)}</p>
+                      </div>
+                    </div>
+                  ) : null}
+                  <p className="text-[11px] text-slate-500">Full note and activity history lives in the workspace, but you can skim highlights without leaving the board.</p>
+                </div>
               </div>
               <p className="text-[12px] text-slate-500">
                 Use the workspace to log touches, set next dates, or update contacts. This panel keeps context without leaving the board.

@@ -74,3 +74,69 @@ a {
   background: rgba(0, 217, 163, 0.25);
   color: var(--bg-primary);
 }
+
+@layer components {
+  .pipeline-shell {
+    @apply space-y-3 rounded-2xl border border-[color:var(--pipeline-border,_#1D2024)]
+      bg-[color:var(--pipeline-shell,_#0C0D0F)]
+      p-4 shadow-inner shadow-black/30;
+  }
+
+  .pipeline-filter-pill {
+    @apply flex items-center gap-2 rounded-full border px-3 py-1 text-left text-[12px]
+      transition focus:outline-none focus:ring-2 focus:ring-emerald-500/40;
+  }
+
+  .pipeline-filter-pill--active {
+    @apply border-emerald-400/60 bg-emerald-500/10 text-emerald-100;
+  }
+
+  .pipeline-filter-pill--inactive {
+    @apply border-white/10 bg-white/5 text-slate-200;
+  }
+
+  .pipeline-search {
+    @apply flex items-center gap-2 rounded-xl border border-[color:var(--pipeline-subtle-border,_#232527)] bg-[#111214]
+      px-3 py-2 text-xs text-slate-200 shadow-inner shadow-black/50;
+  }
+
+  .pipeline-column {
+    @apply relative min-h-[360px] overflow-hidden rounded-xl border border-zinc-800/80
+      bg-zinc-900/40 px-3 py-3 shadow-[0_18px_60px_rgba(0,0,0,0.35)] backdrop-blur transition;
+  }
+
+  .pipeline-column-empty {
+    @apply flex h-24 items-center justify-center rounded-lg border border-dashed border-zinc-800/80
+      bg-zinc-900/50 text-xs italic text-zinc-700;
+  }
+
+  .pipeline-card {
+    @apply relative flex-1 rounded-md px-3 py-2 space-y-2 text-left leading-tight text-[13px]
+      bg-[color:var(--pipeline-card,_#0B0C10)]
+      border border-white/5 shadow-pipeline-card transition-all duration-150;
+  }
+
+  .pipeline-card--dragging {
+    @apply ring-2 ring-emerald-400/60;
+  }
+
+  .pipeline-meta-row {
+    @apply flex w-full items-center justify-between gap-2 text-xs text-gray-400 leading-tight;
+  }
+
+  .pipeline-meta-text {
+    @apply block max-w-[65%] truncate;
+  }
+
+  .pipeline-next-label {
+    @apply text-gray-300 font-medium whitespace-nowrap;
+  }
+
+  .pipeline-focus-text {
+    @apply text-xs text-gray-500 whitespace-nowrap leading-tight;
+  }
+
+  .pipeline-lane-subtitle {
+    @apply text-xs text-gray-400 whitespace-nowrap leading-tight;
+  }
+}

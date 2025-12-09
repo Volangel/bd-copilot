@@ -178,9 +178,7 @@ function LeadCard({
         }}
         draggable={!!onDragStart}
         onDragStart={onDragStart}
-        className={`relative flex-1 rounded-md px-3 py-2 space-y-2 text-left leading-tight transition-all duration-150 ${
-          dragging ? "ring-2 ring-emerald-400/60" : ""
-        }`}
+        className={`pipeline-card ${dragging ? "pipeline-card--dragging" : ""}`}
       >
         <div
           className="
@@ -214,8 +212,8 @@ function LeadCard({
           <p className="block truncate text-xs text-gray-500">{domain || "No domain"}</p>
         </div>
 
-        <div className="flex w-full items-center justify-between gap-2 text-xs text-gray-400 leading-tight">
-          <span className="block max-w-[65%] truncate">
+        <div className="pipeline-meta-row">
+          <span className="pipeline-meta-text">
             ICP {project.icpScore ?? "–"} · MQA {project.mqaScore ?? "–"}
             {tags.length > 0 && ` · ${tags.slice(0, 2).join(" · ")}`}
           </span>
@@ -227,7 +225,7 @@ function LeadCard({
                 e.stopPropagation();
                 setIsNextPopoverOpen((open) => !open);
               }}
-              className={`text-gray-300 font-medium whitespace-nowrap ${nextColor} hover:text-white`}
+              className={`pipeline-next-label ${nextColor} hover:text-white`}
             >
               Next: {nextTouchLabel}
             </button>
@@ -528,7 +526,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
       <Toast message={message} onClear={() => setMessage(null)} />
       <Toast message={error} type="error" onClear={() => setError(null)} />
 
-      <div className="space-y-3 rounded-2xl border border-[#1D2024] bg-[#0C0D0F] p-4 shadow-inner shadow-black/30">
+      <div className="pipeline-shell">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-slate-100">
             <span className="h-2 w-2 rounded-full bg-emerald-400" />
@@ -567,8 +565,8 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
               key={pill.key}
               type="button"
               onClick={() => setFilters((f) => ({ ...f, [pill.key]: !f[pill.key] }))}
-              className={`flex items-center gap-2 rounded-full border px-3 py-1 text-left text-[12px] transition focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${
-                filters[pill.key] ? "border-emerald-400/60 bg-emerald-500/10 text-emerald-100" : "border-white/10 bg-white/5 text-slate-200"
+              className={`pipeline-filter-pill ${
+                filters[pill.key] ? "pipeline-filter-pill--active" : "pipeline-filter-pill--inactive"
               }`}
             >
               <span className="text-[11px] text-slate-400">{pill.description}</span>
@@ -591,7 +589,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
         </div>
 
         <div className="grid gap-3 md:grid-cols-[2fr_1fr] md:items-center">
-          <div className="flex items-center gap-2 rounded-xl border border-[#232527] bg-[#111214] px-3 py-2 text-xs text-slate-200 shadow-inner shadow-black/50">
+          <div className="pipeline-search">
             <span className="rounded-full bg-[#0F1012] px-2 py-1 text-[10px] uppercase tracking-wide text-slate-400">Search</span>
             <input
               value={searchTerm}
@@ -623,7 +621,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
             return (
               <div
                 key={column.status}
-                className={`relative min-h-[360px] overflow-hidden rounded-xl border border-zinc-800/80 bg-zinc-900/40 px-3 py-3 shadow-[0_18px_60px_rgba(0,0,0,0.35)] backdrop-blur transition ${
+                className={`pipeline-column ${
                   draggingId ? "ring-1 ring-emerald-500/40" : ""
                 } ${hoveredStatus === column.status ? "ring-1 ring-emerald-400/40" : ""}`}
                 onDragOver={(e) => e.preventDefault()}
@@ -639,10 +637,10 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                   <h2 className="text-sm font-semibold tracking-wide">
                     {column.status.replace(/_/g, " ")} ({column.items.length})
                   </h2>
-                  <p className="text-xs text-gray-400 whitespace-nowrap leading-tight">
+                  <p className="pipeline-lane-subtitle">
                     {subtitle} · Hot {stats.hot} · Missing {stats.missingNext} · Overdue {stats.overdue}
                   </p>
-                  <p className="text-xs text-gray-500 whitespace-nowrap leading-tight">Focus: Clear accounts with &quot;Not set&quot;</p>
+                  <p className="pipeline-focus-text">Focus: Clear accounts with &quot;Not set&quot;</p>
                 </div>
 
                 <div className="space-y-3">
@@ -668,7 +666,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                     );
                   })}
                   {column.items.length === 0 ? (
-                    <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-zinc-800/80 bg-zinc-900/50 text-xs italic text-zinc-700">
+                    <div className="pipeline-column-empty">
                       No accounts here yet.
                     </div>
                   ) : null}

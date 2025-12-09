@@ -47,7 +47,7 @@ function StatusSelect({
 
 type BoardProject = Project & { nextSequenceStepDueAt?: Date | null; hasOverdueSequenceStep?: boolean };
 
-type NextTouchMeta = { label: string; color: string; pill: string };
+type NextTouchMeta = { label: string; color: string };
 
 type LeadCardProps = {
   project: BoardProject;
@@ -121,7 +121,7 @@ function LeadCard({
       }}
       draggable={!!onDragStart}
       onDragStart={onDragStart}
-      className={`group relative overflow-hidden rounded-md border border-zinc-800 bg-zinc-900/80 px-3 py-2 text-left shadow-sm transition-all duration-150 hover:-translate-y-[1px] hover:border-emerald-400/40 ${
+      className={`group relative rounded-md border border-zinc-800 bg-zinc-900/80 px-3 py-2 text-left shadow-sm transition-all duration-150 hover:-translate-y-[1px] hover:border-emerald-400/40 ${
         dragging ? "ring-2 ring-emerald-400/60" : ""
       }`}
     >
@@ -134,11 +134,11 @@ function LeadCard({
           <Avatar initials={name.slice(0, 2).toUpperCase()} />
         </div>
 
-        <div className="flex items-center justify-between text-[11px] text-zinc-400">
+        <div className="flex items-center justify-between text-xs text-gray-400">
           <span className="truncate">{metaParts.join(" · ")}</span>
-          <span className="ml-3 flex-shrink-0 whitespace-nowrap">
-            <span className="text-zinc-500">Next:</span>{" "}
-            <span className={`font-semibold ${nextColor}`}>{urgency.label}</span>
+          <span className="flex-shrink-0 whitespace-nowrap text-gray-500">
+            Next:{" "}
+            <span className={`text-gray-300 font-medium ${nextColor}`}>{urgency.label}</span>
           </span>
         </div>
       </div>
@@ -194,17 +194,17 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
   };
 
   const urgencyLabel = (nextSequenceStepDueAt?: Date | null): NextTouchMeta => {
-    if (!nextSequenceStepDueAt) return { label: "Not set", color: "text-slate-400", pill: "bg-slate-700/30" };
+    if (!nextSequenceStepDueAt) return { label: "Not set", color: "text-slate-400" };
     const now = new Date();
     const startOfToday = new Date(now);
     startOfToday.setHours(0, 0, 0, 0);
     const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
-    if (nextSequenceStepDueAt < startOfToday) return { label: "Overdue", color: "text-red-300", pill: "bg-red-500/10" };
+    if (nextSequenceStepDueAt < startOfToday) return { label: "Overdue", color: "text-red-300" };
     if (nextSequenceStepDueAt >= startOfToday && nextSequenceStepDueAt < endOfToday)
-      return { label: "Today", color: "text-emerald-300", pill: "bg-emerald-500/10" };
+      return { label: "Today", color: "text-emerald-300" };
     const diffDays = Math.round((nextSequenceStepDueAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     const label = diffDays <= 7 ? `In ${diffDays}d` : "Upcoming";
-    return { label, color: "text-amber-200", pill: "bg-amber-500/10" };
+    return { label, color: "text-amber-200" };
   };
 
   const laneSnapshot = (items: BoardProject[]) => {
@@ -473,20 +473,13 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
               >
                 <div className={`absolute left-0 top-0 h-[2px] w-full ${statusTopBorder[column.status]}`} />
                 <div className="mb-2 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-white">
-                      <span>{column.status.replace(/_/g, " ")}</span>
-                      <span className="rounded-full border border-white/10 bg-white/10 px-2 py-[3px] text-[11px] font-semibold text-zinc-50">
-                        {column.items.length}
-                      </span>
-                    </div>
-                    {helperByStatus[column.status] ? (
-                      <span className="text-[11px] text-zinc-500">{helperByStatus[column.status]}</span>
-                    ) : null}
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] text-zinc-400">
-                    <span>{statLine}</span>
-                  </div>
+                  <h2 className="text-sm font-semibold text-white">
+                    {column.status.replace(/_/g, " ")} ({column.items.length})
+                  </h2>
+                  <p className="text-xs text-gray-400">
+                    {(helperByStatus[column.status] || column.status.replace(/_/g, " ")) + " · " + statLine}
+                  </p>
+                  <p className="text-xs text-gray-500">Focus: Clear accounts with “Not set”</p>
                 </div>
 
                 <div className="space-y-3">

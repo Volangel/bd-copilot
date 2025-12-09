@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Project } from "@prisma/client";
 import { PROJECT_STATUSES, formatDate } from "@/lib/utils";
 import { Toast } from "@/components/ui/toast";
@@ -82,6 +82,36 @@ const statusTopBorder: Record<string, string> = {
   LOST: "bg-rose-500",
 };
 
+const laneCopy: Record<string, { subtitle: string; tooltip: string }> = {
+  NOT_CONTACTED: {
+    subtitle: "Cold leads that were never touched.",
+    tooltip: "Kick off outreach and set the first next touch.",
+  },
+  CONTACTED: {
+    subtitle: "Initial touch sent.",
+    tooltip: "Wait for replies and schedule a follow-up if quiet.",
+  },
+  WAITING_REPLY: {
+    subtitle: "Awaiting response.",
+    tooltip: "Keep nudging until you get a yes/no.",
+  },
+  CALL_BOOKED: {
+    subtitle: "Meeting arranged.",
+    tooltip: "Prep materials and confirm the call.",
+  },
+  WON: {
+    subtitle: "Closed deals.",
+    tooltip: "Archive the win and note learnings.",
+  },
+  LOST: {
+    subtitle: "Inactive leads.",
+    tooltip: "Log why it was lost and archive for later.",
+  },
+};
+
+const ACTIVE_STATUSES = ["NOT_CONTACTED", "CONTACTED", "WAITING_REPLY", "CALL_BOOKED"] as const;
+const ARCHIVE_STATUSES = ["WON", "LOST"] as const;
+
 function getPriorityBarClasses(icpScore?: number, isHot?: boolean) {
   if (isHot || (icpScore ?? 0) >= 80) return "w-1 rounded-l-md bg-emerald-500";
   if ((icpScore ?? 0) >= 60) return "w-1 rounded-l-md bg-amber-500";
@@ -95,31 +125,6 @@ function normalizeNextTouch(value: unknown): Date | null {
     return Number.isNaN(parsed.getTime()) ? null : parsed;
   }
   return null;
-}
-
-export function selectTodayLeads(projects: BoardProject[], now: Date = new Date()): BoardProject[] {
-  const startOfToday = new Date(now);
-  startOfToday.setHours(0, 0, 0, 0);
-  const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
-
-  const overdue: { project: BoardProject; nextTouch: Date }[] = [];
-  const today: { project: BoardProject; nextTouch: Date }[] = [];
-
-  projects.forEach((project) => {
-    const nextTouch = normalizeNextTouch(project.nextSequenceStepDueAt);
-    if (!nextTouch) return;
-
-    if (nextTouch < startOfToday) {
-      overdue.push({ project, nextTouch });
-    } else if (nextTouch < endOfToday) {
-      today.push({ project, nextTouch });
-    }
-  });
-
-  overdue.sort((a, b) => a.nextTouch.getTime() - b.nextTouch.getTime());
-  today.sort((a, b) => (b.project.icpScore ?? 0) - (a.project.icpScore ?? 0));
-
-  return [...overdue, ...today].map((item) => item.project);
 }
 
 function LeadCard({
@@ -138,17 +143,6 @@ function LeadCard({
 }: LeadCardProps) {
   const [isNextPopoverOpen, setIsNextPopoverOpen] = useState(false);
   const [customDate, setCustomDate] = useState("");
-  const nextColor =
-    urgency.label === "Overdue"
-      ? "text-rose-300"
-      : urgency.label === "Today"
-        ? "text-emerald-300"
-        : urgency.label === "Not set"
-          ? "text-slate-400"
-          : "text-amber-300";
-
-  const nextTouchLabel = urgency.label;
-
   const priorityBarClassName = getPriorityBarClasses(project.icpScore, (project.icpScore ?? 0) >= 80);
   const handleChangeNextTouch =
     onChangeNextTouch ?? ((projectId: string, nextTouch: Date | null) => console.log("TODO: change next touch", projectId, nextTouch));
@@ -166,6 +160,85 @@ function LeadCard({
   const nextWeek = new Date();
   nextWeek.setDate(today.getDate() + 7);
 
+  const nextTouch = normalizeNextTouch(project.nextSequenceStepDueAt);
+
+  const formatTime = (date: Date) =>
+    date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+  const describeNextTouch = (date: Date | null) => {
+    if (!date) {
+      return {
+        label: "No next touch",
+        accent: "text-slate-400",
+        border: "border-slate-800",
+        dot: "bg-slate-500",
+        helper: "⚠️",
+      } as const;
+    }
+
+    const now = new Date();
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
+    const startOfTomorrow = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+
+    if (date < startOfToday) {
+      const diffMs = startOfToday.getTime() - date.getTime();
+      const diffDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+      return {
+        label: `Overdue by ${diffDays}d`,
+        accent: "text-rose-300",
+        border: "border-rose-500/50",
+        dot: "bg-rose-400",
+        helper: "•",
+      } as const;
+    }
+
+    if (date < startOfTomorrow) {
+      return {
+        label: `Today at ${formatTime(date)}`,
+        accent: "text-emerald-200",
+        border: "border-emerald-400/40",
+        dot: "bg-emerald-400",
+        helper: "•",
+      } as const;
+    }
+
+    const diffDays = Math.round((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    const dayLabel = diffDays <= 1 ? "Tomorrow" : `In ${diffDays}d`;
+    return {
+      label: `${dayLabel} at ${formatTime(date)}`,
+      accent: "text-amber-200",
+      border: "border-amber-400/30",
+      dot: "bg-amber-300",
+      helper: "•",
+    } as const;
+  };
+
+  const nextMeta = describeNextTouch(nextTouch);
+
+  const channelIcon = (() => {
+    if (project.telegram) return "📨";
+    if (project.twitter) return "🐦";
+    return "✉";
+  })();
+
+  const ownerInitial = (name || domain || "?").trim().charAt(0).toUpperCase() || "?";
+
+  const heatChip = (score?: number | null) => {
+    if (score === null || score === undefined) return null;
+    if (score >= 80) return { label: "Hot", className: "bg-rose-500/15 text-rose-200 border border-rose-400/40" };
+    if (score >= 60) return { label: "Warm", className: "bg-amber-500/10 text-amber-200 border border-amber-400/30" };
+    return null;
+  };
+
+  const icpChipClass = (score?: number | null) => {
+    if ((score ?? 0) >= 80) return "border-emerald-400/70 bg-emerald-500/10 text-emerald-100";
+    return "border-white/10 bg-white/5 text-slate-200";
+  };
+
   return (
     <div className="group relative flex">
       <div className={priorityBarClassName} />
@@ -178,7 +251,8 @@ function LeadCard({
         }}
         draggable={!!onDragStart}
         onDragStart={onDragStart}
-        className={`relative flex-1 rounded-md px-3 py-2 space-y-2 text-left leading-tight transition-all duration-150 ${
+        data-urgency={urgency.label}
+        className={`relative flex-1 rounded-md px-3 py-3 space-y-3 text-left leading-tight transition-all duration-150 bg-[#0E1013]/70 border border-white/5 ${
           dragging ? "ring-2 ring-emerald-400/60" : ""
         }`}
       >
@@ -209,79 +283,118 @@ function LeadCard({
           </button>
         </div>
 
-        <div className="min-w-0 space-y-0.5 leading-tight">
-          <p className="max-w-full truncate text-sm font-semibold text-white">{name}</p>
-          <p className="block truncate text-xs text-gray-500">{domain || "No domain"}</p>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 space-y-0.5 leading-tight">
+            <p className="max-w-full truncate text-sm font-semibold text-white">{name}</p>
+            <p className="block truncate text-[12px] text-gray-500">{domain || "No domain"}</p>
+          </div>
+          <div className="flex items-center gap-1 text-[11px]">
+            <span
+              className={`inline-flex items-center gap-1 rounded-full border px-2 py-[2px] font-semibold ${icpChipClass(project.icpScore)}`}
+            >
+              ICP {project.icpScore ?? "–"}
+            </span>
+            {heatChip(project.icpScore) ? (
+              <span className={`inline-flex items-center rounded-full px-2 py-[2px] text-[11px] font-semibold ${heatChip(project.icpScore)?.className}`}>
+                {heatChip(project.icpScore)?.label}
+              </span>
+            ) : null}
+          </div>
         </div>
 
-        <div className="flex w-full items-center justify-between gap-2 text-xs text-gray-400 leading-tight">
-          <span className="block max-w-[65%] truncate">
-            ICP {project.icpScore ?? "–"} · MQA {project.mqaScore ?? "–"}
-            {tags.length > 0 && ` · ${tags.slice(0, 2).join(" · ")}`}
-          </span>
-
-          <div className="relative">
+        <div
+          className={`flex items-center justify-between gap-3 rounded-lg border bg-black/30 px-3 py-2 text-[12px] shadow-inner transition ${nextMeta.border}`}
+        >
+          <div className="flex items-center gap-2 text-left">
+            <span className={`h-2 w-2 rounded-full ${nextMeta.dot}`} />
             <button
               type="button"
+              className={`flex items-center gap-2 font-medium ${nextMeta.accent} hover:text-white`}
               onClick={(e) => {
                 e.stopPropagation();
                 setIsNextPopoverOpen((open) => !open);
               }}
-              className={`text-gray-300 font-medium whitespace-nowrap ${nextColor} hover:text-white`}
             >
-              Next: {nextTouchLabel}
+              <span className="text-slate-400">Next touch:</span>
+              <span className="flex items-center gap-1 whitespace-nowrap">
+                {nextMeta.helper ? <span className="text-[11px]">{nextMeta.helper}</span> : null}
+                <span>{nextMeta.label}</span>
+              </span>
             </button>
-
-            {isNextPopoverOpen ? (
-              <div
-                className="absolute right-0 mt-1 w-40 rounded-md border border-white/10 bg-black/90 p-2 text-[11px] text-slate-100 shadow-lg z-30"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button
-                  type="button"
-                  className="w-full rounded-md px-2 py-1 text-left hover:bg-white/10"
-                  onClick={() => handleSetDateAndClose(today)}
+            <span className="rounded-full bg-white/5 px-2 py-[2px] text-xs text-slate-200">{channelIcon}</span>
+            <div className="relative">
+              {isNextPopoverOpen ? (
+                <div
+                  className="absolute left-0 top-8 w-44 rounded-md border border-white/10 bg-black/90 p-2 text-[11px] text-slate-100 shadow-lg z-30"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  Today
-                </button>
-                <button
-                  type="button"
-                  className="w-full rounded-md px-2 py-1 text-left hover:bg-white/10"
-                  onClick={() => handleSetDateAndClose(tomorrow)}
-                >
-                  Tomorrow
-                </button>
-                <button
-                  type="button"
-                  className="w-full rounded-md px-2 py-1 text-left hover:bg-white/10"
-                  onClick={() => handleSetDateAndClose(nextWeek)}
-                >
-                  Next week
-                </button>
-                <button
-                  type="button"
-                  className="w-full rounded-md px-2 py-1 text-left hover:bg-white/10 text-slate-300"
-                  onClick={() => handleSetDateAndClose(null)}
-                >
-                  Clear
-                </button>
-                <input
-                  type="date"
-                  value={customDate}
-                  onChange={(e) => {
-                    setCustomDate(e.target.value);
-                    if (e.target.value) {
-                      const [year, month, day] = e.target.value.split("-").map(Number);
-                      const date = new Date(year, month - 1, day, 12, 0, 0);
-                      handleSetDateAndClose(date);
-                    }
-                  }}
-                  className="mt-1 w-full rounded-md border border-white/15 bg-black/60 px-2 py-1 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500/60"
-                />
-                {/* TODO: Close popover on outside click */}
-              </div>
-            ) : null}
+                  <button
+                    type="button"
+                    className="w-full rounded-md px-2 py-1 text-left hover:bg-white/10"
+                    onClick={() => handleSetDateAndClose(today)}
+                  >
+                    Today
+                  </button>
+                  <button
+                    type="button"
+                    className="w-full rounded-md px-2 py-1 text-left hover:bg-white/10"
+                    onClick={() => handleSetDateAndClose(tomorrow)}
+                  >
+                    Tomorrow
+                  </button>
+                  <button
+                    type="button"
+                    className="w-full rounded-md px-2 py-1 text-left hover:bg-white/10"
+                    onClick={() => handleSetDateAndClose(nextWeek)}
+                  >
+                    Next week
+                  </button>
+                  <button
+                    type="button"
+                    className="w-full rounded-md px-2 py-1 text-left text-slate-300 hover:bg-white/10"
+                    onClick={() => handleSetDateAndClose(null)}
+                  >
+                    Clear
+                  </button>
+                  <input
+                    type="date"
+                    value={customDate}
+                    onChange={(e) => {
+                      setCustomDate(e.target.value);
+                      if (e.target.value) {
+                        const [year, month, day] = e.target.value.split("-").map(Number);
+                        const date = new Date(year, month - 1, day, 12, 0, 0);
+                        handleSetDateAndClose(date);
+                      }
+                    }}
+                    className="mt-1 w-full rounded-md border border-white/15 bg-black/60 px-2 py-1 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500/60"
+                  />
+                </div>
+              ) : null}
+            </div>
           </div>
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/5 text-[11px] font-semibold text-slate-200">
+              {ownerInitial}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {tags.length === 0 ? (
+            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-400">Add tags</span>
+          ) : (
+            tags.slice(0, 4).map((tag) => (
+              <span key={tag} className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-200">
+                {tag}
+              </span>
+            ))
+          )}
+          {project.mqaScore ? (
+            <span className="rounded-full border border-blue-400/30 bg-blue-500/10 px-2 py-1 text-[11px] font-semibold text-blue-100">
+              MQA {project.mqaScore}
+            </span>
+          ) : null}
         </div>
       </div>
     </div>
@@ -295,8 +408,10 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<BoardProject | null>(null);
-  const [mode, setMode] = useState<"board" | "today">("board");
+  const [mode, setMode] = useState<"board" | "today" | "overdue">("board");
+  const [archiveOpen, setArchiveOpen] = useState(false);
   const [filters, setFilters] = useState({
+    icp80Plus: false,
     hotOnly: false,
     missingNext: false,
     overdueOnly: false,
@@ -335,55 +450,6 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
       .filter(Boolean);
   };
 
-  const TodayView = ({
-    projects,
-    onChangeNextTouch,
-  }: {
-    projects: BoardProject[];
-    onChangeNextTouch: (projectId: string, nextTouch: Date | null) => void;
-  }) => {
-    // TODO: Add keyboard up/down navigation for Today list
-    // TODO: Focus first item automatically for keyboard workflows
-
-    return (
-      <div className="w-full flex flex-col items-center mt-4">
-        <div className="w-full max-w-2xl px-4 space-y-2">
-          <div className="space-y-1">
-            <h2 className="text-xl font-semibold text-white">Today</h2>
-            <p className="text-sm text-slate-400">Overdue + due today accounts, sorted by priority.</p>
-          </div>
-          <div className="space-y-3">
-            {projects.map((project) => {
-              const name = deriveName(project.name, project.url);
-              const domain = deriveDomain(project.url);
-              const tags = deriveTags(project.categoryTags);
-              const urgency = urgencyLabel(project.nextSequenceStepDueAt || undefined);
-
-              return (
-                <LeadCard
-                  key={project.id}
-                  project={project}
-                  name={name}
-                  domain={domain}
-                  tags={tags}
-                  urgency={urgency}
-                  dragging={false}
-                  onChangeNextTouch={onChangeNextTouch}
-                  onSelect={() => setSelectedProject(project)}
-                />
-              );
-            })}
-            {projects.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-white/10 bg-[#0F1012] px-4 py-6 text-sm text-slate-400">
-                Nothing due today. Add next touches or open a card to plan work.
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const urgencyLabel = (nextSequenceStepDueAt?: Date | null): NextTouchMeta => {
     if (!nextSequenceStepDueAt) return { label: "Not set", color: "text-slate-400" };
     const now = new Date();
@@ -406,16 +472,21 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
   };
 
   const query = searchTerm.trim().toLowerCase();
+  const now = new Date();
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+
   const filteredProjects = localProjects.filter((p) => {
-    if (filters.hotOnly && (p.icpScore ?? 0) <= 80) return false;
-    const nextDue = p.nextSequenceStepDueAt || null;
+    if (filters.icp80Plus && (p.icpScore ?? 0) < 80) return false;
+    if (filters.hotOnly && (p.icpScore ?? 0) < 80) return false;
+    const nextDue = normalizeNextTouch(p.nextSequenceStepDueAt) || null;
     if (filters.missingNext && nextDue) return false;
-    if (filters.overdueOnly) {
-      const now = new Date();
-      const startOfToday = new Date(now);
-      startOfToday.setHours(0, 0, 0, 0);
-      if (!nextDue || !(nextDue < startOfToday)) return false;
-    }
+    if (filters.overdueOnly && (!nextDue || !(nextDue < startOfToday))) return false;
+
+    if (mode === "today" && (!nextDue || !(nextDue < endOfToday))) return false;
+    if (mode === "overdue" && (!nextDue || !(nextDue < startOfToday))) return false;
+
     if (query.length > 0) {
       const name = deriveName(p.name, p.url).toLowerCase();
       const domain = deriveDomain(p.url).toLowerCase();
@@ -424,23 +495,30 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
     return true;
   });
 
-  const activeFilterCount = Number(filters.hotOnly) + Number(filters.missingNext) + Number(filters.overdueOnly) + (query ? 1 : 0);
+  const activeFilterCount =
+    Number(filters.icp80Plus) +
+    Number(filters.hotOnly) +
+    Number(filters.missingNext) +
+    Number(filters.overdueOnly) +
+    (query ? 1 : 0);
 
-  const todayProjects = useMemo(() => selectTodayLeads(filteredProjects), [filteredProjects]);
+  const buildGrouped = (statuses: readonly string[]) =>
+    statuses.map((status) => {
+      const items = filteredProjects
+        .filter((p) => p.status === status)
+        .sort((a, b) => {
+          if (sortMode === "icp") {
+            return (b.icpScore ?? 0) - (a.icpScore ?? 0);
+          }
+          const aDate = a.nextSequenceStepDueAt ? new Date(a.nextSequenceStepDueAt).getTime() : Number.POSITIVE_INFINITY;
+          const bDate = b.nextSequenceStepDueAt ? new Date(b.nextSequenceStepDueAt).getTime() : Number.POSITIVE_INFINITY;
+          return aDate - bDate;
+        });
+      return { status, items };
+    });
 
-  const grouped = PROJECT_STATUSES.map((status) => {
-    const items = filteredProjects
-      .filter((p) => p.status === status)
-      .sort((a, b) => {
-        if (sortMode === "icp") {
-          return (b.icpScore ?? 0) - (a.icpScore ?? 0);
-        }
-        const aDate = a.nextSequenceStepDueAt ? new Date(a.nextSequenceStepDueAt).getTime() : Number.POSITIVE_INFINITY;
-        const bDate = b.nextSequenceStepDueAt ? new Date(b.nextSequenceStepDueAt).getTime() : Number.POSITIVE_INFINITY;
-        return aDate - bDate;
-      });
-    return { status, items };
-  });
+  const groupedActive = buildGrouped(ACTIVE_STATUSES);
+  const groupedArchive = buildGrouped(ARCHIVE_STATUSES);
 
   const handleStatusChange = (projectId: string, status: string) => {
     setLocalProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, status } : p)));
@@ -507,13 +585,18 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
 
   const filterPills = [
     {
+      key: "icp80Plus" as const,
+      label: "ICP ≥ 80",
+      description: "High fit",
+    },
+    {
       key: "hotOnly" as const,
-      label: "Hot",
-      description: "ICP > 80",
+      label: "Hot only",
+      description: "Heat leads",
     },
     {
       key: "missingNext" as const,
-      label: "Missing next",
+      label: "Missing next touch",
       description: "No next touch",
     },
     {
@@ -523,45 +606,44 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
     },
   ];
 
+  const archiveSummary = groupedArchive.reduce(
+    (acc, lane) => {
+      const stats = laneSnapshot(lane.items);
+      return {
+        count: acc.count + lane.items.length,
+        hot: acc.hot + stats.hot,
+        overdue: acc.overdue + stats.overdue,
+      };
+    },
+    { count: 0, hot: 0, overdue: 0 }
+  );
+
   return (
     <div className="space-y-4">
       <Toast message={message} onClear={() => setMessage(null)} />
       <Toast message={error} type="error" onClear={() => setError(null)} />
 
-      <div className="space-y-3 rounded-2xl border border-[#1D2024] bg-[#0C0D0F] p-4 shadow-inner shadow-black/30">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="rounded-2xl border border-[#1D2024] bg-[#0C0D0F] p-4 shadow-inner shadow-black/30">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-slate-100">
             <span className="h-2 w-2 rounded-full bg-emerald-400" />
-            <span>{mode === "today" ? "Today mode" : "Pipeline"}</span>
+            <span className="uppercase tracking-wide text-[10px]">{mode === "board" ? "Board" : mode === "today" ? "Today" : "Overdue"} view</span>
           </div>
-          <p className="text-sm text-slate-300">
-            {mode === "today"
-              ? "Accounts that need a touch today or are overdue."
-              : "Minimal, scannable lanes focused on next actions."}
-          </p>
-          <div className="ml-auto flex gap-2">
-            <button
-              type="button"
-              onClick={() => setMode("board")}
-              className={`rounded-full px-3 py-1 text-sm transition ${
-                mode === "board" ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/5"
-              }`}
-            >
-              Board
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("today")}
-              className={`rounded-full px-3 py-1 text-sm transition ${
-                mode === "today" ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/5"
-              }`}
-            >
-              Today
-            </button>
+          <div className="flex items-center gap-1 rounded-full border border-white/10 bg-[#0F1012] px-1 py-1 text-xs text-slate-100">
+            {["board", "today", "overdue"].map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setMode(value as typeof mode)}
+                className={`rounded-full px-3 py-1 transition ${
+                  mode === value ? "bg-white/15 text-white" : "text-slate-300 hover:bg-white/5"
+                }`}
+              >
+                {value === "board" ? "Board" : value === "today" ? "Today" : "Overdue"}
+              </button>
+            ))}
           </div>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-2">
           {filterPills.map((pill) => (
             <button
               key={pill.key}
@@ -575,23 +657,8 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
               <span className="font-semibold">{pill.label}</span>
             </button>
           ))}
-          {activeFilterCount > 0 ? (
-            <button
-              type="button"
-              onClick={() => {
-                setFilters({ hotOnly: false, missingNext: false, overdueOnly: false });
-                setSearchTerm("");
-                setSortMode("next");
-              }}
-              className="ml-auto inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1 text-[12px] text-slate-200 transition hover:border-emerald-300 hover:text-white"
-            >
-              Reset view
-            </button>
-          ) : null}
-        </div>
 
-        <div className="grid gap-3 md:grid-cols-[2fr_1fr] md:items-center">
-          <div className="flex items-center gap-2 rounded-xl border border-[#232527] bg-[#111214] px-3 py-2 text-xs text-slate-200 shadow-inner shadow-black/50">
+          <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-full border border-[#232527] bg-[#111214] px-3 py-2 text-xs text-slate-200 shadow-inner shadow-black/50">
             <span className="rounded-full bg-[#0F1012] px-2 py-1 text-[10px] uppercase tracking-wide text-slate-400">Search</span>
             <input
               value={searchTerm}
@@ -600,7 +667,8 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
               className="w-full bg-transparent text-[13px] text-slate-100 placeholder:text-slate-500 focus:outline-none"
             />
           </div>
-          <div className="flex items-center justify-end gap-2 text-[12px] text-slate-300">
+
+          <div className="flex items-center gap-2 rounded-full border border-[#2D3136] bg-[#0F1012] px-2 py-1 text-[12px] text-slate-300 shadow-sm">
             <span className="text-slate-400">Sort</span>
             <select
               value={sortMode}
@@ -611,75 +679,236 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
               <option value="icp">ICP</option>
             </select>
           </div>
+
+          {activeFilterCount > 0 ? (
+            <button
+              type="button"
+              onClick={() => {
+                setFilters({ icp80Plus: false, hotOnly: false, missingNext: false, overdueOnly: false });
+                setSearchTerm("");
+                setSortMode("next");
+              }}
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1 text-[12px] text-slate-200 transition hover:border-emerald-300 hover:text-white"
+            >
+              Reset view
+            </button>
+          ) : null}
         </div>
       </div>
 
-      {mode === "board" ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-          {grouped.map((column) => {
-            const stats = laneSnapshot(column.items);
-            const subtitle = helperByStatus[column.status] || column.status.replace(/_/g, " ");
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(260px,0.9fr)]">
+        <div className="relative space-y-3 rounded-2xl border border-zinc-800/70 bg-zinc-900/40 px-3 py-4 shadow-[0_18px_60px_rgba(0,0,0,0.35)]">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] uppercase tracking-wide text-slate-500">Active pipeline</p>
+              <p className="text-xs text-slate-400">Move cards left → right. Focus on setting next touches.</p>
+            </div>
+            <div className="hidden xl:block">
+              <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                {ACTIVE_STATUSES.map((status, idx) => (
+                  <div key={status} className="flex flex-1 items-center gap-1">
+                    <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
+                    {idx < ACTIVE_STATUSES.length - 1 ? <span className="text-xs">→</span> : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
 
-            return (
-              <div
-                key={column.status}
-                className={`relative min-h-[360px] overflow-hidden rounded-xl border border-zinc-800/80 bg-zinc-900/40 px-3 py-3 shadow-[0_18px_60px_rgba(0,0,0,0.35)] backdrop-blur transition ${
-                  draggingId ? "ring-1 ring-emerald-500/40" : ""
-                } ${hoveredStatus === column.status ? "ring-1 ring-emerald-400/40" : ""}`}
-                onDragOver={(e) => e.preventDefault()}
-                onDragEnter={() => setHoveredStatus(column.status)}
-                onDragLeave={() => setHoveredStatus(null)}
-                onDrop={() => {
-                  onDrop(column.status);
-                  setHoveredStatus(null);
-                }}
-              >
-                <div className={`absolute left-0 top-0 h-[2px] w-full ${statusTopBorder[column.status]}`} />
-                <div className="mb-2 space-y-1 leading-tight">
-                  <h2 className="text-sm font-semibold tracking-wide">
-                    {column.status.replace(/_/g, " ")} ({column.items.length})
-                  </h2>
-                  <p className="text-xs text-gray-400 whitespace-nowrap leading-tight">
-                    {subtitle} · Hot {stats.hot} · Missing {stats.missingNext} · Overdue {stats.overdue}
-                  </p>
-                  <p className="text-xs text-gray-500 whitespace-nowrap leading-tight">Focus: Clear accounts with &quot;Not set&quot;</p>
-                </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {groupedActive.map((column) => {
+              const stats = laneSnapshot(column.items);
+              const subtitle = laneCopy[column.status]?.subtitle || helperByStatus[column.status] || column.status.replace(/_/g, " ");
 
-                <div className="space-y-3">
-                  {column.items.map((project) => {
-                    const urgency = urgencyLabel(project.nextSequenceStepDueAt || undefined);
-                    const name = deriveName(project.name, project.url);
-                    const domain = deriveDomain(project.url);
-                    const tags = deriveTags(project.categoryTags);
-                    const isDraggingCard = draggingId === project.id;
-                    return (
-                      <LeadCard
-                        key={project.id}
-                        project={project}
-                        name={name}
-                        domain={domain}
-                        tags={tags}
-                        urgency={urgency}
-                        dragging={isDraggingCard}
-                        onDragStart={() => onDragStart(project.id)}
-                        onChangeNextTouch={handleNextTouchChange}
-                        onSelect={() => setSelectedProject(project)}
-                      />
-                    );
-                  })}
-                  {column.items.length === 0 ? (
-                    <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-zinc-800/80 bg-zinc-900/50 text-xs italic text-zinc-700">
-                      No accounts here yet.
+              return (
+                <div
+                  key={column.status}
+                  className={`relative min-h-[320px] overflow-hidden rounded-xl border border-zinc-800/80 bg-zinc-950/50 px-3 py-3 backdrop-blur transition ${
+                    draggingId ? "ring-1 ring-emerald-500/40" : ""
+                  } ${hoveredStatus === column.status ? "ring-1 ring-emerald-400/40" : ""}`}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDragEnter={() => setHoveredStatus(column.status)}
+                  onDragLeave={() => setHoveredStatus(null)}
+                  onDrop={() => {
+                    onDrop(column.status);
+                    setHoveredStatus(null);
+                  }}
+                >
+                  <div className={`absolute left-0 top-0 h-[2px] w-full ${statusTopBorder[column.status]}`} />
+                  <div className="mb-2 space-y-1 leading-tight">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-sm font-semibold tracking-wide">
+                          <span>{column.status.replace(/_/g, " ")}</span>
+                          <span className="rounded-full bg-white/5 px-2 py-[2px] text-[11px] text-slate-200">{column.items.length}</span>
+                        </div>
+                        <p className="text-xs text-gray-400 leading-tight">{subtitle}</p>
+                        <div className="flex flex-wrap gap-2 text-[11px] text-slate-200">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-[2px] text-[11px] text-amber-100">
+                            🔥 {stats.hot} hot
+                          </span>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-[2px] text-[11px] text-amber-100">
+                            ⚠ {stats.missingNext} missing next touch
+                          </span>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-[2px] text-[11px] text-amber-100">
+                            ⏰ {stats.overdue} overdue
+                          </span>
+                        </div>
+                      </div>
+                      <span
+                        className="mt-1 inline-flex h-6 w-6 items-center justify-center rounded-full border border-white/10 text-[11px] text-slate-300"
+                        title={laneCopy[column.status]?.tooltip || "Lane guidance"}
+                      >
+                        i
+                      </span>
                     </div>
-                  ) : null}
+                  </div>
+
+                  <div className="space-y-3">
+                    {column.items.map((project) => {
+                      const urgency = urgencyLabel(project.nextSequenceStepDueAt || undefined);
+                      const name = deriveName(project.name, project.url);
+                      const domain = deriveDomain(project.url);
+                      const tags = deriveTags(project.categoryTags);
+                      const isDraggingCard = draggingId === project.id;
+                      return (
+                        <LeadCard
+                          key={project.id}
+                          project={project}
+                          name={name}
+                          domain={domain}
+                          tags={tags}
+                          urgency={urgency}
+                          dragging={isDraggingCard}
+                          onDragStart={() => onDragStart(project.id)}
+                          onChangeNextTouch={handleNextTouchChange}
+                          onSelect={() => setSelectedProject(project)}
+                        />
+                      );
+                    })}
+                    {column.items.length === 0 ? (
+                      <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-zinc-800/80 bg-zinc-900/50 text-xs italic text-zinc-700">
+                        No accounts here yet.
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="space-y-3 rounded-2xl border border-zinc-800/70 bg-zinc-950/50 px-3 py-4 shadow-[0_18px_60px_rgba(0,0,0,0.25)]">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] uppercase tracking-wide text-slate-500">Archive</p>
+              <p className="text-xs text-slate-400">Won + Lost lanes stay compact until you need them.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setArchiveOpen((open) => !open)}
+              className="rounded-full border border-white/10 px-3 py-1 text-[12px] text-slate-200 transition hover:border-emerald-300 hover:text-white"
+            >
+              {archiveOpen ? "Hide" : "Expand"}
+            </button>
+          </div>
+
+          {!archiveOpen ? (
+            <div className="flex items-center justify-between rounded-xl border border-dashed border-white/10 bg-[#0F1012] px-3 py-3 text-sm text-slate-200">
+              <div className="space-y-1">
+                <p className="text-[12px] text-slate-400">{archiveSummary.count} cards parked</p>
+                <div className="flex flex-wrap gap-2 text-[11px] text-slate-200">
+                  <span className="rounded-full bg-white/5 px-2 py-[2px]">🔥 {archiveSummary.hot} hot</span>
+                  <span className="rounded-full bg-white/5 px-2 py-[2px]">⏰ {archiveSummary.overdue} overdue</span>
                 </div>
               </div>
-            );
-          })}
+              <span className="text-[24px]">⬅</span>
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {groupedArchive.map((column) => {
+                const stats = laneSnapshot(column.items);
+                const subtitle = laneCopy[column.status]?.subtitle || helperByStatus[column.status] || column.status.replace(/_/g, " ");
+
+                return (
+                  <div
+                    key={column.status}
+                    className={`relative min-h-[260px] overflow-hidden rounded-xl border border-zinc-800/80 bg-zinc-950/60 px-3 py-3 backdrop-blur transition ${
+                      draggingId ? "ring-1 ring-emerald-500/40" : ""
+                    } ${hoveredStatus === column.status ? "ring-1 ring-emerald-400/40" : ""}`}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDragEnter={() => setHoveredStatus(column.status)}
+                    onDragLeave={() => setHoveredStatus(null)}
+                    onDrop={() => {
+                      onDrop(column.status);
+                      setHoveredStatus(null);
+                    }}
+                  >
+                    <div className={`absolute left-0 top-0 h-[2px] w-full ${statusTopBorder[column.status]}`} />
+                    <div className="mb-2 space-y-1 leading-tight">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-sm font-semibold tracking-wide">
+                            <span>{column.status.replace(/_/g, " ")}</span>
+                            <span className="rounded-full bg-white/5 px-2 py-[2px] text-[11px] text-slate-200">{column.items.length}</span>
+                          </div>
+                          <p className="text-xs text-gray-400 leading-tight">{subtitle}</p>
+                          <div className="flex flex-wrap gap-2 text-[11px] text-slate-200">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-[2px] text-[11px] text-amber-100">
+                              🔥 {stats.hot} hot
+                            </span>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-[2px] text-[11px] text-amber-100">
+                              ⚠ {stats.missingNext} missing next touch
+                            </span>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-[2px] text-[11px] text-amber-100">
+                              ⏰ {stats.overdue} overdue
+                            </span>
+                          </div>
+                        </div>
+                        <span
+                          className="mt-1 inline-flex h-6 w-6 items-center justify-center rounded-full border border-white/10 text-[11px] text-slate-300"
+                          title={laneCopy[column.status]?.tooltip || "Lane guidance"}
+                        >
+                          i
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {column.items.map((project) => {
+                        const urgency = urgencyLabel(project.nextSequenceStepDueAt || undefined);
+                        const name = deriveName(project.name, project.url);
+                        const domain = deriveDomain(project.url);
+                        const tags = deriveTags(project.categoryTags);
+                        const isDraggingCard = draggingId === project.id;
+                        return (
+                          <LeadCard
+                            key={project.id}
+                            project={project}
+                            name={name}
+                            domain={domain}
+                            tags={tags}
+                            urgency={urgency}
+                            dragging={isDraggingCard}
+                            onDragStart={() => onDragStart(project.id)}
+                            onChangeNextTouch={handleNextTouchChange}
+                            onSelect={() => setSelectedProject(project)}
+                          />
+                        );
+                      })}
+                      {column.items.length === 0 ? (
+                        <div className="flex h-20 items-center justify-center rounded-lg border border-dashed border-zinc-800/80 bg-zinc-900/50 text-xs italic text-zinc-700">
+                          Quiet here.
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-        ) : (
-          <TodayView projects={todayProjects} onChangeNextTouch={handleNextTouchChange} />
-        )}
+      </div>
 
       {selectedProject ? (
         <div className="fixed inset-0 z-40 flex justify-end">

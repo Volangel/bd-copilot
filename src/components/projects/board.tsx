@@ -57,6 +57,10 @@ type LeadCardProps = {
   urgency: NextTouchMeta;
   dragging: boolean;
   onDragStart?: () => void;
+  onChangeNextTouch?: (projectId: string, nextTouch: Date | null) => void;
+  onOpenWorkspace?: (projectId: string) => void;
+  onOpenMessages?: (projectId: string) => void;
+  onAddNote?: (projectId: string) => void;
   onSelect: () => void;
 };
 
@@ -78,6 +82,12 @@ const statusTopBorder: Record<string, string> = {
   LOST: "bg-rose-500",
 };
 
+function getPriorityBarClasses(icpScore?: number, isHot?: boolean) {
+  if (isHot || (icpScore ?? 0) >= 80) return "w-1 rounded-l-md bg-emerald-500";
+  if ((icpScore ?? 0) >= 60) return "w-1 rounded-l-md bg-amber-500";
+  return "w-1 rounded-l-md bg-slate-600";
+}
+
 function LeadCard({
   project,
   name,
@@ -86,6 +96,10 @@ function LeadCard({
   urgency,
   dragging,
   onDragStart,
+  onChangeNextTouch,
+  onOpenWorkspace,
+  onOpenMessages,
+  onAddNote,
   onSelect,
 }: LeadCardProps) {
   const nextColor =
@@ -99,34 +113,71 @@ function LeadCard({
 
   const nextTouchLabel = urgency.label;
 
+  const priorityBarClassName = getPriorityBarClasses(project.icpScore, (project.icpScore ?? 0) >= 80);
+  const handleChangeNextTouch =
+    onChangeNextTouch ?? ((projectId: string, nextTouch: Date | null) => console.log("TODO: change next touch", projectId, nextTouch));
+  const handleOpenWorkspace = onOpenWorkspace ?? ((projectId: string) => console.log("TODO: workspace", projectId));
+  const handleOpenMessages = onOpenMessages ?? ((projectId: string) => console.log("TODO: messages", projectId));
+  const handleAddNote = onAddNote ?? ((projectId: string) => console.log("TODO: add note", projectId));
+
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onSelect}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") onSelect();
-      }}
-      draggable={!!onDragStart}
-      onDragStart={onDragStart}
-      className={`group relative rounded-md px-3 py-2 space-y-2 text-left leading-tight transition-all duration-150 ${
-        dragging ? "ring-2 ring-emerald-400/60" : ""
-      }`}
-    >
-      <div className="min-w-0 space-y-0.5 leading-tight">
-        <p className="max-w-full truncate text-sm font-semibold text-white">{name}</p>
-        <p className="block truncate text-xs text-gray-500">{domain || "No domain"}</p>
-      </div>
+    <div className="group relative flex">
+      <div className={priorityBarClassName} />
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onSelect}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") onSelect();
+        }}
+        draggable={!!onDragStart}
+        onDragStart={onDragStart}
+        className={`relative flex-1 rounded-md px-3 py-2 space-y-2 text-left leading-tight transition-all duration-150 ${
+          dragging ? "ring-2 ring-emerald-400/60" : ""
+        }`}
+      >
+        <div
+          className="
+            absolute top-1 right-1
+            flex items-center gap-1
+            rounded-full bg-black/70
+            px-2 py-1
+            text-[10px] text-gray-200
+            opacity-0 pointer-events-none
+            group-hover:opacity-100 group-hover:pointer-events-auto
+            transition
+            z-20
+          "
+        >
+          <button className="hover:text-white" onClick={() => handleChangeNextTouch(project.id, null)}>
+            Next
+          </button>
+          <button className="hover:text-white" onClick={() => handleOpenWorkspace(project.id)}>
+            WS
+          </button>
+          <button className="hover:text-white" onClick={() => handleOpenMessages(project.id)}>
+            Msg
+          </button>
+          <button className="hover:text-white" onClick={() => handleAddNote(project.id)}>
+            Note
+          </button>
+        </div>
 
-      <div className="flex w-full items-center justify-between gap-2 text-xs text-gray-400 leading-tight">
-        <span className="block max-w-[65%] truncate">
-          ICP {project.icpScore ?? "–"} · MQA {project.mqaScore ?? "–"}
-          {tags.length > 0 && ` · ${tags.slice(0, 2).join(" · ")}`}
-        </span>
+        <div className="min-w-0 space-y-0.5 leading-tight">
+          <p className="max-w-full truncate text-sm font-semibold text-white">{name}</p>
+          <p className="block truncate text-xs text-gray-500">{domain || "No domain"}</p>
+        </div>
 
-        <span className={`text-gray-300 font-medium whitespace-nowrap ${nextColor}`}>
-          Next: {nextTouchLabel}
-        </span>
+        <div className="flex w-full items-center justify-between gap-2 text-xs text-gray-400 leading-tight">
+          <span className="block max-w-[65%] truncate">
+            ICP {project.icpScore ?? "–"} · MQA {project.mqaScore ?? "–"}
+            {tags.length > 0 && ` · ${tags.slice(0, 2).join(" · ")}`}
+          </span>
+
+          <span className={`text-gray-300 font-medium whitespace-nowrap ${nextColor}`}>
+            Next: {nextTouchLabel}
+          </span>
+        </div>
       </div>
     </div>
   );

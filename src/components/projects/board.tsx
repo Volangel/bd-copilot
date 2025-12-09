@@ -97,6 +97,8 @@ function LeadCard({
           ? "text-slate-400"
           : "text-amber-300";
 
+  const nextTouchLabel = urgency.label;
+
   return (
     <div
       role="button"
@@ -107,23 +109,23 @@ function LeadCard({
       }}
       draggable={!!onDragStart}
       onDragStart={onDragStart}
-      className={`group relative rounded-md px-3 py-2 text-left leading-tight space-y-2 transition-all duration-150 ${
+      className={`group relative rounded-md px-3 py-2 space-y-2 text-left leading-tight transition-all duration-150 ${
         dragging ? "ring-2 ring-emerald-400/60" : ""
       }`}
     >
       <div className="min-w-0 space-y-0.5 leading-tight">
         <p className="max-w-full truncate text-sm font-semibold text-white">{name}</p>
-        <p className="text-xs text-gray-500 truncate">{domain || "No domain"}</p>
+        <p className="block truncate text-xs text-gray-500">{domain || "No domain"}</p>
       </div>
 
-      <div className="flex justify-between items-center text-xs text-gray-400 leading-tight gap-2">
-        <span className="truncate block max-w-[65%]">
+      <div className="flex w-full items-center justify-between gap-2 text-xs text-gray-400 leading-tight">
+        <span className="block max-w-[65%] truncate">
           ICP {project.icpScore ?? "–"} · MQA {project.mqaScore ?? "–"}
           {tags.length > 0 && ` · ${tags.slice(0, 2).join(" · ")}`}
         </span>
 
         <span className={`text-gray-300 font-medium whitespace-nowrap ${nextColor}`}>
-          Next: {urgency.label}
+          Next: {nextTouchLabel}
         </span>
       </div>
     </div>
@@ -439,7 +441,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           {grouped.map((column) => {
             const stats = laneSnapshot(column.items);
-            const statLine = `Hot ${stats.hot} · Missing ${stats.missingNext} · Overdue ${stats.overdue}`;
+            const subtitle = helperByStatus[column.status] || column.status.replace(/_/g, " ");
 
             return (
               <div
@@ -461,9 +463,9 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                     {column.status.replace(/_/g, " ")} ({column.items.length})
                   </h2>
                   <p className="text-xs text-gray-400 whitespace-nowrap leading-tight">
-                    {(helperByStatus[column.status] || column.status.replace(/_/g, " ")) + " · " + statLine}
+                    {subtitle} · Hot {stats.hot} · Missing {stats.missingNext} · Overdue {stats.overdue}
                   </p>
-                  <p className="text-xs text-gray-500 whitespace-nowrap leading-tight">Focus: Clear accounts with "Not set"</p>
+                  <p className="text-xs text-gray-500 whitespace-nowrap leading-tight">Focus: Clear accounts with &quot;Not set&quot;</p>
                 </div>
 
                 <div className="space-y-3">

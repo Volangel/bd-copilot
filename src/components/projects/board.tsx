@@ -64,15 +64,6 @@ type LeadCardProps = {
   onSelect: () => void;
 };
 
-const helperByStatus: Record<string, string> = {
-  NOT_CONTACTED: "Cold leads waiting for first touch",
-  CONTACTED: "Initial outreach sent",
-  WAITING_REPLY: "Awaiting prospect response",
-  CALL_BOOKED: "Meeting scheduled",
-  WON: "Successfully closed",
-  LOST: "No longer active",
-};
-
 const statusConfig: Record<string, { color: string; bg: string; border: string; icon: string }> = {
   NOT_CONTACTED: { color: "text-slate-400", bg: "bg-slate-500/10", border: "border-slate-500/30", icon: "○" },
   CONTACTED: { color: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-500/30", icon: "◐" },
@@ -222,64 +213,53 @@ function LeadCard({
       draggable={!!onDragStart}
       onDragStart={onDragStart}
       data-urgency={urgency.label}
-      className={`group relative overflow-hidden rounded-xl border transition-all duration-200 ${
+      className={`group relative overflow-hidden rounded-lg border transition-all duration-150 ${
         dragging
-          ? "scale-[1.02] border-emerald-400/60 bg-[#0d1117] shadow-xl shadow-emerald-500/10 ring-2 ring-emerald-400/30"
-          : "border-white/[0.06] bg-gradient-to-b from-[#12161c] to-[#0f1318] hover:border-white/[0.12] hover:shadow-lg hover:shadow-black/20"
+          ? "scale-[1.02] border-emerald-400/50 bg-[#0d1117] shadow-lg ring-2 ring-emerald-400/30"
+          : "border-white/[0.08] bg-[#111318] hover:border-white/[0.15] hover:bg-[#13161c]"
       }`}
     >
       {/* Priority indicator */}
       {isHot && (
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-400 to-emerald-600" />
+        <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-emerald-500" />
       )}
       {isWarm && !isHot && (
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-400 to-amber-600" />
+        <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-amber-500" />
       )}
 
-      <div className={`space-y-3 p-4 ${isHot || isWarm ? "pl-5" : ""}`}>
+      <div className={`p-3 ${isHot || isWarm ? "pl-3.5" : ""}`}>
         {/* Header row */}
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-2 mb-2">
           <div className="min-w-0 flex-1">
-            <h3 className="truncate text-[15px] font-semibold text-white/95 group-hover:text-white">
+            <h3 className="truncate text-sm font-medium text-white group-hover:text-white">
               {name}
             </h3>
-            <p className="mt-0.5 truncate text-xs text-slate-500">{domain || "—"}</p>
+            <p className="truncate text-[11px] text-slate-500">{domain || "—"}</p>
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            {isHot && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-400 ring-1 ring-emerald-500/30">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                HOT
-              </span>
-            )}
-            <span className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
-              isHot
-                ? "bg-emerald-500/10 text-emerald-300 ring-emerald-500/30"
-                : isWarm
-                ? "bg-amber-500/10 text-amber-300 ring-amber-500/30"
-                : "bg-white/5 text-slate-400 ring-white/10"
-            }`}>
-              ICP {project.icpScore ?? "—"}
-            </span>
-          </div>
+          <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium ${
+            isHot
+              ? "bg-emerald-500/15 text-emerald-400"
+              : isWarm
+              ? "bg-amber-500/15 text-amber-400"
+              : "bg-white/5 text-slate-500"
+          }`}>
+            {project.icpScore ?? "—"}
+          </span>
         </div>
 
-        {/* Next touch row */}
-        <div className="relative">
+        {/* Next touch - compact inline */}
+        <div className="relative mb-2">
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               setIsNextPopoverOpen((open) => !open);
             }}
-            className={`flex w-full items-center gap-2.5 rounded-lg border px-3 py-2 text-left transition-all duration-150 ${nextMeta.border} ${nextMeta.bg} hover:brightness-110`}
+            className={`flex w-full items-center gap-2 rounded border px-2 py-1.5 text-left transition ${nextMeta.border} ${nextMeta.bg} hover:brightness-110`}
           >
-            <span className={`h-2 w-2 shrink-0 rounded-full ${nextMeta.dot} ${nextMeta.isOverdue ? "animate-pulse" : ""}`} />
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">Next touch</p>
-              <p className={`text-sm font-medium ${nextMeta.accent}`}>{nextMeta.label}</p>
-            </div>
-            <svg className="h-4 w-4 shrink-0 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${nextMeta.dot} ${nextMeta.isOverdue ? "animate-pulse" : ""}`} />
+            <span className={`flex-1 text-xs font-medium ${nextMeta.accent}`}>{nextMeta.label}</span>
+            <svg className="h-3.5 w-3.5 shrink-0 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </button>
@@ -287,41 +267,41 @@ function LeadCard({
           {/* Date picker popover */}
           {isNextPopoverOpen && (
             <div
-              className="absolute left-0 right-0 top-full z-30 mt-2 rounded-xl border border-white/10 bg-[#0d1117]/95 p-2 shadow-2xl shadow-black/40 backdrop-blur-xl"
+              className="absolute left-0 right-0 top-full z-30 mt-1 rounded-lg border border-white/10 bg-[#0d1117]/98 p-1.5 shadow-xl backdrop-blur-xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 <button
                   type="button"
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/90 transition hover:bg-white/10"
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs text-white/90 transition hover:bg-white/10"
                   onClick={() => handleSetDateAndClose(today)}
                 >
-                  <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                   Today
                 </button>
                 <button
                   type="button"
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/90 transition hover:bg-white/10"
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs text-white/90 transition hover:bg-white/10"
                   onClick={() => handleSetDateAndClose(tomorrow)}
                 >
-                  <span className="h-2 w-2 rounded-full bg-amber-400" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
                   Tomorrow
                 </button>
                 <button
                   type="button"
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/90 transition hover:bg-white/10"
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs text-white/90 transition hover:bg-white/10"
                   onClick={() => handleSetDateAndClose(nextWeek)}
                 >
-                  <span className="h-2 w-2 rounded-full bg-blue-400" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
                   Next week
                 </button>
-                <div className="my-2 border-t border-white/10" />
+                <div className="my-1 border-t border-white/10" />
                 <button
                   type="button"
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 transition hover:bg-white/10 hover:text-white"
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs text-slate-400 transition hover:bg-white/10 hover:text-white"
                   onClick={() => handleSetDateAndClose(null)}
                 >
-                  <span className="h-2 w-2 rounded-full bg-slate-600" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-slate-600" />
                   Clear
                 </button>
               </div>
@@ -336,45 +316,35 @@ function LeadCard({
                     handleSetDateAndClose(date);
                   }
                 }}
-                className="mt-2 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-emerald-400/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="mt-1 w-full rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-white focus:border-emerald-400/40 focus:outline-none"
               />
             </div>
           )}
         </div>
 
-        {/* Footer row */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex flex-wrap gap-1.5 min-w-0 flex-1">
-            {tags.length === 0 ? (
-              <span className="rounded-md bg-white/5 px-2 py-0.5 text-[11px] text-slate-500 ring-1 ring-white/10">
-                No tags
-              </span>
-            ) : (
-              tags.slice(0, 3).map((tag) => (
-                <span
-                  key={tag}
-                  className="truncate rounded-md bg-white/5 px-2 py-0.5 text-[11px] font-medium text-slate-300 ring-1 ring-white/10"
-                >
-                  {tag}
-                </span>
-              ))
-            )}
-            {tags.length > 3 && (
-              <span className="rounded-md bg-white/5 px-2 py-0.5 text-[11px] text-slate-500 ring-1 ring-white/10">
-                +{tags.length - 3}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {project.mqaScore ? (
-              <span className="rounded-md bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-400 ring-1 ring-blue-500/30">
-                MQA {project.mqaScore}
-              </span>
-            ) : null}
-            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-white/5 text-[10px] font-medium text-slate-400 ring-1 ring-white/10">
-              {channelIcon}
+        {/* Tags row */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {tags.slice(0, 2).map((tag) => (
+            <span
+              key={tag}
+              className="truncate rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-slate-400"
+            >
+              {tag}
             </span>
-          </div>
+          ))}
+          {tags.length > 2 && (
+            <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-slate-500">
+              +{tags.length - 2}
+            </span>
+          )}
+          {project.mqaScore ? (
+            <span className="rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-400">
+              MQA {project.mqaScore}
+            </span>
+          ) : null}
+          <span className="ml-auto rounded bg-white/5 px-1 py-0.5 text-[10px] text-slate-500">
+            {channelIcon}
+          </span>
         </div>
       </div>
     </div>
@@ -732,7 +702,7 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
 
       {/* Board view */}
       {mode === "board" ? (
-        <div className="grid grid-cols-1 gap-5 pb-6 md:auto-cols-[minmax(320px,1fr)] md:grid-flow-col md:overflow-x-auto md:pb-4">
+        <div className="flex gap-4 overflow-x-auto pb-4">
           {grouped.map((column) => {
             const stats = laneSnapshot(column.items);
             const config = statusConfig[column.status];
@@ -741,12 +711,12 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
             return (
               <div
                 key={column.status}
-                className={`flex min-h-[400px] flex-col rounded-2xl border transition-all duration-200 ${
+                className={`flex w-[300px] min-w-[300px] flex-col rounded-2xl border transition-all duration-200 ${
                   isDropTarget
                     ? "border-emerald-400/50 bg-emerald-500/5 ring-2 ring-emerald-400/20"
                     : draggingId
-                    ? "border-white/[0.08] bg-white/[0.01]"
-                    : "border-white/[0.04] bg-white/[0.01]"
+                    ? "border-white/[0.08] bg-white/[0.02]"
+                    : "border-white/[0.06] bg-white/[0.02]"
                 }`}
                 onDragOver={(e) => e.preventDefault()}
                 onDragEnter={() => setHoveredStatus(column.status)}
@@ -757,42 +727,41 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                 }}
               >
                 {/* Column header */}
-                <div className="border-b border-white/[0.04] p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <span className={`text-lg ${config.color}`}>{config.icon}</span>
-                      <h2 className="text-sm font-semibold text-white">
-                        {column.status.replace(/_/g, " ")}
-                      </h2>
-                      <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-white/10 px-1.5 text-xs font-medium text-slate-300">
-                        {column.items.length}
-                      </span>
-                    </div>
+                <div className="shrink-0 border-b border-white/[0.06] p-4">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-base ${config.color}`}>{config.icon}</span>
+                    <h2 className="text-sm font-semibold text-white whitespace-nowrap">
+                      {column.status.replace(/_/g, " ")}
+                    </h2>
+                    <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-white/10 px-1.5 text-xs font-medium text-slate-300">
+                      {column.items.length}
+                    </span>
                   </div>
-                  <p className="mt-1.5 text-xs text-slate-500">{helperByStatus[column.status]}</p>
 
-                  {/* Stats row */}
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {stats.hot > 0 && (
-                      <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-400 ring-1 ring-emerald-500/30">
-                        🔥 {stats.hot} hot
-                      </span>
-                    )}
-                    {stats.missingNext > 0 && (
-                      <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-400 ring-1 ring-amber-500/30">
-                        ⏰ {stats.missingNext} unscheduled
-                      </span>
-                    )}
-                    {stats.overdue > 0 && (
-                      <span className="inline-flex items-center gap-1 rounded-md bg-rose-500/10 px-2 py-0.5 text-[11px] font-medium text-rose-400 ring-1 ring-rose-500/30">
-                        ⚠️ {stats.overdue} overdue
-                      </span>
-                    )}
-                  </div>
+                  {/* Compact stats - only show if there are items */}
+                  {(stats.hot > 0 || stats.missingNext > 0 || stats.overdue > 0) && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {stats.hot > 0 && (
+                        <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-400">
+                          {stats.hot} hot
+                        </span>
+                      )}
+                      {stats.missingNext > 0 && (
+                        <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
+                          {stats.missingNext} no date
+                        </span>
+                      )}
+                      {stats.overdue > 0 && (
+                        <span className="inline-flex items-center gap-1 rounded bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-medium text-rose-400">
+                          {stats.overdue} overdue
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Cards */}
-                <div className="flex-1 space-y-3 overflow-y-auto p-4">
+                <div className="flex-1 space-y-3 overflow-y-auto p-3">
                   {column.items.map((project) => {
                     const urgency = urgencyLabel(project.nextSequenceStepDueAt || undefined);
                     const name = deriveName(project.name, project.url);
@@ -816,11 +785,10 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                   })}
                   {column.items.length === 0 && (
                     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/10 bg-white/[0.01] px-4 py-8 text-center">
-                      <div className={`mb-2 flex h-10 w-10 items-center justify-center rounded-full ${config.bg} ring-1 ${config.border}`}>
-                        <span className={`text-lg ${config.color}`}>{config.icon}</span>
+                      <div className={`mb-2 flex h-8 w-8 items-center justify-center rounded-full ${config.bg}`}>
+                        <span className={`text-sm ${config.color}`}>{config.icon}</span>
                       </div>
-                      <p className="text-xs text-slate-500">No leads in this stage</p>
-                      <p className="mt-0.5 text-[11px] text-slate-600">Drag cards here to move them</p>
+                      <p className="text-[11px] text-slate-500">No leads here</p>
                     </div>
                   )}
                 </div>

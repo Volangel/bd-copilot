@@ -220,16 +220,16 @@ function LeadCard({
         dragging
           ? "scale-[1.02] border-emerald-400/50 bg-[#0d1117] shadow-xl ring-2 ring-emerald-400/30"
           : isHot
-          ? "border-emerald-500/30 bg-gradient-to-br from-emerald-500/[0.08] to-transparent shadow-md shadow-emerald-500/5 hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10"
+          ? "border-emerald-500/30 bg-gradient-to-br from-emerald-500/[0.08] to-transparent shadow-md shadow-emerald-500/10 hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/15"
           : "border-white/[0.08] bg-[#111318] shadow-sm hover:border-white/[0.15] hover:bg-[#13161c] hover:shadow-md"
       }`}
     >
       {/* Priority indicator - thicker bar */}
       {isHot && (
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-400 to-emerald-600" />
+        <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-emerald-400 to-emerald-600" />
       )}
       {isWarm && !isHot && (
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-400 to-amber-600" />
+        <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-amber-400 to-amber-600" />
       )}
 
       <div className={`p-3 ${isHot || isWarm ? "pl-4" : ""}`}>
@@ -248,6 +248,7 @@ function LeadCard({
               ? "bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30"
               : "bg-white/5 text-slate-400"
           }`}>
+            {isHot && <span className="text-[10px]">🔥</span>}
             <span className="text-[9px] opacity-70">ICP</span>
             <span>{project.icpScore ?? "—"}</span>
           </div>

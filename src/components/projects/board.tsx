@@ -64,13 +64,13 @@ type LeadCardProps = {
   onSelect: () => void;
 };
 
-const statusConfig: Record<string, { color: string; bg: string; border: string; icon: string }> = {
-  NOT_CONTACTED: { color: "text-slate-400", bg: "bg-slate-500/10", border: "border-slate-500/30", icon: "○" },
-  CONTACTED: { color: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-500/30", icon: "◐" },
-  WAITING_REPLY: { color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30", icon: "◑" },
-  CALL_BOOKED: { color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/30", icon: "◕" },
-  WON: { color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30", icon: "●" },
-  LOST: { color: "text-rose-400", bg: "bg-rose-500/10", border: "border-rose-500/30", icon: "✕" },
+const statusConfig: Record<string, { color: string; bg: string; border: string; icon: string; topBorder: string }> = {
+  NOT_CONTACTED: { color: "text-slate-400", bg: "bg-slate-500/10", border: "border-slate-500/30", icon: "○", topBorder: "bg-slate-500" },
+  CONTACTED: { color: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-500/30", icon: "◐", topBorder: "bg-cyan-500" },
+  WAITING_REPLY: { color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30", icon: "◑", topBorder: "bg-amber-500" },
+  CALL_BOOKED: { color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/30", icon: "◕", topBorder: "bg-blue-500" },
+  WON: { color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30", icon: "●", topBorder: "bg-emerald-500" },
+  LOST: { color: "text-rose-400", bg: "bg-rose-500/10", border: "border-rose-500/30", icon: "✕", topBorder: "bg-rose-500" },
 };
 
 function normalizeNextTouch(value: unknown): Date | null {
@@ -202,6 +202,9 @@ function LeadCard({
     return "✉";
   })();
 
+  // Determine if card needs attention (no scheduled date)
+  const needsAttention = !nextTouch;
+
   return (
     <div
       role="button"
@@ -215,51 +218,60 @@ function LeadCard({
       data-urgency={urgency.label}
       className={`group relative overflow-hidden rounded-lg border transition-all duration-150 ${
         dragging
-          ? "scale-[1.02] border-emerald-400/50 bg-[#0d1117] shadow-lg ring-2 ring-emerald-400/30"
-          : "border-white/[0.08] bg-[#111318] hover:border-white/[0.15] hover:bg-[#13161c]"
+          ? "scale-[1.02] border-emerald-400/50 bg-[#0d1117] shadow-xl ring-2 ring-emerald-400/30"
+          : isHot
+          ? "border-emerald-500/30 bg-gradient-to-br from-emerald-500/[0.08] to-transparent shadow-md shadow-emerald-500/5 hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10"
+          : "border-white/[0.08] bg-[#111318] shadow-sm hover:border-white/[0.15] hover:bg-[#13161c] hover:shadow-md"
       }`}
     >
-      {/* Priority indicator */}
+      {/* Priority indicator - thicker bar */}
       {isHot && (
-        <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-emerald-500" />
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-400 to-emerald-600" />
       )}
       {isWarm && !isHot && (
-        <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-amber-500" />
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-400 to-amber-600" />
       )}
 
-      <div className={`p-3 ${isHot || isWarm ? "pl-3.5" : ""}`}>
+      <div className={`p-3 ${isHot || isWarm ? "pl-4" : ""}`}>
         {/* Header row */}
-        <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex items-start justify-between gap-2 mb-2.5">
           <div className="min-w-0 flex-1">
-            <h3 className="truncate text-sm font-medium text-white group-hover:text-white">
+            <h3 className={`truncate text-sm font-semibold ${isHot ? "text-white" : "text-white/90"} group-hover:text-white`}>
               {name}
             </h3>
             <p className="truncate text-[11px] text-slate-500">{domain || "—"}</p>
           </div>
-          <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium ${
+          <div className={`shrink-0 flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold ${
             isHot
-              ? "bg-emerald-500/15 text-emerald-400"
+              ? "bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40"
               : isWarm
-              ? "bg-amber-500/15 text-amber-400"
-              : "bg-white/5 text-slate-500"
+              ? "bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30"
+              : "bg-white/5 text-slate-400"
           }`}>
-            {project.icpScore ?? "—"}
-          </span>
+            <span className="text-[9px] opacity-70">ICP</span>
+            <span>{project.icpScore ?? "—"}</span>
+          </div>
         </div>
 
         {/* Next touch - compact inline */}
-        <div className="relative mb-2">
+        <div className="relative mb-2.5">
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               setIsNextPopoverOpen((open) => !open);
             }}
-            className={`flex w-full items-center gap-2 rounded border px-2 py-1.5 text-left transition ${nextMeta.border} ${nextMeta.bg} hover:brightness-110`}
+            className={`flex w-full items-center gap-2 rounded-md border px-2.5 py-2 text-left transition ${
+              needsAttention
+                ? "border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/15"
+                : `${nextMeta.border} ${nextMeta.bg} hover:brightness-110`
+            }`}
           >
-            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${nextMeta.dot} ${nextMeta.isOverdue ? "animate-pulse" : ""}`} />
-            <span className={`flex-1 text-xs font-medium ${nextMeta.accent}`}>{nextMeta.label}</span>
-            <svg className="h-3.5 w-3.5 shrink-0 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <span className={`h-2 w-2 shrink-0 rounded-full ${needsAttention ? "bg-amber-400 animate-pulse" : nextMeta.dot} ${nextMeta.isOverdue ? "animate-pulse" : ""}`} />
+            <span className={`flex-1 text-xs font-medium ${needsAttention ? "text-amber-300" : nextMeta.accent}`}>
+              {needsAttention ? "Schedule next touch" : nextMeta.label}
+            </span>
+            <svg className={`h-3.5 w-3.5 shrink-0 ${needsAttention ? "text-amber-400" : "text-slate-500"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </button>
@@ -726,14 +738,17 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                   setHoveredStatus(null);
                 }}
               >
+                {/* Colored top border */}
+                <div className={`h-1 w-full rounded-t-2xl ${config.topBorder}`} />
+
                 {/* Column header */}
-                <div className="shrink-0 border-b border-white/[0.06] p-4">
+                <div className="shrink-0 border-b border-white/[0.06] px-4 pb-3 pt-3">
                   <div className="flex items-center gap-2">
-                    <span className={`text-base ${config.color}`}>{config.icon}</span>
-                    <h2 className="text-sm font-semibold text-white whitespace-nowrap">
+                    <span className={`text-sm ${config.color}`}>{config.icon}</span>
+                    <h2 className="text-[13px] font-semibold text-white whitespace-nowrap">
                       {column.status.replace(/_/g, " ")}
                     </h2>
-                    <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-white/10 px-1.5 text-xs font-medium text-slate-300">
+                    <span className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold ${config.bg} ${config.color}`}>
                       {column.items.length}
                     </span>
                   </div>
@@ -742,17 +757,17 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                   {(stats.hot > 0 || stats.missingNext > 0 || stats.overdue > 0) && (
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {stats.hot > 0 && (
-                        <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-400">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
                           {stats.hot} hot
                         </span>
                       )}
                       {stats.missingNext > 0 && (
-                        <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-400">
                           {stats.missingNext} no date
                         </span>
                       )}
                       {stats.overdue > 0 && (
-                        <span className="inline-flex items-center gap-1 rounded bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-medium text-rose-400">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/15 px-2 py-0.5 text-[10px] font-medium text-rose-400">
                           {stats.overdue} overdue
                         </span>
                       )}

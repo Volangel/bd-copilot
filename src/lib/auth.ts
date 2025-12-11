@@ -46,11 +46,33 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user && "id" in user) {
         const typedUser = user as { id: string; plan?: string };
         token.id = typedUser.id;
         token.plan = typedUser.plan ?? "free";
+        token.planCheckedAt = Date.now();
+      }
+
+      // Refresh plan from database periodically (every 5 minutes) or on update trigger
+      // This ensures plan changes from Stripe webhooks are reflected without requiring re-login
+      const PLAN_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+      const lastChecked = (token.planCheckedAt as number) || 0;
+      const shouldRefresh = trigger === "update" || (Date.now() - lastChecked > PLAN_REFRESH_INTERVAL);
+
+      if (shouldRefresh && token.id && !user) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { plan: true },
+          });
+          if (dbUser) {
+            token.plan = dbUser.plan ?? "free";
+            token.planCheckedAt = Date.now();
+          }
+        } catch (err) {
+          console.error("[auth] Failed to refresh plan from database", err);
+        }
       }
       return token;
     },

@@ -68,13 +68,13 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       createdCount: result.created.length,
-      skippedCount: result.skipped,
+      skippedCount: result.skipped.length,
       attempted: result.attempted,
       created: result.created,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors[0]?.message ?? "Invalid payload" }, { status: 400 });
+      return NextResponse.json({ error: error.issues[0]?.message ?? "Invalid payload" }, { status: 400 });
     }
     console.error("API_ERROR: /api/discover/scan-page", {
       userId: session.user.id,

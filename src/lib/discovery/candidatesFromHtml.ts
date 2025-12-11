@@ -1,10 +1,27 @@
 import * as cheerio from "cheerio";
 import { normalizeUrl } from "./urlUtils";
+import { extractWithSiteSpecific, isAggregatorSite } from "./siteSpecificExtractors";
 
-const SOCIAL_DOMAINS = ["twitter.com", "x.com", "facebook.com", "linkedin.com", "instagram.com", "t.me", "telegram.me", "discord.gg", "discord.com", "github.com", "medium.com"];
+const SOCIAL_DOMAINS = ["twitter.com", "x.com", "facebook.com", "linkedin.com", "instagram.com", "t.me", "telegram.me", "discord.gg", "discord.com", "github.com", "medium.com", "youtube.com", "reddit.com", "tiktok.com"];
 
-function isSocial(href: string) {
-  return SOCIAL_DOMAINS.some((domain) => href.includes(domain));
+const BLOCKED_DOMAINS = [
+  ...SOCIAL_DOMAINS,
+  // CDN and infrastructure
+  "cloudflare.com",
+  "googleapis.com",
+  "gstatic.com",
+  "googletagmanager.com",
+  "google-analytics.com",
+  "jsdelivr.net",
+  "unpkg.com",
+  // Navigation/utility
+  "apple.com",
+  "play.google.com",
+  "chrome.google.com",
+];
+
+function isBlocked(href: string) {
+  return BLOCKED_DOMAINS.some((domain) => href.includes(domain));
 }
 
 function extractMetaUrls(html: string, baseUrl: string): string[] {
@@ -27,7 +44,10 @@ function extractMetaUrls(html: string, baseUrl: string): string[] {
   return meta;
 }
 
-export function extractCandidateUrlsFromHtml(html: string, baseUrl: string): string[] {
+/**
+ * Generic external URL extractor for non-aggregator sites
+ */
+function extractGenericUrls(html: string, baseUrl: string): string[] {
   const $ = cheerio.load(html);
   const urls: string[] = [];
 
@@ -43,7 +63,7 @@ export function extractCandidateUrlsFromHtml(html: string, baseUrl: string): str
       return;
     }
 
-    if (isSocial(resolved)) return;
+    if (isBlocked(resolved)) return;
 
     // Skip internal links (same host) - we're looking for external project opportunities
     const baseHost = new URL(baseUrl).hostname.replace(/^www\./, "");
@@ -63,3 +83,25 @@ export function extractCandidateUrlsFromHtml(html: string, baseUrl: string): str
 
   return Array.from(new Set(combined));
 }
+
+/**
+ * Extract candidate URLs from HTML
+ * Uses site-specific extractors for known aggregator sites (rootdata, cryptorank, defillama, etc.)
+ * Falls back to generic extraction for other sites
+ */
+export function extractCandidateUrlsFromHtml(html: string, baseUrl: string): string[] {
+  // Try site-specific extraction first for aggregator sites
+  const siteSpecificResult = extractWithSiteSpecific(html, baseUrl);
+
+  if (siteSpecificResult.handled && siteSpecificResult.projectUrls.length > 0) {
+    return siteSpecificResult.projectUrls;
+  }
+
+  // Fall back to generic extraction
+  return extractGenericUrls(html, baseUrl);
+}
+
+/**
+ * Check if a URL is from a known crypto data aggregator
+ */
+export { isAggregatorSite } from "./siteSpecificExtractors";

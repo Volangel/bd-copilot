@@ -1,6 +1,11 @@
 import fetchHtml from "@/lib/scraper/fetchHtml";
 import { load } from "cheerio";
 import type { AnyNode } from "domhandler";
+import {
+  parseLinkedInUrl,
+  parseTwitterUrl,
+  parseTelegramUrl,
+} from "@/lib/contacts/socials/parsers";
 
 export type DetectedContact = {
   name: string | null;
@@ -16,20 +21,6 @@ function cleanText(text: string) {
   return text.replace(/\s+/g, " ").trim();
 }
 
-/**
- * Extract handle from Twitter/Telegram URL, handling trailing slashes and query params
- */
-function extractHandleFromUrl(urlString: string): string | null {
-  try {
-    const url = new URL(urlString);
-    const pathParts = url.pathname.split("/").filter(Boolean);
-    const handle = pathParts[pathParts.length - 1];
-    return handle || null;
-  } catch {
-    return null;
-  }
-}
-
 export async function autoDetectContacts(url: string): Promise<DetectedContact[]> {
   const candidates: DetectedContact[] = [];
   try {
@@ -43,26 +34,27 @@ export async function autoDetectContacts(url: string): Promise<DetectedContact[]
       const nearby = cleanText($(el).parent().text() || "");
 
       if (/linkedin\.com\/in\//i.test(href)) {
+        const parsed = parseLinkedInUrl(href);
         candidates.push({
           name: text || null,
           role: ROLE_KEYWORDS.find((r) => nearby.toLowerCase().includes(r)) || null,
-          linkedinUrl: href.startsWith("http") ? href : new URL(href, url).toString(),
+          linkedinUrl: parsed.isValid ? parsed.canonicalUrl : (href.startsWith("http") ? href : new URL(href, url).toString()),
         });
       }
       if (/twitter\.com|x\.com/i.test(href)) {
-        const handle = extractHandleFromUrl(href);
+        const parsed = parseTwitterUrl(href);
         candidates.push({
           name: text || null,
           role: ROLE_KEYWORDS.find((r) => nearby.toLowerCase().includes(r)) || null,
-          twitterHandle: handle ? `@${handle}` : undefined,
+          twitterHandle: parsed.isValid ? parsed.handle : undefined,
         });
       }
       if (/t\.me\//i.test(href)) {
-        const handle = extractHandleFromUrl(href);
+        const parsed = parseTelegramUrl(href);
         candidates.push({
           name: text || null,
           role: ROLE_KEYWORDS.find((r) => nearby.toLowerCase().includes(r)) || null,
-          telegram: handle ? `@${handle}` : undefined,
+          telegram: parsed.isValid ? parsed.handle : undefined,
         });
       }
     });
@@ -83,14 +75,14 @@ export async function autoDetectContacts(url: string): Promise<DetectedContact[]
             const linkedinUrl = sameAs.find((s) => /linkedin\.com\/in\//i.test(s));
             const twitter = sameAs.find((s) => /twitter\.com|x\.com/i.test(s));
             const telegram = sameAs.find((s) => /t\.me\//i.test(s));
-            const twitterHandle = twitter ? extractHandleFromUrl(twitter) : null;
-            const telegramHandle = telegram ? extractHandleFromUrl(telegram) : null;
+            const twitterParsed = twitter ? parseTwitterUrl(twitter) : null;
+            const telegramParsed = telegram ? parseTelegramUrl(telegram) : null;
             candidates.push({
               name: item.name || null,
               role: item.jobTitle || item.role || null,
               linkedinUrl,
-              twitterHandle: twitterHandle ? `@${twitterHandle}` : undefined,
-              telegram: telegramHandle ? `@${telegramHandle}` : undefined,
+              twitterHandle: twitterParsed?.isValid ? twitterParsed.handle : undefined,
+              telegram: telegramParsed?.isValid ? telegramParsed.handle : undefined,
             });
           }
         });

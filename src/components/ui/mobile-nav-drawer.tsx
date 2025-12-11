@@ -3,8 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { ModeSelector } from "./mode-selector";
-import { SidebarNav, type NavGroup, type AppMode } from "./sidebar-nav";
-import { ModeBadge } from "./mode-badge";
+import {
+  SidebarNav,
+  TodayHero,
+  QuickCommandTrigger,
+  type NavGroup,
+  type AppMode,
+} from "./sidebar-nav";
 
 export function MobileNavDrawer({
   navGroups,
@@ -32,6 +37,13 @@ export function MobileNavDrawer({
     return "other";
   }, [pathname]);
 
+  const isTodayActive = pathname === "/today";
+
+  // Close drawer on route change
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
   useEffect(() => {
     if (!open) return;
     const handler = (event: KeyboardEvent) => {
@@ -47,70 +59,98 @@ export function MobileNavDrawer({
     return () => cancelAnimationFrame(timer);
   }, [open]);
 
+  // Prevent body scroll when drawer is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
   return (
     <>
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white shadow-lg shadow-black/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]"
-          aria-label="Open navigation menu"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-        <div className="hidden min-w-[90px] sm:flex">
-          <ModeBadge mode={currentMode} />
-        </div>
-      </div>
+      {/* Menu Button */}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-[var(--text-secondary)] transition-colors hover:bg-white/10 hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
+        aria-label="Open navigation menu"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
 
-      {open ? (
+      {/* Drawer Overlay */}
+      {open && (
         <div
           ref={overlayRef}
           tabIndex={-1}
-          className="fixed inset-0 z-50 flex items-start justify-end bg-black/60 backdrop-blur"
+          className="fixed inset-0 z-50 flex bg-black/60 backdrop-blur-sm"
           onClick={(e) => {
             if (e.target === overlayRef.current) setOpen(false);
           }}
           aria-modal="true"
           role="dialog"
         >
-          <div className="h-full w-[min(92vw,360px)] overflow-y-auto border-l border-white/10 bg-[var(--bg-secondary)]/95 px-5 py-6 shadow-[0_24px_70px_rgba(0,0,0,0.5)]">
-            <div className="flex items-center justify-between gap-2 pb-4">
+          {/* Drawer Panel */}
+          <div className="flex h-full w-[280px] max-w-[85vw] flex-col bg-[var(--bg-secondary)] shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-white/5 px-4 py-4">
               <div>
-                <p className="text-sm font-semibold text-[var(--accent-primary)]">Web3 BD Copilot</p>
-                <p className="text-xs text-[var(--text-secondary)]">Plan: {user.plan || "-"}</p>
+                <p className="text-sm font-semibold text-[var(--accent-primary)]">BD Copilot</p>
+                <p className="text-[11px] text-[var(--text-tertiary)]">AI-powered pipeline ops</p>
               </div>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition hover:border-white/20 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-tertiary)] transition-colors hover:bg-white/10 hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
+                aria-label="Close menu"
               >
-                Close
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
-            <div className="space-y-6">
-              <div className="flex items-center justify-between rounded-xl border border-white/10 bg-[var(--bg-tertiary)]/80 px-3 py-3">
-                <div>
-                  <p className="text-sm font-semibold text-[var(--text-primary)]">{user.email}</p>
-                  <p className="text-xs text-[var(--text-tertiary)]">Stay in flow</p>
-                </div>
-                <ModeBadge mode={currentMode} />
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto px-3 py-4">
+              <div className="space-y-4">
+                {/* Quick Command */}
+                <QuickCommandTrigger />
+
+                {/* Today Hero */}
+                <TodayHero href="/today" isActive={isTodayActive} />
+
+                {/* Mode Selector */}
+                <ModeSelector />
+
+                {/* Main Navigation */}
+                <SidebarNav groups={navGroups} />
               </div>
-              <ModeSelector />
-              <SidebarNav groups={navGroups} className="pb-4" />
-              <div className="rounded-xl border border-white/10 bg-[var(--bg-tertiary)]/80 px-4 py-3 text-sm text-[var(--text-secondary)]">
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Workspace hint</p>
-                <p className="mt-1 leading-snug">
-                  You are in <span className="font-semibold text-white">{pathname}</span>. Mode badges change color so you always know
-                  whether you are scanning, prioritizing, or executing.
-                </p>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-white/5 px-3 py-3">
+              <div className="flex items-center gap-3 rounded-lg bg-white/3 px-3 py-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent-primary)]/20 text-xs font-semibold text-[var(--accent-primary)]">
+                  {user.email?.charAt(0).toUpperCase() || "U"}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="truncate text-[13px] font-medium text-[var(--text-primary)]">
+                    {user.email}
+                  </p>
+                  <p className="text-[11px] text-[var(--text-tertiary)]">{user.plan || "Free"}</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      ) : null}
+      )}
     </>
   );
 }

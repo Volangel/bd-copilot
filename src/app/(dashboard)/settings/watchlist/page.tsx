@@ -10,17 +10,26 @@ import { PrimaryButton, GhostButton } from "@/components/ui/buttons";
 
 async function addWatchlist(userId: string, formData: FormData) {
   "use server";
-  const url = (formData.get("url") as string) || "";
+  const urlInput = (formData.get("url") as string) || "";
   const label = (formData.get("label") as string) || "";
-  if (!url.startsWith("http")) return;
+  // Validate URL format properly
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(urlInput);
+    if (!["http:", "https:"].includes(parsedUrl.protocol)) return;
+  } catch {
+    return;
+  }
   await prisma.watchlistUrl.create({
-    data: { userId, url, label: label || null },
+    data: { userId, url: parsedUrl.href, label: label || null },
   });
 }
 
 async function deleteWatchlist(userId: string, id: string) {
   "use server";
-  await prisma.watchlistUrl.deleteMany({ where: { id, userId } });
+  const item = await prisma.watchlistUrl.findFirst({ where: { id, userId } });
+  if (!item) return;
+  await prisma.watchlistUrl.delete({ where: { id } });
 }
 
 export default async function WatchlistPage() {

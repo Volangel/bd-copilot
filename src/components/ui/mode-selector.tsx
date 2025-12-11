@@ -26,6 +26,25 @@ function getModeForPath(pathname: string): AppMode {
   return "other";
 }
 
+const modeColors: Record<AppMode, { active: string; inactive: string }> = {
+  discover: {
+    active: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+    inactive: "text-emerald-400/60 hover:text-emerald-300",
+  },
+  pipeline: {
+    active: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+    inactive: "text-blue-400/60 hover:text-blue-300",
+  },
+  execute: {
+    active: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+    inactive: "text-purple-400/60 hover:text-purple-300",
+  },
+  other: {
+    active: "bg-slate-500/20 text-slate-300 border-slate-500/30",
+    inactive: "text-slate-400/60 hover:text-slate-300",
+  },
+};
+
 export function ModeSelector() {
   const pathname = usePathname();
   const active = getModeForPath(pathname || "");
@@ -36,18 +55,20 @@ export function ModeSelector() {
   ];
 
   return (
-    <div className="flex gap-2 rounded-xl border border-[var(--border-default)] bg-[var(--bg-tertiary)]/60 p-2 shadow-inner shadow-black/20">
+    <div className="flex gap-1 rounded-lg border border-white/8 bg-white/3 p-1">
       {modes.map((m) => {
         const isActive = m.mode === active;
+        const colors = modeColors[m.mode];
         return (
           <Link
             key={m.mode}
             href={modeDefaults[m.mode]}
             className={cn(
-              "rounded-full px-3 py-1 text-xs font-semibold transition",
+              "flex-1 rounded-md px-2 py-1.5 text-center text-[11px] font-semibold transition-all duration-150",
+              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]",
               isActive
-                ? "bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-[0_0_20px_rgba(0,217,163,0.35)]"
-                : "bg-[var(--bg-secondary)]/70 text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]",
+                ? cn("border", colors.active)
+                : cn("border border-transparent hover:bg-white/5", colors.inactive),
             )}
           >
             {m.label}

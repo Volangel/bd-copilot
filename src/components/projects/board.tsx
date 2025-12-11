@@ -120,6 +120,7 @@ function LeadCard({
 }: LeadCardProps) {
   const [isNextPopoverOpen, setIsNextPopoverOpen] = useState(false);
   const [customDate, setCustomDate] = useState("");
+  const [isHovered, setIsHovered] = useState(false);
 
   const handleChangeNextTouch = onChangeNextTouch ?? (() => {});
 
@@ -142,12 +143,14 @@ function LeadCard({
   const describeNextTouch = (date: Date | null) => {
     if (!date) {
       return {
-        label: "Not scheduled",
+        label: "No date",
+        shortLabel: "—",
         accent: "text-slate-500",
-        bg: "bg-slate-500/5",
-        border: "border-slate-500/20",
+        bg: "bg-transparent",
+        border: "border-transparent",
         dot: "bg-slate-600",
         isOverdue: false,
+        needsAttention: true,
       } as const;
     }
 
@@ -161,22 +164,26 @@ function LeadCard({
       const diffDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
       return {
         label: `${diffDays}d overdue`,
+        shortLabel: `${diffDays}d late`,
         accent: "text-rose-400",
         bg: "bg-rose-500/10",
         border: "border-rose-500/30",
         dot: "bg-rose-500",
         isOverdue: true,
+        needsAttention: true,
       } as const;
     }
 
     if (date < startOfTomorrow) {
       return {
         label: `Today ${formatTime(date)}`,
+        shortLabel: "Today",
         accent: "text-emerald-400",
         bg: "bg-emerald-500/10",
         border: "border-emerald-500/30",
         dot: "bg-emerald-500",
         isOverdue: false,
+        needsAttention: false,
       } as const;
     }
 
@@ -184,11 +191,13 @@ function LeadCard({
     const dayLabel = diffDays <= 1 ? "Tomorrow" : `In ${diffDays}d`;
     return {
       label: dayLabel,
-      accent: "text-amber-400",
-      bg: "bg-amber-500/10",
-      border: "border-amber-500/30",
-      dot: "bg-amber-500",
+      shortLabel: dayLabel,
+      accent: "text-slate-400",
+      bg: "bg-transparent",
+      border: "border-transparent",
+      dot: "bg-slate-500",
       isOverdue: false,
+      needsAttention: false,
     } as const;
   };
 
@@ -202,9 +211,6 @@ function LeadCard({
     return "✉";
   })();
 
-  // Determine if card needs attention (no scheduled date)
-  const needsAttention = !nextTouch;
-
   return (
     <div
       role="button"
@@ -213,148 +219,175 @@ function LeadCard({
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") onSelect();
       }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       draggable={!!onDragStart}
       onDragStart={onDragStart}
       data-urgency={urgency.label}
-      className={`group relative overflow-hidden rounded-lg border transition-all duration-150 ${
+      className={`group relative overflow-hidden rounded-xl border transition-all duration-200 cursor-pointer ${
         dragging
           ? "scale-[1.02] border-emerald-400/50 bg-[#0d1117] shadow-xl ring-2 ring-emerald-400/30"
           : isHot
-          ? "border-emerald-500/30 bg-gradient-to-br from-emerald-500/[0.08] to-transparent shadow-md shadow-emerald-500/5 hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10"
-          : "border-white/[0.08] bg-[#111318] shadow-sm hover:border-white/[0.15] hover:bg-[#13161c] hover:shadow-md"
+          ? "border-emerald-500/25 bg-gradient-to-br from-emerald-500/[0.06] to-transparent hover:border-emerald-500/40 hover:shadow-lg hover:shadow-emerald-500/10"
+          : "border-white/[0.06] bg-[#0f1115] hover:border-white/[0.12] hover:bg-[#12151a]"
       }`}
     >
-      {/* Priority indicator - thicker bar */}
-      {isHot && (
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-400 to-emerald-600" />
-      )}
-      {isWarm && !isHot && (
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-400 to-amber-600" />
+      {/* Drag handle - appears on hover */}
+      {onDragStart && (
+        <div className={`absolute left-0 top-0 bottom-0 w-6 flex items-center justify-center transition-opacity duration-200 ${isHovered ? "opacity-100" : "opacity-0"}`}>
+          <div className="flex flex-col gap-0.5">
+            <div className="flex gap-0.5">
+              <span className="w-1 h-1 rounded-full bg-slate-500" />
+              <span className="w-1 h-1 rounded-full bg-slate-500" />
+            </div>
+            <div className="flex gap-0.5">
+              <span className="w-1 h-1 rounded-full bg-slate-500" />
+              <span className="w-1 h-1 rounded-full bg-slate-500" />
+            </div>
+            <div className="flex gap-0.5">
+              <span className="w-1 h-1 rounded-full bg-slate-500" />
+              <span className="w-1 h-1 rounded-full bg-slate-500" />
+            </div>
+          </div>
+        </div>
       )}
 
-      <div className={`p-3 ${isHot || isWarm ? "pl-4" : ""}`}>
-        {/* Header row */}
-        <div className="flex items-start justify-between gap-2 mb-2.5">
+      {/* Priority indicator - subtle left accent */}
+      {isHot && (
+        <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-gradient-to-b from-emerald-400 to-emerald-600" />
+      )}
+      {isWarm && !isHot && (
+        <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-gradient-to-b from-amber-400/60 to-amber-600/60" />
+      )}
+
+      <div className={`p-3 ${onDragStart && isHovered ? "pl-6" : ""} transition-all duration-200`}>
+        {/* Header row - more compact */}
+        <div className="flex items-center justify-between gap-2 mb-1.5">
           <div className="min-w-0 flex-1">
-            <h3 className={`truncate text-sm font-semibold ${isHot ? "text-white" : "text-white/90"} group-hover:text-white`}>
+            <h3 className={`truncate text-[13px] font-semibold leading-tight ${isHot ? "text-white" : "text-white/90"}`}>
               {name}
             </h3>
-            <p className="truncate text-[11px] text-slate-500">{domain || "—"}</p>
           </div>
-          <div className={`shrink-0 flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold ${
+          <div className={`shrink-0 flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold ${
             isHot
-              ? "bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40"
+              ? "bg-emerald-500/20 text-emerald-300"
               : isWarm
-              ? "bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30"
-              : "bg-white/5 text-slate-400"
+              ? "bg-amber-500/15 text-amber-300"
+              : "bg-white/5 text-slate-500"
           }`}>
-            <span className="text-[9px] opacity-70">ICP</span>
-            <span>{project.icpScore ?? "—"}</span>
+            {project.icpScore ?? "—"}
           </div>
         </div>
 
-        {/* Next touch - compact inline */}
-        <div className="relative mb-2.5">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsNextPopoverOpen((open) => !open);
-            }}
-            className={`flex w-full items-center gap-2 rounded-md border px-2.5 py-2 text-left transition ${
-              needsAttention
-                ? "border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/15"
-                : `${nextMeta.border} ${nextMeta.bg} hover:brightness-110`
-            }`}
-          >
-            <span className={`h-2 w-2 shrink-0 rounded-full ${needsAttention ? "bg-amber-400 animate-pulse" : nextMeta.dot} ${nextMeta.isOverdue ? "animate-pulse" : ""}`} />
-            <span className={`flex-1 text-xs font-medium ${needsAttention ? "text-amber-300" : nextMeta.accent}`}>
-              {needsAttention ? "Schedule next touch" : nextMeta.label}
-            </span>
-            <svg className={`h-3.5 w-3.5 shrink-0 ${needsAttention ? "text-amber-400" : "text-slate-500"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </button>
-
-          {/* Date picker popover */}
-          {isNextPopoverOpen && (
-            <div
-              className="absolute left-0 right-0 top-full z-30 mt-1 rounded-lg border border-white/10 bg-[#0d1117]/98 p-1.5 shadow-xl backdrop-blur-xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="space-y-0.5">
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs text-white/90 transition hover:bg-white/10"
-                  onClick={() => handleSetDateAndClose(today)}
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                  Today
-                </button>
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs text-white/90 transition hover:bg-white/10"
-                  onClick={() => handleSetDateAndClose(tomorrow)}
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-                  Tomorrow
-                </button>
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs text-white/90 transition hover:bg-white/10"
-                  onClick={() => handleSetDateAndClose(nextWeek)}
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
-                  Next week
-                </button>
-                <div className="my-1 border-t border-white/10" />
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs text-slate-400 transition hover:bg-white/10 hover:text-white"
-                  onClick={() => handleSetDateAndClose(null)}
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-slate-600" />
-                  Clear
-                </button>
-              </div>
-              <input
-                type="date"
-                value={customDate}
-                onChange={(e) => {
-                  setCustomDate(e.target.value);
-                  if (e.target.value) {
-                    const [year, month, day] = e.target.value.split("-").map(Number);
-                    const date = new Date(year, month - 1, day, 12, 0, 0);
-                    handleSetDateAndClose(date);
-                  }
+        {/* Meta row - domain and next touch inline */}
+        <div className="flex items-center gap-2 mb-2">
+          <span className="truncate text-[11px] text-slate-500">{domain || "—"}</span>
+          {nextMeta.needsAttention && (
+            <>
+              <span className="text-slate-600">·</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsNextPopoverOpen((open) => !open);
                 }}
-                className="mt-1 w-full rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-white focus:border-emerald-400/40 focus:outline-none"
-              />
-            </div>
+                className={`flex items-center gap-1 text-[11px] font-medium transition-colors ${
+                  nextMeta.isOverdue
+                    ? "text-rose-400 hover:text-rose-300"
+                    : "text-amber-400 hover:text-amber-300"
+                }`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${nextMeta.dot} ${nextMeta.isOverdue ? "animate-pulse" : ""}`} />
+                {nextMeta.shortLabel}
+              </button>
+            </>
+          )}
+          {!nextMeta.needsAttention && (
+            <>
+              <span className="text-slate-600">·</span>
+              <span className={`text-[11px] ${nextMeta.accent}`}>{nextMeta.shortLabel}</span>
+            </>
           )}
         </div>
 
-        {/* Tags row */}
-        <div className="flex items-center gap-1.5 flex-wrap">
+        {/* Quick schedule popover - positioned above the meta row */}
+        {isNextPopoverOpen && (
+          <div
+            className="absolute left-3 right-3 top-14 z-30 rounded-lg border border-white/10 bg-[#0d1117]/98 p-2 shadow-xl backdrop-blur-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="grid grid-cols-4 gap-1 mb-2">
+              <button
+                type="button"
+                className="flex flex-col items-center gap-1 rounded-lg px-2 py-2 text-[10px] text-white/80 transition hover:bg-emerald-500/20 hover:text-emerald-300"
+                onClick={() => handleSetDateAndClose(today)}
+              >
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                Today
+              </button>
+              <button
+                type="button"
+                className="flex flex-col items-center gap-1 rounded-lg px-2 py-2 text-[10px] text-white/80 transition hover:bg-amber-500/20 hover:text-amber-300"
+                onClick={() => handleSetDateAndClose(tomorrow)}
+              >
+                <span className="h-2 w-2 rounded-full bg-amber-400" />
+                Tomorrow
+              </button>
+              <button
+                type="button"
+                className="flex flex-col items-center gap-1 rounded-lg px-2 py-2 text-[10px] text-white/80 transition hover:bg-blue-500/20 hover:text-blue-300"
+                onClick={() => handleSetDateAndClose(nextWeek)}
+              >
+                <span className="h-2 w-2 rounded-full bg-blue-400" />
+                +7 days
+              </button>
+              <button
+                type="button"
+                className="flex flex-col items-center gap-1 rounded-lg px-2 py-2 text-[10px] text-slate-400 transition hover:bg-white/10 hover:text-white"
+                onClick={() => handleSetDateAndClose(null)}
+              >
+                <svg className="h-2 w-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Clear
+              </button>
+            </div>
+            <input
+              type="date"
+              value={customDate}
+              onChange={(e) => {
+                setCustomDate(e.target.value);
+                if (e.target.value) {
+                  const [year, month, day] = e.target.value.split("-").map(Number);
+                  const date = new Date(year, month - 1, day, 12, 0, 0);
+                  handleSetDateAndClose(date);
+                }
+              }}
+              className="w-full rounded border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] text-white focus:border-emerald-400/40 focus:outline-none"
+            />
+          </div>
+        )}
+
+        {/* Tags row - cleaner */}
+        <div className="flex items-center gap-1.5">
           {tags.slice(0, 2).map((tag) => (
             <span
               key={tag}
-              className="truncate rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-slate-400"
+              className="truncate rounded bg-white/[0.04] px-1.5 py-0.5 text-[10px] text-slate-500"
             >
               {tag}
             </span>
           ))}
           {tags.length > 2 && (
-            <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-slate-500">
-              +{tags.length - 2}
+            <span className="text-[10px] text-slate-600">+{tags.length - 2}</span>
+          )}
+          <div className="flex-1" />
+          {project.mqaScore && (
+            <span className="rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-400/80">
+              {project.mqaScore}
             </span>
           )}
-          {project.mqaScore ? (
-            <span className="rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-400">
-              MQA {project.mqaScore}
-            </span>
-          ) : null}
-          <span className="ml-auto rounded bg-white/5 px-1 py-0.5 text-[10px] text-slate-500">
+          <span className="rounded bg-white/[0.04] px-1 py-0.5 text-[9px] text-slate-600">
             {channelIcon}
           </span>
         </div>
@@ -601,120 +634,118 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
       <Toast message={message} onClear={() => setMessage(null)} />
       <Toast message={error} type="error" onClear={() => setError(null)} />
 
-      {/* Toolbar */}
-      <div className="mb-6 space-y-4">
-        {/* View toggle and search row */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          {/* View toggle */}
-          <div className="flex items-center gap-1 rounded-xl bg-white/[0.03] p-1 ring-1 ring-white/[0.06]">
-            <button
-              type="button"
-              onClick={() => setMode("board")}
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                mode === "board"
-                  ? "bg-white/10 text-white shadow-sm"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
-              </svg>
-              Board
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("today")}
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                mode === "today"
-                  ? "bg-white/10 text-white shadow-sm"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Today
-              {todayProjects.length > 0 && (
-                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-emerald-500/20 px-1.5 text-xs font-semibold text-emerald-400 ring-1 ring-emerald-500/30">
-                  {todayProjects.length}
-                </span>
-              )}
-            </button>
-          </div>
-
-          {/* Search */}
-          <div className="relative flex-1 max-w-md">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-              <svg className="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search leads..."
-              className="w-full rounded-xl border-0 bg-white/[0.03] py-2.5 pl-11 pr-4 text-sm text-white placeholder:text-slate-500 ring-1 ring-white/[0.06] transition-all duration-200 focus:bg-white/[0.05] focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-            />
-          </div>
+      {/* Toolbar - unified compact bar */}
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        {/* View toggle */}
+        <div className="flex items-center gap-0.5 rounded-lg bg-white/[0.03] p-0.5">
+          <button
+            type="button"
+            onClick={() => setMode("board")}
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
+              mode === "board"
+                ? "bg-white/10 text-white"
+                : "text-slate-500 hover:text-white"
+            }`}
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+            </svg>
+            Board
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("today")}
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
+              mode === "today"
+                ? "bg-white/10 text-white"
+                : "text-slate-500 hover:text-white"
+            }`}
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Today
+            {todayProjects.length > 0 && (
+              <span className="flex h-4 min-w-[16px] items-center justify-center rounded bg-emerald-500/20 px-1 text-[10px] font-bold text-emerald-400">
+                {todayProjects.length}
+              </span>
+            )}
+          </button>
         </div>
 
-        {/* Filters row */}
-        <div className="flex flex-wrap items-center gap-2">
-          {filterPills.map((pill) => (
-            <button
-              key={pill.key}
-              type="button"
-              onClick={() => setFilters((f) => ({ ...f, [pill.key]: !f[pill.key] }))}
-              className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all duration-200 ring-1 ${
-                filters[pill.key]
-                  ? "bg-emerald-500/15 text-emerald-300 ring-emerald-500/40"
-                  : "bg-white/[0.02] text-slate-400 ring-white/[0.06] hover:bg-white/[0.04] hover:text-white"
-              }`}
-            >
-              <span className="text-sm">{pill.icon}</span>
-              <span className="font-medium">{pill.label}</span>
-            </button>
-          ))}
+        <div className="h-5 w-px bg-white/[0.06]" />
 
-          <div className="mx-2 h-6 w-px bg-white/10" />
+        {/* Filter pills - more compact */}
+        {filterPills.map((pill) => (
+          <button
+            key={pill.key}
+            type="button"
+            onClick={() => setFilters((f) => ({ ...f, [pill.key]: !f[pill.key] }))}
+            className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all duration-150 ${
+              filters[pill.key]
+                ? "bg-emerald-500/15 text-emerald-300"
+                : "text-slate-500 hover:text-white hover:bg-white/[0.04]"
+            }`}
+          >
+            <span className="text-xs">{pill.icon}</span>
+            {pill.label}
+          </button>
+        ))}
 
-          {/* Sort */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500">Sort by</span>
-            <select
-              value={sortMode}
-              onChange={(e) => setSortMode(e.target.value as "next" | "icp")}
-              className="rounded-lg border-0 bg-white/[0.03] px-3 py-2 text-sm text-white ring-1 ring-white/[0.06] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-            >
-              <option value="next">Next touch</option>
-              <option value="icp">ICP score</option>
-            </select>
+        <div className="h-5 w-px bg-white/[0.06]" />
+
+        {/* Sort - inline */}
+        <div className="flex items-center gap-1.5 text-xs text-slate-500">
+          Sort
+          <select
+            value={sortMode}
+            onChange={(e) => setSortMode(e.target.value as "next" | "icp")}
+            className="rounded-md border-0 bg-transparent px-1 py-1 text-xs text-white cursor-pointer focus:outline-none hover:bg-white/[0.04]"
+          >
+            <option value="next" className="bg-[#0a0c10]">Next touch</option>
+            <option value="icp" className="bg-[#0a0c10]">ICP score</option>
+          </select>
+        </div>
+
+        {/* Spacer to push search right */}
+        <div className="flex-1" />
+
+        {/* Clear filters */}
+        {activeFilterCount > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              setFilters({ hotOnly: false, missingNext: false, overdueOnly: false });
+              setSearchTerm("");
+            }}
+            className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-slate-500 transition hover:text-white hover:bg-white/[0.04]"
+          >
+            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Clear
+          </button>
+        )}
+
+        {/* Search - compact */}
+        <div className="relative w-48">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
+            <svg className="h-3.5 w-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
           </div>
-
-          {activeFilterCount > 0 && (
-            <>
-              <div className="mx-2 h-6 w-px bg-white/10" />
-              <button
-                type="button"
-                onClick={() => {
-                  setFilters({ hotOnly: false, missingNext: false, overdueOnly: false });
-                  setSearchTerm("");
-                }}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-slate-400 transition hover:text-white"
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                Clear filters
-              </button>
-            </>
-          )}
+          <input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search..."
+            className="w-full rounded-md border-0 bg-white/[0.03] py-1.5 pl-8 pr-3 text-xs text-white placeholder:text-slate-600 transition-all duration-150 focus:bg-white/[0.05] focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
+          />
         </div>
       </div>
 
       {/* Board view */}
       {mode === "board" ? (
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div className="flex gap-3 overflow-x-auto pb-4 -mx-2 px-2">
           {grouped.map((column) => {
             const stats = laneSnapshot(column.items);
             const config = statusConfig[column.status];
@@ -723,12 +754,10 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
             return (
               <div
                 key={column.status}
-                className={`flex w-[300px] min-w-[300px] flex-col rounded-2xl border transition-all duration-200 ${
+                className={`flex w-[280px] min-w-[280px] flex-col rounded-xl transition-all duration-200 ${
                   isDropTarget
-                    ? "border-emerald-400/50 bg-emerald-500/5 ring-2 ring-emerald-400/20"
-                    : draggingId
-                    ? "border-white/[0.08] bg-white/[0.02]"
-                    : "border-white/[0.06] bg-white/[0.02]"
+                    ? "bg-emerald-500/[0.08] ring-2 ring-emerald-400/30 ring-inset"
+                    : "bg-white/[0.015]"
                 }`}
                 onDragOver={(e) => e.preventDefault()}
                 onDragEnter={() => setHoveredStatus(column.status)}
@@ -738,45 +767,32 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                   setHoveredStatus(null);
                 }}
               >
-                {/* Colored top border */}
-                <div className={`h-1 w-full rounded-t-2xl ${config.topBorder}`} />
-
-                {/* Column header */}
-                <div className="shrink-0 border-b border-white/[0.06] px-4 pb-3 pt-3">
+                {/* Column header - sticky */}
+                <div className="sticky top-0 z-10 shrink-0 px-3 pb-2 pt-3 bg-[#0a0c10]/95 backdrop-blur-sm rounded-t-xl">
                   <div className="flex items-center gap-2">
-                    <span className={`text-sm ${config.color}`}>{config.icon}</span>
-                    <h2 className="text-[13px] font-semibold text-white whitespace-nowrap">
+                    <div className={`h-2 w-2 rounded-full ${config.topBorder}`} />
+                    <h2 className="text-xs font-semibold text-white/80 uppercase tracking-wide whitespace-nowrap">
                       {column.status.replace(/_/g, " ")}
                     </h2>
-                    <span className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold ${config.bg} ${config.color}`}>
+                    <span className="text-xs font-medium text-slate-500">
                       {column.items.length}
                     </span>
+                    {/* Compact inline stats */}
+                    <div className="flex-1" />
+                    {stats.overdue > 0 && (
+                      <span className="flex items-center gap-1 text-[10px] font-medium text-rose-400">
+                        <span className="h-1 w-1 rounded-full bg-rose-400 animate-pulse" />
+                        {stats.overdue}
+                      </span>
+                    )}
+                    {stats.hot > 0 && (
+                      <span className="text-[10px] font-medium text-emerald-400">{stats.hot}🔥</span>
+                    )}
                   </div>
-
-                  {/* Compact stats - only show if there are items */}
-                  {(stats.hot > 0 || stats.missingNext > 0 || stats.overdue > 0) && (
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {stats.hot > 0 && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
-                          {stats.hot} hot
-                        </span>
-                      )}
-                      {stats.missingNext > 0 && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-400">
-                          {stats.missingNext} no date
-                        </span>
-                      )}
-                      {stats.overdue > 0 && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/15 px-2 py-0.5 text-[10px] font-medium text-rose-400">
-                          {stats.overdue} overdue
-                        </span>
-                      )}
-                    </div>
-                  )}
                 </div>
 
                 {/* Cards */}
-                <div className="flex-1 space-y-3 overflow-y-auto p-3">
+                <div className="flex-1 space-y-2 overflow-y-auto px-2 pb-2" style={{ maxHeight: "calc(100vh - 320px)" }}>
                   {column.items.map((project) => {
                     const urgency = urgencyLabel(project.nextSequenceStepDueAt || undefined);
                     const name = deriveName(project.name, project.url);
@@ -799,11 +815,9 @@ export default function Board({ projects }: { projects: BoardProject[] }) {
                     );
                   })}
                   {column.items.length === 0 && (
-                    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/10 bg-white/[0.01] px-4 py-8 text-center">
-                      <div className={`mb-2 flex h-8 w-8 items-center justify-center rounded-full ${config.bg}`}>
-                        <span className={`text-sm ${config.color}`}>{config.icon}</span>
-                      </div>
-                      <p className="text-[11px] text-slate-500">No leads here</p>
+                    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-white/[0.06] px-4 py-6 text-center">
+                      <span className={`text-lg mb-1 opacity-40 ${config.color}`}>{config.icon}</span>
+                      <p className="text-[10px] text-slate-600">No leads</p>
                     </div>
                   )}
                 </div>

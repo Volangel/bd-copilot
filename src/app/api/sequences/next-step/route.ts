@@ -105,9 +105,23 @@ export async function POST(request: Request) {
         data: { nextFollowUpAt: nextPending?.scheduledAt ?? null },
       });
     } else if (action === "reschedule" && scheduledAt) {
+      const newScheduledAt = new Date(scheduledAt);
       await prisma.sequenceStep.update({
         where: { id: stepId },
-        data: { scheduledAt: new Date(scheduledAt) },
+        data: { scheduledAt: newScheduledAt },
+      });
+      // Recalculate the next follow-up date for the project
+      const allPendingSteps = await prisma.sequenceStep.findMany({
+        where: { status: "PENDING", sequence: { projectId: step.sequence.projectId, userId: session.user.id } },
+        orderBy: { scheduledAt: "asc" },
+      });
+      // Find the earliest scheduled pending step
+      const nextFollowUp = allPendingSteps
+        .filter((s) => s.scheduledAt)
+        .sort((a, b) => (a.scheduledAt!.getTime() - b.scheduledAt!.getTime()))[0];
+      await prisma.project.update({
+        where: { id: step.sequence.projectId },
+        data: { nextFollowUpAt: nextFollowUp?.scheduledAt ?? null },
       });
     }
 

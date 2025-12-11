@@ -45,10 +45,13 @@ export function extractCandidateUrlsFromHtml(html: string, baseUrl: string): str
 
     if (isSocial(resolved)) return;
 
-    // Skip obvious internal fragments; keep external-looking URLs
-    const baseHost = new URL(baseUrl).hostname;
-    const resolvedHost = new URL(resolved).hostname;
-    if (resolvedHost === baseHost && (resolved.endsWith("/") || resolved.includes("#"))) return;
+    // Skip internal links (same host) - we're looking for external project opportunities
+    const baseHost = new URL(baseUrl).hostname.replace(/^www\./, "");
+    const resolvedHost = new URL(resolved).hostname.replace(/^www\./, "");
+    if (resolvedHost === baseHost) return;
+
+    // Skip links with fragments as they're typically anchor links
+    if (resolved.includes("#")) return;
 
     const normalized = normalizeUrl(resolved);
     if (normalized) {

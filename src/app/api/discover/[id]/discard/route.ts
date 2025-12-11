@@ -9,13 +9,16 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   const { id } = params;
 
   try {
-    const result = await prisma.opportunity.updateMany({
+    const opportunity = await prisma.opportunity.findFirst({
       where: { id, userId: session.user.id },
-      data: { status: "DISCARDED" },
     });
-    if (result.count === 0) {
+    if (!opportunity) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
+    await prisma.opportunity.update({
+      where: { id },
+      data: { status: "DISCARDED" },
+    });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("discard opportunity failed", error);

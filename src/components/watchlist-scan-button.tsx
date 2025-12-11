@@ -13,12 +13,20 @@ export function WatchlistScanButton() {
       const res = await fetch("/api/discover/scan-watchlist", { method: "POST" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setStatus(data.error || "Failed to scan");
+        if (res.status === 401) {
+          setStatus("Unauthorized - please log in again");
+        } else if (res.status === 404) {
+          setStatus("No watchlist URLs found - add some first");
+        } else {
+          setStatus(data.error || "Failed to scan watchlist");
+        }
+      } else if (data.createdCount === 0 && data.skippedCount === 0) {
+        setStatus("No new opportunities found from watchlist URLs");
       } else {
         setStatus(`Created ${data.createdCount || 0} opportunities (skipped ${data.skippedCount || 0}).`);
       }
     } catch {
-      setStatus("Failed to scan");
+      setStatus("Network error - please check your connection");
     }
     setLoading(false);
   };

@@ -1,14 +1,15 @@
-import { NewProjectForm } from "@/components/projects/new-project-form";
+import { FocusPanel } from "@/components/projects/focus-panel";
+import { FilterBar } from "@/components/projects/filter-bar";
+import { NewProjectModal } from "@/components/projects/new-project-modal";
+import { ProjectsTable } from "@/components/projects/projects-table";
+import { StatChips } from "@/components/projects/stat-chips";
 import { authOptions } from "@/lib/auth";
-import { formatDate, PROJECT_STATUSES } from "@/lib/utils";
+import { PROJECT_STATUSES } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 import { sortProjectsByPriority } from "@/lib/pipeline/priority";
 import { buildStepMeta } from "@/lib/pipeline/stepMeta";
 import { PageHeader } from "@/components/ui/header";
-import { Table, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Card } from "@/components/ui/card";
 import { getServerSession } from "next-auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -55,13 +56,21 @@ export default async function ProjectsPage({
     orderBy: { updatedAt: "desc" },
   });
 
+  // Get all projects for stats (without filters)
+  const allProjects = await prisma.project.findMany({
+    where: { userId: session.user.id },
+    select: { id: true, icpScore: true, status: true },
+  });
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const endOfToday = new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
   // Run sequence metadata queries in parallel for better performance
   const projectIds = projects.map((p) => p.id);
-  const [projectSequenceCounts, pendingSteps] = await Promise.all([
+  const allProjectIds = allProjects.map((p) => p.id);
+
+  const [projectSequenceCounts, pendingSteps, allPendingSteps] = await Promise.all([
     prisma.sequence.groupBy({
       by: ["projectId"],
       _count: { id: true },
@@ -69,6 +78,12 @@ export default async function ProjectsPage({
     }),
     prisma.sequenceStep.findMany({
       where: { status: "PENDING", sequence: { projectId: { in: projectIds }, userId: session.user.id } },
+      include: { sequence: true },
+      orderBy: { scheduledAt: "asc" },
+    }),
+    // For stats - get all pending steps
+    prisma.sequenceStep.findMany({
+      where: { status: "PENDING", sequence: { projectId: { in: allProjectIds }, userId: session.user.id } },
       include: { sequence: true },
       orderBy: { scheduledAt: "asc" },
     }),
@@ -80,13 +95,35 @@ export default async function ProjectsPage({
     projects.map((p) => p.id),
   );
 
+  // Build meta map for all projects (for stats)
+  const allMetaMap = buildStepMeta(
+    allPendingSteps.map((s) => ({ scheduledAt: s.scheduledAt, sequence: { projectId: s.sequence.projectId } })),
+    allProjectIds,
+  );
+
   const projectsWithMeta = projects.map((p) => {
     const meta = metaMap.get(p.id);
+    return {
+      id: p.id,
+      name: p.name ?? null,
+      url: p.url,
+      status: p.status,
+      icpScore: p.icpScore ?? null,
+      mqaScore: p.mqaScore ?? null,
+      updatedAt: new Date(p.updatedAt),
+      nextSequenceStepDueAt: meta?.nextSequenceStepDueAt || null,
+      hasOverdueSequenceStep: meta?.hasOverdueSequenceStep || false,
+      overdueCount: meta?.overdueCount || 0,
+    };
+  });
+
+  // Calculate stats from all projects (unfiltered)
+  const allProjectsWithMeta = allProjects.map((p) => {
+    const meta = allMetaMap.get(p.id);
     return {
       ...p,
       nextSequenceStepDueAt: meta?.nextSequenceStepDueAt || null,
       hasOverdueSequenceStep: meta?.hasOverdueSequenceStep || false,
-      overdueCount: meta?.overdueCount || 0,
     };
   });
 
@@ -94,235 +131,143 @@ export default async function ProjectsPage({
   const overdue = actionable.filter((p) => p.nextSequenceStepDueAt && p.nextSequenceStepDueAt < today);
   const dueToday = actionable.filter((p) => p.nextSequenceStepDueAt && p.nextSequenceStepDueAt >= today && p.nextSequenceStepDueAt < endOfToday);
 
-  const sortedProjects = sortProjectsByPriority(
-    projectsWithMeta.map((p) => ({
-      ...p,
-      updatedAt: new Date(p.updatedAt),
-    })),
-  );
+  // Stats from all projects
+  const allActionable = allProjectsWithMeta.filter((p) => p.status !== "WON" && p.status !== "LOST");
+  const allOverdue = allActionable.filter((p) => p.nextSequenceStepDueAt && p.nextSequenceStepDueAt < today);
+  const allDueToday = allActionable.filter((p) => p.nextSequenceStepDueAt && p.nextSequenceStepDueAt >= today && p.nextSequenceStepDueAt < endOfToday);
+  const highIcpCount = allProjects.filter((p) => p.icpScore && p.icpScore >= 70).length;
+  const needsActionCount = allProjects.filter((p) => p.status === "NOT_CONTACTED" || p.status === "WAITING_REPLY").length;
 
-  const chips = [
-    { label: "Total", value: projects.length },
-    { label: "Overdue", value: overdue.length },
-    { label: "Today", value: dueToday.length },
-  ];
+  const sortedProjects = sortProjectsByPriority(projectsWithMeta);
+
+  // Prepare focus panel data
+  const focusOverdue = overdue.map((p) => ({
+    id: p.id,
+    name: p.name,
+    url: p.url,
+    status: p.status,
+    nextSequenceStepDueAt: p.nextSequenceStepDueAt,
+    sequenceCount: sequenceMap[p.id] || 0,
+  }));
+
+  const focusDueToday = dueToday.map((p) => ({
+    id: p.id,
+    name: p.name,
+    url: p.url,
+    status: p.status,
+    nextSequenceStepDueAt: p.nextSequenceStepDueAt,
+    sequenceCount: sequenceMap[p.id] || 0,
+  }));
+
+  // Prepare table data
+  const tableProjects = sortedProjects.map((p) => ({
+    id: p.id,
+    name: p.name,
+    url: p.url,
+    status: p.status || "NOT_CONTACTED",
+    icpScore: p.icpScore,
+    mqaScore: p.mqaScore,
+    updatedAt: p.updatedAt,
+    nextSequenceStepDueAt: p.nextSequenceStepDueAt,
+    hasOverdueSequenceStep: p.hasOverdueSequenceStep,
+    overdueCount: p.overdueCount || 0,
+  }));
 
   return (
-    <>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <PageHeader
-          title="Accounts"
-          description="Monitor ICP fit, outreach, and follow-ups across your pipeline."
-          mode="pipeline"
-          actions={
-            <div className="flex flex-wrap gap-2">
-              <Link href="/projects/board" className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white transition hover:bg-white/10">
-                Board view
-              </Link>
-              <Link href="/projects/import" className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white transition hover:bg-white/10">
-                Import
-              </Link>
-              <Link href="/templates" className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white transition hover:bg-white/10">
-                Templates
-              </Link>
-            </div>
-          }
-        />
-      </div>
-
-      <div className="flex flex-wrap gap-2 text-[11px] text-slate-300">
-        {chips.map((chip) => (
-          <span key={chip.label} className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
-            {chip.label}: <span className="font-semibold text-white">{chip.value}</span>
-          </span>
-        ))}
-      </div>
-
-      <form className="grid gap-4 rounded-xl border border-white/10 bg-[#0F1012] px-6 py-6 text-sm text-slate-200 shadow-lg shadow-black/20 md:grid-cols-4">
-        <div className="md:col-span-2 space-y-2">
-          <label className="text-xs text-slate-400" htmlFor="q">
-            Search
-          </label>
-          <input
-            id="q"
-            name="q"
-            defaultValue={q}
-            placeholder="Search name, URL, tags"
-            className="w-full rounded-lg border border-white/10 bg-[#0B0C0E] px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <PageHeader
+            title="Accounts"
+            description="Monitor ICP fit, outreach, and follow-ups across your pipeline."
+            mode="pipeline"
           />
         </div>
-        <div className="space-y-2">
-          <label className="text-xs text-slate-400">Status</label>
-          <div className="flex flex-wrap gap-2">
-            {PROJECT_STATUSES.map((s) => {
-              const checked = statusList.includes(s);
-              return (
-                <label key={s} className="flex items-center gap-1 rounded-md border border-white/5 bg-white/5 px-2 py-1 text-xs hover:border-emerald-500/50">
-                  <input type="checkbox" name="status" value={s} defaultChecked={checked} className="accent-emerald-500" />
-                  {s.replace(/_/g, " ")}
-                </label>
-              );
-            })}
-          </div>
-        </div>
-        <div className="space-y-2">
-          <label className="text-xs text-slate-400">Scores</label>
-          <div className="flex gap-2">
-            <input
-              type="number"
-              name="minICP"
-              defaultValue={minICP ?? ""}
-              placeholder="Min ICP"
-              className="w-1/2 rounded-lg border border-white/10 bg-[#0B0C0E] px-3 py-2 text-sm text-white"
-            />
-            <input
-              type="number"
-              name="minMQA"
-              defaultValue={minMQA ?? ""}
-              placeholder="Min MQA"
-              className="w-1/2 rounded-lg border border-white/10 bg-[#0B0C0E] px-3 py-2 text-sm text-white"
-            />
-          </div>
-        </div>
-        <div className="flex items-end justify-end gap-2">
-          <button
-            type="submit"
-            className="rounded-lg bg-emerald-500 px-4 py-2 text-xs font-semibold text-slate-950 transition hover:bg-emerald-400 shadow-md shadow-emerald-500/20"
-          >
-            Apply
-          </button>
+        <div className="flex flex-wrap items-center gap-2">
           <Link
-            href="/projects"
-            className="rounded-lg border border-white/10 px-4 py-2 text-xs font-semibold text-slate-200 transition hover:border-white/20 hover:bg-white/5"
+            href="/projects/board"
+            className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white"
           >
-            Reset
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+            </svg>
+            Board
           </Link>
-          <a
-            className="rounded-lg border border-white/10 px-4 py-2 text-xs font-semibold text-slate-200 transition hover:border-white/20 hover:bg-white/5"
-            href={`/api/projects/export?q=${encodeURIComponent(q)}&status=${statusList.join(",")}&minICP=${minICP ?? ""}&minMQA=${minMQA ?? ""}`}
+          <Link
+            href="/projects/import"
+            className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white"
           >
-            Export CSV
-          </a>
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Import
+          </Link>
+          <Link
+            href="/templates"
+            className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+            </svg>
+            Templates
+          </Link>
+          <NewProjectModal />
         </div>
-      </form>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <Table>
-          <TableHeader>
-            <tr>
-              <th className="px-4 py-3">Overdue follow-ups</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Next</th>
-              <th className="px-4 py-3 text-right">Sequences</th>
-            </tr>
-          </TableHeader>
-          <tbody>
-            {overdue.map((p) => (
-              <TableRow key={p.id}>
-                <td className="px-4 py-3">
-                  <Link href={`/projects/${p.id}/workspace`} className="font-semibold text-emerald-300 hover:text-emerald-200">
-                    {p.name || p.url}
-                  </Link>
-                  <p className="text-xs text-slate-400">{p.url}</p>
-                </td>
-                <td className="px-4 py-3 text-sm text-slate-200">{p.status.replace(/_/g, " ")}</td>
-                <td className="px-4 py-3 text-sm text-slate-200">{formatDate(p.nextSequenceStepDueAt)}</td>
-                <td className="px-4 py-3 text-right text-xs text-slate-300">{sequenceMap[p.id] ? `${sequenceMap[p.id]} active` : "-"}</td>
-              </TableRow>
-            ))}
-            {overdue.length === 0 ? (
-              <TableRow>
-                <td colSpan={4} className="px-4 py-4 text-center text-xs text-slate-500">
-                  No overdue follow-ups 🎯
-                </td>
-              </TableRow>
-            ) : null}
-          </tbody>
-        </Table>
-        <Table>
-          <TableHeader>
-            <tr>
-              <th className="px-4 py-3">Today</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Next</th>
-              <th className="px-4 py-3 text-right">Sequences</th>
-            </tr>
-          </TableHeader>
-          <tbody>
-            {dueToday.map((p) => (
-              <TableRow key={p.id}>
-                <td className="px-4 py-3">
-                  <Link href={`/projects/${p.id}/workspace`} className="font-semibold text-emerald-300 hover:text-emerald-200">
-                    {p.name || p.url}
-                  </Link>
-                  <p className="text-xs text-slate-400">{p.url}</p>
-                </td>
-                <td className="px-4 py-3 text-sm text-slate-200">{p.status.replace(/_/g, " ")}</td>
-                <td className="px-4 py-3 text-sm text-slate-200">{formatDate(p.nextSequenceStepDueAt)}</td>
-                <td className="px-4 py-3 text-right text-xs text-slate-300">{sequenceMap[p.id] ? `${sequenceMap[p.id]} active` : "-"}</td>
-              </TableRow>
-            ))}
-            {dueToday.length === 0 ? (
-              <TableRow>
-                <td colSpan={4} className="px-4 py-4 text-center text-xs text-slate-500">
-                  Nothing due today 🎉
-                </td>
-              </TableRow>
-            ) : null}
-          </tbody>
-        </Table>
       </div>
 
-      <NewProjectForm />
+      {/* Stats Chips */}
+      <StatChips
+        total={allProjects.length}
+        overdue={allOverdue.length}
+        dueToday={allDueToday.length}
+        highIcp={highIcpCount}
+        needsAction={needsActionCount}
+      />
 
-      {sortedProjects.length === 0 ? (
+      {/* Focus Panel - Overdue & Today */}
+      <FocusPanel overdue={focusOverdue} dueToday={focusDueToday} />
+
+      {/* Filter Bar */}
+      <FilterBar
+        totalCount={projects.length}
+        currentQuery={q}
+        currentStatuses={statusList}
+        currentMinICP={minICP}
+        currentMinMQA={minMQA}
+      />
+
+      {/* Main Table or Empty State */}
+      {allProjects.length === 0 ? (
         <EmptyState
           title="No accounts yet"
-          description="Start by adding a protocol or converting an opportunity."
+          description="Start by adding a protocol or converting an opportunity from the Discover section."
           icon="📁"
-          primaryAction={{ label: "Create your first project", href: "/projects" }}
+          primaryAction={{ label: "Add your first account", href: "#" }}
           secondaryAction={{ label: "Discover opportunities", href: "/discover" }}
         />
+      ) : sortedProjects.length === 0 ? (
+        <div className="rounded-xl border border-white/10 bg-[#0F1012] px-6 py-16 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white/5">
+            <svg className="h-6 w-6 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <p className="text-sm font-medium text-slate-300">No matching accounts</p>
+          <p className="mt-1 text-xs text-slate-500">Try adjusting your search or filters</p>
+          <Link
+            href="/projects"
+            className="mt-4 inline-flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-300 transition hover:bg-white/5"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Clear filters
+          </Link>
+        </div>
       ) : (
-        <Card className="rounded-xl border border-white/10 bg-[#0F1012] px-6 py-5 shadow-lg shadow-black/20">
-          <Table>
-            <TableHeader>
-              <tr>
-                <th className="px-4 py-3">Project</th>
-                <th className="px-4 py-3">Scores</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Next touch</th>
-                <th className="px-4 py-3">Last updated</th>
-              </tr>
-            </TableHeader>
-            <tbody>
-              {sortedProjects.map((project) => (
-                <TableRow key={project.id} className="hover:bg-white/5">
-                  <td className="px-4 py-3">
-                    <Link href={`/projects/${project.id}/workspace`} className="font-semibold text-emerald-300 hover:text-emerald-200">
-                      {project.name || project.url}
-                    </Link>
-                    <p className="text-xs text-slate-400">{project.url}</p>
-                    <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-slate-300">
-                      <Badge variant="neutral">ICP {project.icpScore ?? "-"}</Badge>
-                      {sequenceMap[project.id] ? <Badge variant="info">{sequenceMap[project.id]} active seq</Badge> : null}
-                      {project.hasOverdueSequenceStep ? (
-                        <Badge variant="warning">Overdue</Badge>
-                      ) : project.nextSequenceStepDueAt ? (
-                        <Badge variant="neutral">Next {formatDate(project.nextSequenceStepDueAt)}</Badge>
-                      ) : null}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-slate-100">{project.icpScore ?? "-"}</td>
-                  <td className="px-4 py-3 text-slate-200">{project.status.replace(/_/g, " ")}</td>
-                  <td className="px-4 py-3 text-slate-200">{formatDate(project.nextSequenceStepDueAt)}</td>
-                  <td className="px-4 py-3 text-slate-400 text-xs">{formatDate(project.updatedAt)}</td>
-                </TableRow>
-              ))}
-            </tbody>
-          </Table>
-        </Card>
+        <ProjectsTable projects={tableProjects} sequenceMap={sequenceMap} />
       )}
-    </>
+    </div>
   );
 }

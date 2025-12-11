@@ -7,6 +7,8 @@ export type ProjectWithSequenceMeta = {
   nextSequenceStepDueAt: Date | null;
   icpScore?: number | null;
   mqaScore?: number | null;
+  status?: string;
+  overdueCount?: number;
 };
 
 export function sortProjectsByPriority(projects: ProjectWithSequenceMeta[]): ProjectWithSequenceMeta[] {

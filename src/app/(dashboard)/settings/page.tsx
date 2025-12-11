@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/header";
+import Link from "next/link";
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
@@ -31,22 +33,77 @@ export default async function SettingsPage() {
   };
 
   return (
-    <>
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold text-white">Settings</h1>
-        <p className="text-sm text-slate-400">
-          Tune your ICP profile and outreach voice. Manage playbooks and watchlist for lead radar.
-        </p>
-        <div className="mt-2 flex gap-2 text-xs">
-          <a className="rounded border border-white/10 bg-white/5 px-2 py-1 text-slate-200 hover:border-white/20" href="/settings/playbooks">
-            Playbooks
-          </a>
-          <a className="rounded border border-white/10 bg-white/5 px-2 py-1 text-slate-200 hover:border-white/20" href="/settings/watchlist">
-            Watchlist
-          </a>
+    <div className="space-y-6">
+      <PageHeader
+        title="Settings"
+        description="Tune your ICP profile and outreach voice. Manage playbooks and watchlist for lead radar."
+        mode="other"
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/settings/playbooks"
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/10"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              Playbooks
+            </Link>
+            <Link
+              href="/settings/watchlist"
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/10"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              Watchlist
+            </Link>
+          </div>
+        }
+      />
+
+      {/* Quick links card */}
+      <Card className="flex flex-col gap-4 overflow-hidden border-slate-400/20 bg-gradient-to-r from-slate-500/10 via-transparent to-transparent p-6 md:flex-row md:items-center md:justify-between">
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">Quick settings</p>
+          <p className="text-sm text-slate-300">Configure playbooks to prioritize leads, and manage watchlist URLs for automated scanning.</p>
         </div>
-      </div>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/settings/playbooks"
+            className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-200 transition hover:border-emerald-400 hover:bg-emerald-500/20"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            New playbook
+          </Link>
+          <Link
+            href="/settings/watchlist"
+            className="inline-flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-sm text-blue-200 transition hover:border-blue-400 hover:bg-blue-500/20"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Add watchlist URL
+          </Link>
+        </div>
+      </Card>
+
       <Card className="rounded-xl border border-white/10 bg-[#0F1012] px-6 py-5 shadow-lg shadow-black/20">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-500/10 ring-1 ring-slate-500/30">
+            <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-base font-semibold text-white">Profile & Preferences</p>
+            <p className="text-xs text-slate-500">Configure your ICP and AI voice settings</p>
+          </div>
+        </div>
         <SettingsForm initial={initial} />
       </Card>
       {process.env.NODE_ENV !== "production" ? (
@@ -85,6 +142,6 @@ export default async function SettingsPage() {
           </form>
         </Card>
       ) : null}
-    </>
+    </div>
   );
 }

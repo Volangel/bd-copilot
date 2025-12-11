@@ -99,16 +99,62 @@ export async function autoDetectContacts(url: string): Promise<DetectedContact[]
       }
     });
 
-    // dedupe by linkedin or twitter or telegram or name
-    const seen = new Set<string>();
-    return candidates.filter((c) => {
+    // Dedupe and merge contacts with same identifiers
+    const contactMap = new Map<string, DetectedContact>();
+
+    for (const c of candidates) {
       // Skip contacts without any identifying information
-      const key = c.linkedinUrl || c.twitterHandle || c.telegram || c.name;
-      if (!key) return false; // Cannot dedupe without identifiers
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+      if (!c.linkedinUrl && !c.twitterHandle && !c.telegram && !c.name) continue;
+
+      // Create multiple keys for cross-referencing
+      const keys: string[] = [];
+      if (c.linkedinUrl) keys.push(`linkedin:${c.linkedinUrl.toLowerCase()}`);
+      if (c.twitterHandle) keys.push(`twitter:${c.twitterHandle.toLowerCase()}`);
+      if (c.telegram) keys.push(`telegram:${c.telegram.toLowerCase()}`);
+      if (c.name) keys.push(`name:${c.name.toLowerCase()}`);
+
+      // Find existing contact with any matching key
+      let existingKey: string | null = null;
+      let existing: DetectedContact | null = null;
+      for (const key of keys) {
+        if (contactMap.has(key)) {
+          existingKey = key;
+          existing = contactMap.get(key)!;
+          break;
+        }
+      }
+
+      if (existing && existingKey) {
+        // Merge with existing contact - prefer non-null values
+        const merged: DetectedContact = {
+          name: existing.name || c.name,
+          role: existing.role || c.role,
+          linkedinUrl: existing.linkedinUrl || c.linkedinUrl,
+          twitterHandle: existing.twitterHandle || c.twitterHandle,
+          telegram: existing.telegram || c.telegram,
+        };
+
+        // Update all keys to point to merged contact
+        for (const key of keys) {
+          contactMap.set(key, merged);
+        }
+        // Also update the original key
+        contactMap.set(existingKey, merged);
+      } else {
+        // New contact - add all keys
+        for (const key of keys) {
+          contactMap.set(key, c);
+        }
+      }
+    }
+
+    // Get unique contacts from the map
+    const uniqueContacts = new Set<DetectedContact>();
+    for (const contact of contactMap.values()) {
+      uniqueContacts.add(contact);
+    }
+
+    return Array.from(uniqueContacts);
   } catch (err) {
     console.error("autoDetectContacts failed", err);
     return [];

@@ -226,12 +226,29 @@ export async function extractContactCandidatesFromSnippets(params: {
     });
   };
 
+  // Track results per batch for selective retry
+  const batchResults: number[] = [];
   for (const batch of batches) {
+    const beforeCount = all.length;
     await runBatch(batch, false);
+    batchResults.push(all.length - beforeCount);
   }
 
+  // If we found very few contacts, retry batches that yielded no results with inclusive mode
   if (all.length < 2 && batches.length > 0) {
-    await runBatch(batches[0], true);
+    const emptyBatchIndices = batchResults
+      .map((count, idx) => (count === 0 ? idx : -1))
+      .filter((idx) => idx >= 0);
+
+    // Retry empty batches with inclusive mode, up to 2 batches to avoid excessive API calls
+    for (const idx of emptyBatchIndices.slice(0, 2)) {
+      await runBatch(batches[idx], true);
+    }
+
+    // If still no contacts and all batches had results but low count, try first batch inclusive
+    if (all.length < 2 && emptyBatchIndices.length === 0 && batches.length > 0) {
+      await runBatch(batches[0], true);
+    }
   }
 
   const dedup: ContactCandidate[] = [];

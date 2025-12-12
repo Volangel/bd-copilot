@@ -134,7 +134,14 @@ export function FocusPanel({ overdue, dueToday }: FocusPanelProps) {
 
 function FocusCard({ item, variant }: { item: FocusItem; variant: "overdue" | "today" }) {
   const borderColor = variant === "overdue" ? "border-l-red-500" : "border-l-amber-500";
-  const displayName = item.name || new URL(item.url).hostname;
+  let displayName = item.name;
+  if (!displayName) {
+    try {
+      displayName = new URL(item.url).hostname;
+    } catch {
+      displayName = item.url;
+    }
+  }
 
   return (
     <Link

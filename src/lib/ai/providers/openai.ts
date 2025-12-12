@@ -83,7 +83,8 @@ export async function callOpenAIChat<T>(opts: OpenAIChatOptions): Promise<T> {
         if (RETRYABLE_STATUS_CODES.has(res.status) && attempt < maxRetries) {
           // For rate limits, check for Retry-After header
           const retryAfter = res.headers.get("Retry-After");
-          const delay = retryAfter ? parseInt(retryAfter, 10) * 1000 : getBackoffDelay(attempt);
+          const parsedRetryAfter = retryAfter ? parseInt(retryAfter, 10) : NaN;
+          const delay = !isNaN(parsedRetryAfter) ? parsedRetryAfter * 1000 : getBackoffDelay(attempt);
 
           console.warn(`[OpenAI] Retryable error ${res.status}, attempt ${attempt + 1}/${maxRetries + 1}, waiting ${Math.round(delay)}ms`);
           await sleep(delay);

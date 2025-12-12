@@ -67,6 +67,7 @@ export default function SessionClient({ project, contact }: Props) {
   };
 
   const copyMessage = async (channel: string, content: string) => {
+    setError(null);
     try {
       await navigator.clipboard.writeText(content);
       const nextFollow = project.nextFollowUpAt || computeNextFollow();

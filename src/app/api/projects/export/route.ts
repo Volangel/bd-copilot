@@ -11,8 +11,12 @@ export async function GET(request: Request) {
   const q = searchParams.get("q") || "";
   const statusRaw = searchParams.get("status") || "";
   const statusList = statusRaw.split(",").filter(Boolean);
-  const minICP = searchParams.get("minICP");
-  const minMQA = searchParams.get("minMQA");
+  const minICPRaw = searchParams.get("minICP");
+  const minMQARaw = searchParams.get("minMQA");
+
+  // Validate numeric parameters - only use if they're valid numbers
+  const minICP = minICPRaw && !isNaN(Number(minICPRaw)) ? Number(minICPRaw) : null;
+  const minMQA = minMQARaw && !isNaN(Number(minMQARaw)) ? Number(minMQARaw) : null;
 
   const projects = await prisma.project.findMany({
     where: {
@@ -27,8 +31,8 @@ export async function GET(request: Request) {
           }
         : {}),
       ...(statusList.length > 0 ? { status: { in: statusList } } : {}),
-      ...(minICP ? { icpScore: { gte: Number(minICP) } } : {}),
-      ...(minMQA ? { mqaScore: { gte: Number(minMQA) } } : {}),
+      ...(minICP !== null ? { icpScore: { gte: minICP } } : {}),
+      ...(minMQA !== null ? { mqaScore: { gte: minMQA } } : {}),
     },
     orderBy: { updatedAt: "desc" },
   });

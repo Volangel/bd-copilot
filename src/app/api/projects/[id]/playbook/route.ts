@@ -47,7 +47,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     });
 
     const updated = await prisma.project.update({
-      where: { id: project.id },
+      where: { id: project.id, userId: session.user.id },
       data: {
         playbookSummary: playbook.summary,
         playbookPersonas: JSON.stringify(playbook.recommendedPersonas),

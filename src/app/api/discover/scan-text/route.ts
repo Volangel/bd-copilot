@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       createdCount: result.created.length,
-      skippedCount: result.skipped,
+      skippedCount: result.skipped.length,
       attempted,
       created: result.created,
     });

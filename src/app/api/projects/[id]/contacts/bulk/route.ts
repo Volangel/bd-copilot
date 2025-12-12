@@ -9,7 +9,7 @@ const contactSchema = z.object({
   role: z.string().optional().nullable(),
   linkedinUrl: z.string().optional().nullable(),
   twitterHandle: z.string().optional().nullable(),
-  email: z.string().optional().nullable(),
+  email: z.string().email().optional().nullable(),
   telegram: z.string().optional().nullable(),
 });
 

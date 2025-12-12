@@ -44,7 +44,10 @@ export async function POST(request: Request) {
     // Deduplicate by URL per user
     const existing = await prisma.project.findFirst({ where: { userId: session.user.id, url } });
     if (existing) {
-      return NextResponse.json(existing);
+      return NextResponse.json(
+        { error: "Project with this URL already exists", existingId: existing.id },
+        { status: 409 }
+      );
     }
 
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });

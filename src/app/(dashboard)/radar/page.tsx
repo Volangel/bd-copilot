@@ -5,7 +5,6 @@ import { PageHeader } from "@/components/ui/header";
 import { Card } from "@/components/ui/card";
 import { Table, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge, TagPill } from "@/components/ui/badge";
-import { MetricsCard } from "@/app/(dashboard)/today/components/MetricsCard";
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
@@ -113,10 +112,43 @@ export default async function RadarPage() {
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-3">
-        {metrics.map((m) => (
-          <MetricsCard key={m.label} title={m.label} value={m.value} helper={m.helper} />
-        ))}
+      {/* Metrics row */}
+      <div className="flex flex-wrap gap-3">
+        <div className="flex items-center gap-3 rounded-lg bg-blue-500/[0.08] px-4 py-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-500/15">
+            <svg className="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-xl font-semibold tabular-nums text-white">{reviewable.length}</p>
+            <p className="text-[10px] text-blue-400/70 uppercase tracking-wide">Reviewable</p>
+          </div>
+        </div>
+
+        <div className={`flex items-center gap-3 rounded-lg px-4 py-2.5 ${topPicks.length > 0 ? "bg-emerald-500/[0.08]" : "bg-white/[0.02]"}`}>
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-500/15">
+            <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-xl font-semibold tabular-nums text-white">{topPicks.length}</p>
+            <p className="text-[10px] text-emerald-400/70 uppercase tracking-wide">Top picks</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-lg bg-white/[0.02] px-4 py-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-slate-500/10">
+            <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-xl font-semibold tabular-nums text-white">{allOpps.length}</p>
+            <p className="text-[10px] text-slate-500 uppercase tracking-wide">All opportunities</p>
+          </div>
+        </div>
       </div>
 
       <Card className="space-y-4 border-white/10 bg-gradient-to-r from-emerald-500/10 via-transparent to-transparent px-6 py-5">

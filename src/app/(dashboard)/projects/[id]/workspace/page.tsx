@@ -120,22 +120,86 @@ export default async function ProjectWorkspace({
   }));
 
   return (
-    <>
+    <div className="space-y-6">
       <PageHeader
         title="Account Workspace"
         description="Work this account end-to-end: context, contacts, sequences, interactions."
         mode="pipeline"
         actions={
-          <div className="flex gap-2">
-            <Link href="/projects" className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white transition hover:bg-white/10">
-              Back to Accounts
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/session"
+              className="inline-flex items-center gap-2 rounded-full border border-purple-400/60 bg-purple-500/10 px-4 py-2 text-sm font-semibold text-purple-100 transition hover:border-purple-300 hover:bg-purple-500/20"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Session
             </Link>
-            <Link href={`/projects/${project.id}`} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300 transition hover:bg-white/10">
-              Legacy view
+            <Link
+              href="/projects"
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/10"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Accounts
             </Link>
           </div>
         }
       />
+
+      {/* Metrics row */}
+      <div className="flex flex-wrap gap-3">
+        <div className="flex items-center gap-3 rounded-lg bg-white/[0.02] px-4 py-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-slate-500/10">
+            <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-xl font-semibold tabular-nums text-white">{project.contacts.length}</p>
+            <p className="text-[10px] text-slate-500 uppercase tracking-wide">Contacts</p>
+          </div>
+        </div>
+
+        <div className={`flex items-center gap-3 rounded-lg px-4 py-2.5 ${pendingSteps.length > 0 ? "bg-amber-500/[0.08]" : "bg-white/[0.02]"}`}>
+          <div className={`relative flex h-8 w-8 items-center justify-center rounded-md ${pendingSteps.length > 0 ? "bg-amber-500/15" : "bg-slate-500/10"}`}>
+            {hasOverdueSequenceStep && <span className="absolute h-2 w-2 rounded-full bg-rose-400 animate-ping opacity-75" />}
+            <svg className={`h-4 w-4 ${pendingSteps.length > 0 ? "text-amber-400" : "text-slate-400"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-xl font-semibold tabular-nums text-white">{pendingSteps.length}</p>
+            <p className={`text-[10px] uppercase tracking-wide ${pendingSteps.length > 0 ? "text-amber-400/70" : "text-slate-500"}`}>Pending</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-lg bg-blue-500/[0.08] px-4 py-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-500/15">
+            <svg className="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-xl font-semibold tabular-nums text-white">{project.interactions.length}</p>
+            <p className="text-[10px] text-blue-400/70 uppercase tracking-wide">Interactions</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-lg bg-white/[0.02] px-4 py-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-slate-500/10">
+            <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-xl font-semibold tabular-nums text-white">{project.notes.length}</p>
+            <p className="text-[10px] text-slate-500 uppercase tracking-wide">Notes</p>
+          </div>
+        </div>
+      </div>
 
       <WorkspaceClient
         projectId={project.id}
@@ -341,6 +405,6 @@ export default async function ProjectWorkspace({
           ),
         }}
       </WorkspaceClient>
-    </>
+    </div>
   );
 }

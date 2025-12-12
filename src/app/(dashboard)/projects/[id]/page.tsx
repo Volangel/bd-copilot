@@ -242,7 +242,7 @@ export default async function ProjectDetail({ params }: { params: { id: string }
   );
 
   return (
-    <>
+    <div className="space-y-6">
       <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
         This view is being replaced by the Account Workspace.{" "}
         <Link href={`/projects/${project.id}/workspace`} className="text-emerald-200 underline">
@@ -252,19 +252,85 @@ export default async function ProjectDetail({ params }: { params: { id: string }
       <PageHeader
         title="Account 360°"
         description="Project overview and actions"
+        mode="pipeline"
         actions={
-          <form action={enrichProject}>
-            <button
-              type="submit"
-              className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-200 transition hover:border-emerald-400 hover:text-white disabled:opacity-50"
-              disabled={!project.url}
-              title={project.url ? "Fetch site and re-enrich analysis" : "Add a URL to enable enrichment"}
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={`/projects/${project.id}/workspace`}
+              className="inline-flex items-center gap-2 rounded-full border border-emerald-400/60 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:border-emerald-300 hover:bg-emerald-500/20"
             >
-              Enrich from URL
-            </button>
-          </form>
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+              </svg>
+              Open Workspace
+            </Link>
+            <form action={enrichProject}>
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/10 disabled:opacity-50"
+                disabled={!project.url}
+                title={project.url ? "Fetch site and re-enrich analysis" : "Add a URL to enable enrichment"}
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Enrich
+              </button>
+            </form>
+          </div>
         }
       />
+
+      {/* Metrics row */}
+      <div className="flex flex-wrap gap-3">
+        <div className="flex items-center gap-3 rounded-lg bg-white/[0.02] px-4 py-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-slate-500/10">
+            <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-xl font-semibold tabular-nums text-white">{project.contacts.length}</p>
+            <p className="text-[10px] text-slate-500 uppercase tracking-wide">Contacts</p>
+          </div>
+        </div>
+
+        <div className={`flex items-center gap-3 rounded-lg px-4 py-2.5 ${activeSequenceCount > 0 ? "bg-emerald-500/[0.08]" : "bg-white/[0.02]"}`}>
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-500/15">
+            <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-xl font-semibold tabular-nums text-white">{activeSequenceCount}</p>
+            <p className="text-[10px] text-emerald-400/70 uppercase tracking-wide">Sequences</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-lg bg-white/[0.02] px-4 py-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-slate-500/10">
+            <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-xl font-semibold tabular-nums text-white">{project.notes.length}</p>
+            <p className="text-[10px] text-slate-500 uppercase tracking-wide">Notes</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-lg bg-blue-500/[0.08] px-4 py-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-500/15">
+            <svg className="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-xl font-semibold tabular-nums text-white">{project.interactions.length}</p>
+            <p className="text-[10px] text-blue-400/70 uppercase tracking-wide">Interactions</p>
+          </div>
+        </div>
+      </div>
 
       <AccountHero
         name={project.name}
@@ -322,6 +388,6 @@ export default async function ProjectDetail({ params }: { params: { id: string }
       </div>
 
       <AccountTabs overview={overviewTab} contacts={contactsTab} notes={notesTab} />
-    </>
+    </div>
   );
 }

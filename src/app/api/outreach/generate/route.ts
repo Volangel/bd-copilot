@@ -100,7 +100,7 @@ export async function POST(request: Request) {
     );
 
     await prisma.project.update({
-      where: { id: projectId },
+      where: { id: projectId, userId: session.user.id },
       data: { lastContactAt: new Date() },
     });
 

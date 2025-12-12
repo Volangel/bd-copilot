@@ -39,19 +39,41 @@ export default function TemplateManager({ initial }: { initial: Template[] }) {
   };
 
   const remove = async (id: string) => {
-    await fetch(`/api/templates/${id}`, { method: "DELETE" });
-    setTemplates((prev) => prev.filter((t) => t.id !== id));
-    router.refresh();
+    setError(null);
+    try {
+      const res = await fetch(`/api/templates/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || "Failed to delete template");
+        return;
+      }
+      setTemplates((prev) => prev.filter((t) => t.id !== id));
+      router.refresh();
+    } catch (err) {
+      console.error("Delete failed", err);
+      setError("Failed to delete template");
+    }
   };
 
   const update = async (id: string, next: { title: string; content: string }) => {
-    await fetch(`/api/templates/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(next),
-    });
-    setTemplates((prev) => prev.map((t) => (t.id === id ? { ...t, ...next } : t)));
-    router.refresh();
+    setError(null);
+    try {
+      const res = await fetch(`/api/templates/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(next),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || "Failed to update template");
+        return;
+      }
+      setTemplates((prev) => prev.map((t) => (t.id === id ? { ...t, ...next } : t)));
+      router.refresh();
+    } catch (err) {
+      console.error("Update failed", err);
+      setError("Failed to update template");
+    }
   };
 
   return (

@@ -40,7 +40,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     });
 
     await prisma.project.update({
-      where: { id },
+      where: { id, userId: session.user.id },
       data: { nextFollowUpAt: dueDate },
     });
 

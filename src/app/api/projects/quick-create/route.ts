@@ -19,8 +19,9 @@ const ALLOWED_ORIGINS = [
 ].filter(Boolean) as string[];
 
 const corsHeaders = (origin: string | null) => {
-  // Only allow whitelisted origins, reject unknown origins
-  const allowedOrigin = origin && ALLOWED_ORIGINS.some((allowed) => origin === allowed || origin.endsWith(`.${new URL(allowed).hostname}`))
+  // Only allow whitelisted origins with strict equality check
+  // Avoid endsWith() to prevent subdomain bypass attacks (e.g., evil.com.localhost:3000)
+  const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin)
     ? origin
     : ALLOWED_ORIGINS[0] || "null";
 

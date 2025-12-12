@@ -40,6 +40,7 @@ export default function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const gPressed = useRef(false);
+  const gTimerRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const filtered = useMemo(() => {
@@ -68,11 +69,15 @@ export default function CommandPalette() {
 
     if (key === "g") {
       gPressed.current = true;
-      const timerId = window.setTimeout(() => {
+      // Clear any existing timer before setting a new one
+      if (gTimerRef.current !== null) {
+        window.clearTimeout(gTimerRef.current);
+      }
+      gTimerRef.current = window.setTimeout(() => {
         gPressed.current = false;
+        gTimerRef.current = null;
       }, 800);
-      // Store timeout ID for potential cleanup
-      return () => clearTimeout(timerId);
+      return;
     }
 
     if (!gPressed.current) return;
@@ -83,6 +88,11 @@ export default function CommandPalette() {
       router.push(destination);
     }
     gPressed.current = false;
+    // Clear timer when shortcut is used
+    if (gTimerRef.current !== null) {
+      window.clearTimeout(gTimerRef.current);
+      gTimerRef.current = null;
+    }
   }, [router]);
 
   const openEventHandler = useCallback(() => setOpen(true), []);
@@ -98,6 +108,10 @@ export default function CommandPalette() {
       window.removeEventListener("keydown", comboHandler);
       document.removeEventListener("open-command-palette", openEventHandler);
       document.removeEventListener("close-command-palette", closeEventHandler);
+      // Clean up timer on unmount to prevent memory leak
+      if (gTimerRef.current !== null) {
+        window.clearTimeout(gTimerRef.current);
+      }
     };
   }, [handler, comboHandler, openEventHandler, closeEventHandler]);
 

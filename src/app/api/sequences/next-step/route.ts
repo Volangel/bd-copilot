@@ -4,6 +4,13 @@ import { pickNextSequenceStep } from "@/lib/sequences/nextStep";
 import { decideNewChannelPreference } from "@/lib/contacts/channelPreference";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { z } from "zod";
+
+const postSchema = z.object({
+  stepId: z.string().min(1, "stepId is required"),
+  action: z.enum(["sent", "skip", "reschedule"]).optional(),
+  scheduledAt: z.string().datetime().optional(),
+});
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -47,18 +54,14 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
-  const { stepId, action, scheduledAt } = body as {
-    stepId?: string;
-    action?: "sent" | "skip" | "reschedule";
-    scheduledAt?: string;
-  };
-  if (!stepId) return NextResponse.json({ error: "Missing stepId" }, { status: 400 });
 
-  // Validate action
-  const validActions = ["sent", "skip", "reschedule"];
-  if (action && !validActions.includes(action)) {
-    return NextResponse.json({ error: "Invalid action. Must be one of: sent, skip, reschedule" }, { status: 400 });
+  // Validate request body with Zod
+  const parseResult = postSchema.safeParse(body);
+  if (!parseResult.success) {
+    const firstError = parseResult.error.errors[0];
+    return NextResponse.json({ error: firstError?.message ?? "Invalid payload" }, { status: 400 });
   }
+  const { stepId, action, scheduledAt } = parseResult.data;
 
   try {
     const step = await prisma.sequenceStep.findFirst({
@@ -78,7 +81,7 @@ export async function POST(request: Request) {
         orderBy: { scheduledAt: "asc" },
       });
       await prisma.project.update({
-        where: { id: step.sequence.projectId },
+        where: { id: step.sequence.projectId, userId: session.user.id },
         data: { lastContactAt: new Date(), nextFollowUpAt: nextPending?.scheduledAt ?? null },
       });
       if (step.sequence.contact) {
@@ -112,7 +115,7 @@ export async function POST(request: Request) {
         orderBy: { scheduledAt: "asc" },
       });
       await prisma.project.update({
-        where: { id: step.sequence.projectId },
+        where: { id: step.sequence.projectId, userId: session.user.id },
         data: { nextFollowUpAt: nextPending?.scheduledAt ?? null },
       });
     } else if (action === "reschedule" && scheduledAt) {
@@ -131,7 +134,7 @@ export async function POST(request: Request) {
         .filter((s) => s.scheduledAt)
         .sort((a, b) => (a.scheduledAt!.getTime() - b.scheduledAt!.getTime()))[0];
       await prisma.project.update({
-        where: { id: step.sequence.projectId },
+        where: { id: step.sequence.projectId, userId: session.user.id },
         data: { nextFollowUpAt: nextFollowUp?.scheduledAt ?? null },
       });
     }

@@ -198,7 +198,7 @@ export async function extractContactCandidatesFromSnippets(params: {
       : "Skip generic text or non-people. Do not invent data not present.";
 
     const resp = await callOpenAIChat<{ contacts?: ContactCandidate[] }>({
-      model: process.env.AI_MODEL_CONTACTS || "gpt-4.1-mini",
+      model: process.env.AI_MODEL_CONTACTS || "gpt-4o-mini",
       system,
       user: [
         `Project URL: ${projectUrl}`,

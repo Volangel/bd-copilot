@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FormEvent, useState, useEffect, useRef } from "react";
+import { FormEvent, useState, useEffect, useRef, useCallback } from "react";
 
 export function NewProjectModal() {
   const router = useRouter();
@@ -18,22 +18,23 @@ export function NewProjectModal() {
     }
   }, [isOpen]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Close on Escape
-      if (e.key === "Escape" && isOpen) {
-        setIsOpen(false);
-      }
-      // Open on Cmd/Ctrl + N
-      if ((e.metaKey || e.ctrlKey) && e.key === "n") {
-        e.preventDefault();
-        setIsOpen(true);
-      }
-    };
+  // Memoize event handler to ensure proper cleanup
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Close on Escape
+    if (e.key === "Escape") {
+      setIsOpen(false);
+    }
+    // Open on Cmd/Ctrl + N
+    if ((e.metaKey || e.ctrlKey) && e.key === "n") {
+      e.preventDefault();
+      setIsOpen(true);
+    }
+  }, []);
 
+  useEffect(() => {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen]);
+  }, [handleKeyDown]);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();

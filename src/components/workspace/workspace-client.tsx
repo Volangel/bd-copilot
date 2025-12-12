@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/components/ui/utils";
 import { WorkspaceTabs } from "./workspace-tabs";
@@ -114,45 +114,46 @@ export function WorkspaceClient({
 
   const selectedContact = contacts.find((c) => c.id === selectedContactId);
 
+  // Memoize keyboard handler for proper cleanup
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Don't trigger shortcuts when typing in inputs
+    if (
+      e.target instanceof HTMLInputElement ||
+      e.target instanceof HTMLTextAreaElement ||
+      e.target instanceof HTMLSelectElement
+    ) {
+      return;
+    }
+
+    // Tab shortcuts (1, 2, 3)
+    if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (e.key === "1") {
+        e.preventDefault();
+        setActiveTab("context");
+      } else if (e.key === "2") {
+        e.preventDefault();
+        setActiveTab("contacts");
+      } else if (e.key === "3") {
+        e.preventDefault();
+        setActiveTab("activity");
+      } else if (e.key === "n" && e.shiftKey) {
+        e.preventDefault();
+        setShowContactForm(true);
+        setActiveTab("contacts");
+      }
+    }
+
+    // Escape to close modals
+    if (e.key === "Escape") {
+      setShowContactForm(false);
+    }
+  }, []);
+
   // Keyboard shortcuts
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger shortcuts when typing in inputs
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLSelectElement
-      ) {
-        return;
-      }
-
-      // Tab shortcuts (1, 2, 3)
-      if (!e.ctrlKey && !e.metaKey && !e.altKey) {
-        if (e.key === "1") {
-          e.preventDefault();
-          setActiveTab("context");
-        } else if (e.key === "2") {
-          e.preventDefault();
-          setActiveTab("contacts");
-        } else if (e.key === "3") {
-          e.preventDefault();
-          setActiveTab("activity");
-        } else if (e.key === "n" && e.shiftKey) {
-          e.preventDefault();
-          setShowContactForm(true);
-          setActiveTab("contacts");
-        }
-      }
-
-      // Escape to close modals
-      if (e.key === "Escape") {
-        setShowContactForm(false);
-      }
-    };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [handleKeyDown]);
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);

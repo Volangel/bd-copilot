@@ -2,7 +2,7 @@
 
 import { PROJECT_STATUSES } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
 export function ProjectStatusForm({
   projectId,
@@ -17,24 +17,44 @@ export function ProjectStatusForm({
   const [currentStatus, setCurrentStatus] = useState(status);
   const [followUp, setFollowUp] = useState(nextFollowUpAt ? nextFollowUpAt.split("T")[0] : "");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const update = async (payload?: { status?: string; nextFollowUpAt?: string | null; lastContactAt?: string | null }) => {
+  const update = useCallback(async (payload?: { status?: string; nextFollowUpAt?: string | null; lastContactAt?: string | null }) => {
+    if (saving) return; // Prevent concurrent requests
     setSaving(true);
-    await fetch(`/api/projects/${projectId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        status: payload?.status ?? currentStatus,
-        nextFollowUpAt: (payload?.nextFollowUpAt ?? followUp) || null,
-        lastContactAt: payload?.lastContactAt ?? undefined,
-      }),
-    });
-    setSaving(false);
-    router.refresh();
-  };
+    setError(null);
+
+    try {
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: payload?.status ?? currentStatus,
+          nextFollowUpAt: (payload?.nextFollowUpAt ?? followUp) || null,
+          lastContactAt: payload?.lastContactAt ?? undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to update project");
+      }
+
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update");
+    } finally {
+      setSaving(false);
+    }
+  }, [projectId, currentStatus, followUp, saving, router]);
 
   return (
     <div className="space-y-3 rounded-lg border border-slate-800 bg-slate-900/60 p-4">
+      {error && (
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+          {error}
+        </div>
+      )}
       <div className="space-y-1">
         <label className="text-xs text-slate-400">Status</label>
         <select

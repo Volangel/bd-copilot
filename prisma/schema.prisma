@@ -67,7 +67,7 @@ model Project {
   nextFollowUpAt DateTime?
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
-  user           User              @relation(fields: [userId], references: [id])
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   contacts       Contact[]
   outreach       OutreachMessage[]
   notes          Note[]
@@ -75,6 +75,7 @@ model Project {
   sequences      Sequence[]
   interactions   Interaction[]
 
+  @@unique([userId, url])  // Prevent duplicate projects per user
   @@index([userId])
   @@index([status])
   @@index([nextFollowUpAt])
@@ -94,9 +95,11 @@ model Contact {
   channelPreference String?
   sequence      Sequence?        @relation(name: "ContactSequence")
   createdAt     DateTime          @default(now())
-  project       Project           @relation(fields: [projectId], references: [id])
+  project       Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   outreach      OutreachMessage[]
   interactions  Interaction[]
+
+  @@index([projectId])  // Optimize contact lookups by project
 }
 
 model Sequence {
@@ -109,9 +112,9 @@ model Sequence {
   updatedAt  DateTime      @updatedAt
 
   steps      SequenceStep[]
-  contact    Contact       @relation(fields: [contactId], references: [id], name: "ContactSequence")
-  project    Project       @relation(fields: [projectId], references: [id])
-  playbook   Playbook?     @relation(fields: [playbookId], references: [id])
+  contact    Contact       @relation(fields: [contactId], references: [id], name: "ContactSequence", onDelete: Cascade)
+  project    Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  playbook   Playbook?     @relation(fields: [playbookId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([projectId])
@@ -127,7 +130,7 @@ model SequenceStep {
   scheduledAt DateTime?
   sentAt      DateTime?
 
-  sequence    Sequence @relation(fields: [sequenceId], references: [id])
+  sequence    Sequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
   interactions Interaction[]
 
   @@index([status])
@@ -142,8 +145,8 @@ model OutreachMessage {
   channel   String
   content   String
   createdAt DateTime @default(now())
-  project   Project  @relation(fields: [projectId], references: [id])
-  contact   Contact  @relation(fields: [contactId], references: [id])
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
 }
 
 model Note {
@@ -151,7 +154,7 @@ model Note {
   projectId String
   content   String
   createdAt DateTime @default(now())
-  project   Project  @relation(fields: [projectId], references: [id])
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model Template {
@@ -186,14 +189,14 @@ model Opportunity {
   projectId   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id])
-  icpProfile  ICPProfile? @relation(fields: [icpProfileId], references: [id])
-  project     Project? @relation(fields: [projectId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  icpProfile  ICPProfile? @relation(fields: [icpProfileId], references: [id], onDelete: SetNull)
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
+  @@unique([userId, url])  // Prevent duplicate opportunities per user
   @@index([userId])
   @@index([status])
   @@index([userId, status])
-  @@index([userId, url])
 }
 
 model Playbook {
@@ -231,8 +234,12 @@ model Interaction {
   occurredAt    DateTime  @default(now())
   createdAt     DateTime  @default(now())
 
-  user          User      @relation(fields: [userId], references: [id])
-  project       Project   @relation(fields: [projectId], references: [id])
-  contact       Contact?  @relation(fields: [contactId], references: [id])
-  sequenceStep  SequenceStep? @relation(fields: [sequenceStepId], references: [id])
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  contact       Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  sequenceStep  SequenceStep? @relation(fields: [sequenceStepId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([contactId])
 }

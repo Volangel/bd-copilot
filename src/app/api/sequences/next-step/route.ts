@@ -41,13 +41,24 @@ export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await request.json().catch(() => ({}));
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
   const { stepId, action, scheduledAt } = body as {
     stepId?: string;
     action?: "sent" | "skip" | "reschedule";
     scheduledAt?: string;
   };
   if (!stepId) return NextResponse.json({ error: "Missing stepId" }, { status: 400 });
+
+  // Validate action
+  const validActions = ["sent", "skip", "reschedule"];
+  if (action && !validActions.includes(action)) {
+    return NextResponse.json({ error: "Invalid action. Must be one of: sent, skip, reschedule" }, { status: 400 });
+  }
 
   try {
     const step = await prisma.sequenceStep.findFirst({

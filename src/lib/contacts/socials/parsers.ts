@@ -75,28 +75,34 @@ export function parseLinkedInUrl(input: string): ParsedSocialUrl {
   match = trimmed.match(LINKEDIN_PATTERNS.mobile);
   if (match?.[1]) {
     const slug = decodeURIComponent(match[1]).toLowerCase();
-    return {
-      platform: "linkedin",
-      handle: slug,
-      canonicalUrl: `https://www.linkedin.com/in/${slug}`,
-      isValid: true,
-      rawInput: input,
-      normalized: true,
-    };
+    // Validate against reserved slugs
+    if (!LINKEDIN_RESERVED_SLUGS.has(slug)) {
+      return {
+        platform: "linkedin",
+        handle: slug,
+        canonicalUrl: `https://www.linkedin.com/in/${slug}`,
+        isValid: true,
+        rawInput: input,
+        normalized: true,
+      };
+    }
   }
 
   // Try international pattern
   match = trimmed.match(LINKEDIN_PATTERNS.intl);
   if (match?.[2]) {
     const slug = decodeURIComponent(match[2]).toLowerCase();
-    return {
-      platform: "linkedin",
-      handle: slug,
-      canonicalUrl: `https://www.linkedin.com/in/${slug}`,
-      isValid: true,
-      rawInput: input,
-      normalized: true,
-    };
+    // Validate against reserved slugs
+    if (!LINKEDIN_RESERVED_SLUGS.has(slug)) {
+      return {
+        platform: "linkedin",
+        handle: slug,
+        canonicalUrl: `https://www.linkedin.com/in/${slug}`,
+        isValid: true,
+        rawInput: input,
+        normalized: true,
+      };
+    }
   }
 
   return {

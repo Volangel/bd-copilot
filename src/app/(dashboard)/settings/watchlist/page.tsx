@@ -30,7 +30,7 @@ async function deleteWatchlist(userId: string, id: string) {
   "use server";
   const item = await prisma.watchlistUrl.findFirst({ where: { id, userId } });
   if (!item) return;
-  await prisma.watchlistUrl.delete({ where: { id } });
+  await prisma.watchlistUrl.delete({ where: { id, userId } });
 }
 
 export default async function WatchlistPage() {

@@ -34,16 +34,23 @@ export async function GET(request: Request) {
   });
 
   const header = "name,url,icpScore,mqaScore,status,nextFollowUpAt\n";
+  // Helper to escape CSV values and prevent formula injection
+  const escapeCSV = (value: unknown): string => {
+    if (value === null || value === undefined) return "";
+    let str = String(value);
+    // Escape formula injection characters by prefixing with single quote
+    // This prevents Excel/Sheets from interpreting =, +, -, @, tab, CR as formulas
+    if (/^[=+\-@\t\r]/.test(str)) {
+      str = "'" + str;
+    }
+    // Escape double quotes and wrap in quotes
+    return `"${str.replace(/"/g, '""')}"`;
+  };
+
   const rows = projects
     .map((p) => {
       const vals = [p.name || "", p.url, p.icpScore ?? "", p.mqaScore ?? "", p.status, p.nextFollowUpAt ?? ""];
-      return vals
-        .map((v) => {
-          if (v === null) return "";
-          const str = String(v);
-          return `"${str.replace(/"/g, '""')}"`;
-        })
-        .join(",");
+      return vals.map(escapeCSV).join(",");
     })
     .join("\n");
 

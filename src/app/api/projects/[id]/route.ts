@@ -41,7 +41,7 @@ export async function PATCH(
     if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const updated = await prisma.project.update({
-      where: { id },
+      where: { id, userId: session.user.id },
       data: {
         status: status ?? project.status,
         nextFollowUpAt: nextFollowUpAt ? new Date(nextFollowUpAt) : null,

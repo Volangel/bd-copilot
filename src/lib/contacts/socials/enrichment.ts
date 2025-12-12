@@ -232,7 +232,8 @@ function extractTwitterMetadata(html: string, url: string): TwitterMetadata {
           if (item.interactionStatistic) {
             for (const stat of item.interactionStatistic) {
               if (stat.interactionType?.includes("Follow")) {
-                metadata.followersCount = parseInt(stat.userInteractionCount, 10) || null;
+                const count = parseInt(stat.userInteractionCount, 10);
+                metadata.followersCount = isNaN(count) ? null : count;
               }
             }
           }
@@ -348,7 +349,8 @@ function extractTelegramMetadata(html: string, url: string): TelegramMetadata {
   if (tgmeExtra) {
     const memberMatch = tgmeExtra.match(/(\d[\d,\s]*)\s*(?:members?|subscribers?)/i);
     if (memberMatch) {
-      metadata.memberCount = parseInt(memberMatch[1].replace(/[\s,]/g, ""), 10) || null;
+      const count = parseInt(memberMatch[1].replace(/[\s,]/g, ""), 10);
+      metadata.memberCount = isNaN(count) ? null : count;
     }
   }
 
@@ -724,7 +726,7 @@ export async function enrichContactWithAI(
       .replace("{{anchors}}", anchors || "None found");
 
     const aiResult = await callOpenAIChat<AIExtractionResult>({
-      model: process.env.AI_MODEL_ANALYZE || "gpt-4.1-mini",
+      model: process.env.AI_MODEL_ANALYZE || "gpt-4o-mini",
       system: SOCIAL_EXTRACTION_SYSTEM_PROMPT,
       user: userPrompt,
       maxTokens: 800,

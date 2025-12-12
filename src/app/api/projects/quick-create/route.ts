@@ -11,12 +11,26 @@ import { z } from "zod";
 
 const schema = z.object({ url: z.string().url() });
 
-const corsHeaders = (origin: string | null) => ({
-  "Access-Control-Allow-Origin": origin ?? "*",
-  "Access-Control-Allow-Credentials": "true",
-  "Access-Control-Allow-Methods": "POST,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-});
+// Whitelist of allowed origins for CORS
+const ALLOWED_ORIGINS = [
+  process.env.NEXT_PUBLIC_APP_URL,
+  "http://localhost:3000",
+  "https://localhost:3000",
+].filter(Boolean) as string[];
+
+const corsHeaders = (origin: string | null) => {
+  // Only allow whitelisted origins, reject unknown origins
+  const allowedOrigin = origin && ALLOWED_ORIGINS.some((allowed) => origin === allowed || origin.endsWith(`.${new URL(allowed).hostname}`))
+    ? origin
+    : ALLOWED_ORIGINS[0] || "null";
+
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Credentials": "true",
+    "Access-Control-Allow-Methods": "POST,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  };
+};
 
 export async function OPTIONS(request: NextRequest) {
   const origin = request.headers.get("origin");

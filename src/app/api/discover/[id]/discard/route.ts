@@ -16,7 +16,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
     await prisma.opportunity.update({
-      where: { id },
+      where: { id, userId: session.user.id },
       data: { status: "DISCARDED" },
     });
     return NextResponse.json({ success: true });

@@ -177,7 +177,7 @@ export async function analyzeProject(args: AnalyzeProjectArgs): Promise<ProjectA
     const system = `You are an expert Web3 business analyst. Always reply with strict JSON.`;
     const user = buildAnalyzeProjectPrompt(args);
     const result = await callOpenAIChat<ProjectAnalysisResult>({
-      model: process.env.AI_MODEL_ANALYZE || "gpt-4.1-mini",
+      model: process.env.AI_MODEL_ANALYZE || "gpt-4o-mini",
       system,
       user,
       maxTokens: 900,
@@ -230,7 +230,7 @@ export async function scoreProject(args: ScoreProjectArgs): Promise<ScoreResult>
     const system = `You score ICP fit. Reply with JSON only.`;
     const user = buildScoreProjectPrompt(args);
     const result = await callOpenAIChat<ScoreResult>({
-      model: process.env.AI_MODEL_SCORE || "gpt-4.1-mini",
+      model: process.env.AI_MODEL_SCORE || "gpt-4o-mini",
       system,
       user,
       maxTokens: 400,
@@ -263,7 +263,7 @@ export async function generateOutreach(args: GenerateOutreachArgs): Promise<Gene
     const system = `You are a senior Web3 BD rep. Generate concise outreach for each channel. Reply with JSON only.`;
     const user = buildGenerateOutreachPrompt(args);
     const result = await callOpenAIChat<GenerateOutreachResult>({
-      model: process.env.AI_MODEL_OUTREACH || "gpt-4.1-mini",
+      model: process.env.AI_MODEL_OUTREACH || "gpt-4o-mini",
       system,
       user,
       maxTokens: 900,
@@ -293,7 +293,7 @@ export async function generateSequenceSteps(args: GenerateSequenceStepsArgs): Pr
     const system = `You design BD sequences. Reply with JSON only.`;
     const user = buildGenerateSequencePrompt(args);
     const result = await callOpenAIChat<GenerateSequenceStepsResult>({
-      model: process.env.AI_MODEL_SEQUENCE || "gpt-4.1-mini",
+      model: process.env.AI_MODEL_SEQUENCE || "gpt-4o-mini",
       system,
       user,
       maxTokens: 700,

@@ -27,7 +27,7 @@ export async function generateAccountPlaybookDraft(args: {
       "You are a senior Web3 BD strategist. Design account-level playbooks for a BD rep. Return ONLY valid JSON. No markdown, no backticks.";
     const user = buildPrompt({ analysis, icpProfile, representingProject });
     const raw = await callOpenAIChat<AccountPlaybookDraft>({
-      model: process.env.AI_MODEL_ANALYZE || "gpt-4.1-mini",
+      model: process.env.AI_MODEL_ANALYZE || "gpt-4o-mini",
       system,
       user,
       maxTokens: 700,

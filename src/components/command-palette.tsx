@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 type Command = { label: string; action: string; shortcut?: string };
@@ -50,43 +50,45 @@ export default function CommandPalette() {
 
   const featured = useMemo(() => commands.filter((cmd) => cmd.shortcut), []);
 
+  // Memoize event handlers for proper cleanup and to avoid memory leaks
+  const handler = useCallback((e: KeyboardEvent) => {
+    const meta = e.metaKey || e.ctrlKey;
+    if (meta && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      setOpen((prev) => !prev);
+    }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      setOpen(false);
+    }
+  }, []);
+
+  const comboHandler = useCallback((e: KeyboardEvent) => {
+    const key = e.key.toLowerCase();
+
+    if (key === "g") {
+      gPressed.current = true;
+      const timerId = window.setTimeout(() => {
+        gPressed.current = false;
+      }, 800);
+      // Store timeout ID for potential cleanup
+      return () => clearTimeout(timerId);
+    }
+
+    if (!gPressed.current) return;
+
+    const destination = goShortcuts[key];
+    if (destination) {
+      e.preventDefault();
+      router.push(destination);
+    }
+    gPressed.current = false;
+  }, [router]);
+
+  const openEventHandler = useCallback(() => setOpen(true), []);
+  const closeEventHandler = useCallback(() => setOpen(false), []);
+
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const meta = e.metaKey || e.ctrlKey;
-      if (meta && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setOpen((prev) => !prev);
-      }
-      if (open && e.key === "Escape") {
-        e.preventDefault();
-        setOpen(false);
-      }
-    };
-
-    const comboHandler = (e: KeyboardEvent) => {
-      const key = e.key.toLowerCase();
-
-      if (key === "g") {
-        gPressed.current = true;
-        window.setTimeout(() => {
-          gPressed.current = false;
-        }, 800);
-        return;
-      }
-
-      if (!gPressed.current) return;
-
-      const destination = goShortcuts[key];
-      if (destination) {
-        e.preventDefault();
-        router.push(destination);
-      }
-      gPressed.current = false;
-    };
-
-    const openEventHandler = () => setOpen(true);
-    const closeEventHandler = () => setOpen(false);
-
     window.addEventListener("keydown", handler);
     window.addEventListener("keydown", comboHandler);
     document.addEventListener("open-command-palette", openEventHandler);
@@ -97,7 +99,7 @@ export default function CommandPalette() {
       document.removeEventListener("open-command-palette", openEventHandler);
       document.removeEventListener("close-command-palette", closeEventHandler);
     };
-  }, [open, router]);
+  }, [handler, comboHandler, openEventHandler, closeEventHandler]);
 
   const activate = (action: string) => {
     router.push(action);

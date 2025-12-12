@@ -127,9 +127,15 @@ export function enrichSnippetsWithSocials(snippets: PersonSnippet[]): PersonSnip
     s.anchors.forEach((a) => {
       const href = a.href || "";
       if (/linkedin\.com\/in\//i.test(href)) socials.linkedin = href;
-      if (/twitter\.com|x\.com/i.test(href)) socials.twitter = `@${href.split("/").pop()}`;
+      if (/twitter\.com|x\.com/i.test(href)) {
+        const handle = href.split("/").pop();
+        if (handle) socials.twitter = `@${handle}`;
+      }
       if (href.startsWith("mailto:")) socials.email = href.replace("mailto:", "");
-      if (/t\.me\//i.test(href)) socials.telegram = `@${href.split("/").pop()}`;
+      if (/t\.me\//i.test(href)) {
+        const handle = href.split("/").pop();
+        if (handle) socials.telegram = `@${handle}`;
+      }
     });
     return {
       ...s,

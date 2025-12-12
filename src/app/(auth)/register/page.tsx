@@ -36,7 +36,12 @@ export default function RegisterPage() {
       return;
     }
 
-    await signIn("credentials", { email, password, redirect: false });
+    const signInResult = await signIn("credentials", { email, password, redirect: false });
+    if (!signInResult?.ok) {
+      setError("Registration successful but login failed. Please try logging in.");
+      setLoading(false);
+      return;
+    }
     router.push("/projects");
   };
 

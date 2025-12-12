@@ -12,5 +12,6 @@ export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
 export function formatDate(value?: string | Date | null) {
   if (!value) return "-";
   const date = typeof value === "string" ? new Date(value) : value;
+  if (isNaN(date.getTime())) return "-";
   return date.toLocaleDateString();
 }

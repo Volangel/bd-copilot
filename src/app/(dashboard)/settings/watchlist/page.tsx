@@ -38,9 +38,7 @@ export default async function WatchlistPage() {
   if (!session) redirect("/login");
   const userId = session.user.id;
 
-  const watchlist = prisma.watchlistUrl
-    ? await prisma.watchlistUrl.findMany({ where: { userId }, orderBy: { createdAt: "desc" } })
-    : [];
+  const watchlist = await prisma.watchlistUrl.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
 
   const addAction = addWatchlist.bind(null, userId);
 

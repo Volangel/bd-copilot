@@ -46,11 +46,15 @@ export async function createOpportunitiesForUrls(options: Options) {
     const url = entry.raw;
     const normalized = entry.normalized;
 
+    const urlConditions = [{ url }];
+    if (normalized && normalized !== url) {
+      urlConditions.push({ url: normalized });
+    }
     const exists = await prisma.opportunity.findFirst({
-      where: { userId, OR: [{ url }, { url: normalized }] },
+      where: { userId, OR: urlConditions },
     });
     const projectExists = await prisma.project.findFirst({
-      where: { userId, OR: [{ url }, { url: normalized }] },
+      where: { userId, OR: urlConditions },
     });
     if (exists || projectExists) continue;
 

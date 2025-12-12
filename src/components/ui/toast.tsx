@@ -7,9 +7,10 @@ export type ToastProps = { message: string; type?: "success" | "error" };
 export function Toast({ message, type = "success" }: ToastProps) {
   const [visible, setVisible] = useState(true);
   useEffect(() => {
+    setVisible(true);
     const t = setTimeout(() => setVisible(false), 2800);
     return () => clearTimeout(t);
-  }, []);
+  }, [message]);
   if (!visible) return null;
   return (
     <div

@@ -45,12 +45,16 @@ export async function createOpportunities(options: Options) {
     seen.add(urlToUse);
 
     // Check for existing opportunity OR project with this URL
+    const urlConditions = [{ url: urlRaw }];
+    if (normalized && normalized !== urlRaw) {
+      urlConditions.push({ url: normalized });
+    }
     const [existingOpportunity, existingProject] = await Promise.all([
       prisma.opportunity.findFirst({
-        where: { userId, OR: [{ url: urlRaw }, { url: normalized }] },
+        where: { userId, OR: urlConditions },
       }),
       prisma.project.findFirst({
-        where: { userId, OR: [{ url: urlRaw }, { url: normalized }] },
+        where: { userId, OR: urlConditions },
       }),
     ]);
 

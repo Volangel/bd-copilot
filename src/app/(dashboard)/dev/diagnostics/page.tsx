@@ -15,22 +15,27 @@ export default async function DiagnosticsPage() {
     prisma.opportunity.findMany({ where: { userId, status: "NEW" } }),
   ]);
 
-  const projectsMissingContacts = projects.filter((p) => p.contacts.length === 0);
-  const projectsWithSeqNoPending = projects.filter((p) =>
-    p.sequences.some((s) => s.steps.length > 0 && s.steps.every((st) => st.status !== "PENDING")),
+  type ProjectWithRelations = (typeof projects)[number];
+  type SequenceWithSteps = ProjectWithRelations["sequences"][number];
+  type StepType = SequenceWithSteps["steps"][number];
+  type OpportunityType = (typeof opportunities)[number];
+
+  const projectsMissingContacts = projects.filter((p: ProjectWithRelations) => p.contacts.length === 0);
+  const projectsWithSeqNoPending = projects.filter((p: ProjectWithRelations) =>
+    p.sequences.some((s: SequenceWithSteps) => s.steps.length > 0 && s.steps.every((st: StepType) => st.status !== "PENDING")),
   );
-  const oldOpportunities = opportunities.filter((o) => now.getTime() - o.createdAt.getTime() > 7 * 24 * 60 * 60 * 1000);
-  const overdueNoPending = projects.filter((p) => {
+  const oldOpportunities = opportunities.filter((o: OpportunityType) => now.getTime() - o.createdAt.getTime() > 7 * 24 * 60 * 60 * 1000);
+  const overdueNoPending = projects.filter((p: ProjectWithRelations) => {
     const overdueFollowUp = p.nextFollowUpAt && p.nextFollowUpAt < new Date();
-    const hasPendingStep = p.sequences.some((s) => s.steps.some((st) => st.status === "PENDING"));
+    const hasPendingStep = p.sequences.some((s: SequenceWithSteps) => s.steps.some((st: StepType) => st.status === "PENDING"));
     return overdueFollowUp && !hasPendingStep;
   });
 
-  const cards = [
-    { title: "Projects missing contacts", count: projectsMissingContacts.length, sample: projectsMissingContacts.slice(0, 5).map((p) => p.name || p.url) },
-    { title: "Projects with sequences but no pending steps", count: projectsWithSeqNoPending.length, sample: projectsWithSeqNoPending.slice(0, 5).map((p) => p.name || p.url) },
-    { title: "Old NEW opportunities (>7d)", count: oldOpportunities.length, sample: oldOpportunities.slice(0, 5).map((o) => o.title || o.url) },
-    { title: "Overdue follow-ups with no pending sequence steps", count: overdueNoPending.length, sample: overdueNoPending.slice(0, 5).map((p) => p.name || p.url) },
+  const cards: Array<{ title: string; count: number; sample: (string | null)[] }> = [
+    { title: "Projects missing contacts", count: projectsMissingContacts.length, sample: projectsMissingContacts.slice(0, 5).map((p: ProjectWithRelations) => p.name || p.url) },
+    { title: "Projects with sequences but no pending steps", count: projectsWithSeqNoPending.length, sample: projectsWithSeqNoPending.slice(0, 5).map((p: ProjectWithRelations) => p.name || p.url) },
+    { title: "Old NEW opportunities (>7d)", count: oldOpportunities.length, sample: oldOpportunities.slice(0, 5).map((o: OpportunityType) => o.title || o.url) },
+    { title: "Overdue follow-ups with no pending sequence steps", count: overdueNoPending.length, sample: overdueNoPending.slice(0, 5).map((p: ProjectWithRelations) => p.name || p.url) },
   ];
 
   return (

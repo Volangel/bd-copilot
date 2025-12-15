@@ -58,8 +58,8 @@ async function updateProjectMeta(projectId: string, formData: FormData) {
   revalidatePath(`/projects/${projectId}`);
 }
 
-export default async function ProjectDetail({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default async function ProjectDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
@@ -94,9 +94,11 @@ export default async function ProjectDetail({ params }: { params: { id: string }
 
   async function enrichProject() {
     "use server";
+    const sessionInner = await getServerSession(authOptions);
+    if (!sessionInner) return;
     const { revalidatePath } = await import("next/cache");
     try {
-      await enrichExistingProjectFromUrl({ projectId: id, userId: session.user.id });
+      await enrichExistingProjectFromUrl({ projectId: id, userId: sessionInner.user.id });
     } catch (err) {
       console.error("[enrichProject action] failed", err);
     }
@@ -105,11 +107,13 @@ export default async function ProjectDetail({ params }: { params: { id: string }
 
   const tags = parseJsonString<string[]>(project.categoryTags, []);
   const bdAngles = parseJsonString<string[]>(project.bdAngles, []);
+  type SequenceType = (typeof project.sequences)[number];
+  type StepType = SequenceType["steps"][number];
   const nextTouch =
     project.sequences
-      .flatMap((s) => s.steps)
-      .filter((st) => st.status === "PENDING" && st.scheduledAt)
-      .sort((a, b) => (a.scheduledAt?.getTime() || 0) - (b.scheduledAt?.getTime() || 0))[0]?.scheduledAt || null;
+      .flatMap((s: SequenceType) => s.steps)
+      .filter((st: StepType) => st.status === "PENDING" && st.scheduledAt)
+      .sort((a: StepType, b: StepType) => (a.scheduledAt?.getTime() || 0) - (b.scheduledAt?.getTime() || 0))[0]?.scheduledAt || null;
   const activeSequenceCount = project.sequences.length;
 
 
@@ -199,7 +203,7 @@ export default async function ProjectDetail({ params }: { params: { id: string }
             <p className="text-xs text-slate-500">{project.notes.length} entries</p>
           </div>
           <div className="space-y-3 text-sm text-slate-300">
-            {project.notes.map((note) => (
+            {project.notes.map((note: (typeof project.notes)[number]) => (
               <div key={note.id} className="rounded-lg border border-slate-800 bg-slate-950/60 p-3">
                 <p className="text-slate-200">{note.content}</p>
                 <p className="text-[11px] text-slate-500">{formatDate(note.createdAt)}</p>
@@ -219,7 +223,7 @@ export default async function ProjectDetail({ params }: { params: { id: string }
             <p className="text-xs text-slate-500">{project.interactions.length} logged</p>
           </div>
           <div className="space-y-3 text-sm text-slate-300">
-            {project.interactions.map((interaction) => (
+            {project.interactions.map((interaction: (typeof project.interactions)[number]) => (
               <div key={interaction.id} className="rounded-lg border border-slate-800 bg-slate-950/60 p-3">
                 <div className="flex items-center justify-between">
                   <p className="text-[11px] uppercase text-slate-400">

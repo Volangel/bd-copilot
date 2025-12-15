@@ -24,10 +24,10 @@ export default async function ProjectWorkspace({
   params,
   searchParams,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
   searchParams?: { [key: string]: string | string[] | undefined };
 }) {
-  const { id } = params;
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
@@ -61,18 +61,21 @@ export default async function ProjectWorkspace({
     orderBy: { createdAt: "desc" },
   });
 
-  const pendingSteps = project.sequences.flatMap((s) =>
-    s.steps.filter((st) => st.status === "PENDING").map((st) => ({ ...st, contact: s.contact, sequence: { projectId: project.id } })),
+  type SequenceType = (typeof project.sequences)[number];
+  type StepType = SequenceType["steps"][number];
+  const pendingSteps = project.sequences.flatMap((s: SequenceType) =>
+    s.steps.filter((st: StepType) => st.status === "PENDING").map((st: StepType) => ({ ...st, contact: s.contact, sequence: { projectId: project.id } })),
   );
   const stepMeta = buildStepMeta(
-    pendingSteps.map((st) => ({ scheduledAt: st.scheduledAt, sequence: { projectId: project.id } })),
+    pendingSteps.map((st: (typeof pendingSteps)[number]) => ({ scheduledAt: st.scheduledAt, sequence: { projectId: project.id } })),
     [project.id],
   );
   const nextSequenceStepDueAt = stepMeta.get(project.id)?.nextSequenceStepDueAt || null;
   const hasOverdueSequenceStep = stepMeta.get(project.id)?.hasOverdueSequenceStep || false;
+  type PendingStepType = (typeof pendingSteps)[number];
   const nextStep = pendingSteps
-    .filter((st) => st.scheduledAt)
-    .sort((a, b) => (a.scheduledAt?.getTime() || 0) - (b.scheduledAt?.getTime() || 0))[0];
+    .filter((st: PendingStepType) => st.scheduledAt)
+    .sort((a: PendingStepType, b: PendingStepType) => (a.scheduledAt?.getTime() || 0) - (b.scheduledAt?.getTime() || 0))[0];
 
   const resolvedSearch = (await searchParams) || {};
   const highlightedStepId =
@@ -84,7 +87,7 @@ export default async function ProjectWorkspace({
         ? resolvedSearch.contactId[0]
         : null;
   if (!selectedContactId && highlightedStepId) {
-    const seqWithStep = project.sequences.find((s) => s.steps.some((st) => st.id === highlightedStepId));
+    const seqWithStep = project.sequences.find((s: SequenceType) => s.steps.some((st: StepType) => st.id === highlightedStepId));
     if (seqWithStep?.contactId) {
       selectedContactId = seqWithStep.contactId;
     }
@@ -92,10 +95,12 @@ export default async function ProjectWorkspace({
   if (!selectedContactId) {
     selectedContactId = project.contacts[0]?.id || null;
   }
-  const selectedContact = project.contacts.find((c) => c.id === selectedContactId) || project.contacts[0] || null;
+  type ContactType = (typeof project.contacts)[number];
+  type ContactStepType = NonNullable<ContactType["sequence"]>["steps"][number];
+  const selectedContact = project.contacts.find((c: ContactType) => c.id === selectedContactId) || project.contacts[0] || null;
 
   // Transform contacts for client component
-  const contactsForClient = project.contacts.map((c) => ({
+  const contactsForClient = project.contacts.map((c: ContactType) => ({
     id: c.id,
     name: c.name,
     role: c.role,
@@ -107,7 +112,7 @@ export default async function ProjectWorkspace({
     channelPreference: c.channelPreference,
     sequence: c.sequence
       ? {
-          steps: c.sequence.steps.map((s) => ({
+          steps: c.sequence.steps.map((s: ContactStepType) => ({
             id: s.id,
             status: s.status,
             stepNumber: s.stepNumber,
@@ -336,13 +341,13 @@ export default async function ProjectWorkspace({
           sequenceBuilder: (
             <SequenceBuilder
               projectId={project.id}
-              contacts={project.contacts.map((c) => ({ id: c.id, name: c.name, role: c.role }))}
+              contacts={project.contacts.map((c: ContactType) => ({ id: c.id, name: c.name, role: c.role }))}
               playbooks={[]}
             />
           ),
           selectedContactSteps: selectedContact?.sequence?.steps.length ? (
             <StepListClient
-              steps={selectedContact.sequence.steps.map((st) => ({
+              steps={selectedContact.sequence.steps.map((st: ContactStepType) => ({
                 id: st.id,
                 stepNumber: st.stepNumber,
                 channel: st.channel,
@@ -360,7 +365,7 @@ export default async function ProjectWorkspace({
               contactId={selectedContact.id}
               contactName={selectedContact.name}
               projectName={project.name || project.url || "Project"}
-              templates={templates.map((t) => ({ id: t.id, title: t.title, content: t.content }))}
+              templates={templates.map((t: (typeof templates)[number]) => ({ id: t.id, title: t.title, content: t.content }))}
               personaLabel={
                 selectedContact.persona ||
                 (selectedContact.role &&
@@ -379,7 +384,7 @@ export default async function ProjectWorkspace({
           noteForm: <NoteForm projectId={project.id} />,
           interactions: (
             <div className="space-y-2 text-sm text-slate-200 max-h-[400px] overflow-y-auto">
-              {project.interactions.map((interaction) => (
+              {project.interactions.map((interaction: (typeof project.interactions)[number]) => (
                 <div key={interaction.id} className="rounded-lg border border-slate-800 bg-slate-950/60 p-3 hover:border-slate-700 transition-colors">
                   <div className="flex items-center justify-between">
                     <p className="text-[11px] uppercase text-slate-400">
@@ -395,7 +400,7 @@ export default async function ProjectWorkspace({
           ),
           notes: (
             <div className="space-y-2 text-sm text-slate-200 max-h-[400px] overflow-y-auto">
-              {project.notes.map((note) => (
+              {project.notes.map((note: (typeof project.notes)[number]) => (
                 <div key={note.id} className="rounded-lg border border-slate-800 bg-slate-950/60 p-3 hover:border-slate-700 transition-colors">
                   <p>{note.content}</p>
                   <p className="text-[11px] text-slate-500 mt-2">{formatDate(note.createdAt)}</p>

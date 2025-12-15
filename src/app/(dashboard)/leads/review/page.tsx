@@ -62,7 +62,7 @@ export default async function LeadReviewPage({
   }
 
   const errorMsg = resolvedSearch.error;
-  const index = ordered.findIndex((o) => o.id === opp.id);
+  const index = ordered.findIndex((o: { id: string }) => o.id === opp.id);
   const positionLabel = total > 0 && index >= 0 ? `Lead ${index + 1} of ${total}` : null;
   const tags = parseJsonString<string[]>(opp.tags, []);
   const playbooks = parseJsonString<string[]>(opp.playbookMatches, []);

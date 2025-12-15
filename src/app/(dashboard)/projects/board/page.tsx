@@ -14,24 +14,27 @@ export default async function ProjectBoardPage() {
     orderBy: { updatedAt: "desc" },
   });
 
+  type ProjectType = (typeof projects)[number];
   const pendingSteps = await prisma.sequenceStep.findMany({
-    where: { status: "PENDING", sequence: { userId: session.user.id, projectId: { in: projects.map((p) => p.id) } } },
+    where: { status: "PENDING", sequence: { userId: session.user.id, projectId: { in: projects.map((p: ProjectType) => p.id) } } },
     include: { sequence: true },
   });
+  type PendingStepType = (typeof pendingSteps)[number];
   const meta = buildStepMeta(
-    pendingSteps.map((s) => ({ scheduledAt: s.scheduledAt, sequence: { projectId: s.sequence.projectId } })),
-    projects.map((p) => p.id),
+    pendingSteps.map((s: PendingStepType) => ({ scheduledAt: s.scheduledAt, sequence: { projectId: s.sequence.projectId } })),
+    projects.map((p: ProjectType) => p.id),
   );
-  const projectsWithMeta = projects.map((p) => ({
+  const projectsWithMeta = projects.map((p: ProjectType) => ({
     ...p,
     nextSequenceStepDueAt: meta.get(p.id)?.nextSequenceStepDueAt || null,
     hasOverdueSequenceStep: meta.get(p.id)?.hasOverdueSequenceStep || false,
   }));
+  type ProjectWithMeta = (typeof projectsWithMeta)[number];
 
   const total = projects.length;
-  const hot = projects.filter((p) => (p.icpScore ?? 0) >= 80).length;
-  const noNext = projectsWithMeta.filter((p) => !p.nextSequenceStepDueAt).length;
-  const overdue = projectsWithMeta.filter((p) => p.hasOverdueSequenceStep).length;
+  const hot = projects.filter((p: ProjectType) => (p.icpScore ?? 0) >= 80).length;
+  const noNext = projectsWithMeta.filter((p: ProjectWithMeta) => !p.nextSequenceStepDueAt).length;
+  const overdue = projectsWithMeta.filter((p: ProjectWithMeta) => p.hasOverdueSequenceStep).length;
 
   return (
     <div className="min-h-screen">

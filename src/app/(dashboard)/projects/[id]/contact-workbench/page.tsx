@@ -17,7 +17,7 @@ async function autoAddContacts(projectId: string, userId: string) {
   const project = await prisma.project.findFirst({ where: { id: projectId, userId } });
   if (!project) return;
   const existing = await prisma.contact.findMany({ where: { projectId } });
-  const existingNames = new Set(existing.map((c) => (c.name || "").toLowerCase()));
+  const existingNames = new Set(existing.map((c: { name: string | null }) => (c.name || "").toLowerCase()));
   const candidates = await autoDetectContacts(project.url);
   const toCreate = candidates.filter((c) => c.name && !existingNames.has(c.name.toLowerCase()));
   if (toCreate.length === 0) return;
@@ -38,8 +38,8 @@ async function autoAddContacts(projectId: string, userId: string) {
   revalidatePath(`/projects/${projectId}/contact-workbench`);
 }
 
-export default async function ContactWorkbench({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default async function ContactWorkbench({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
   const userId = session.user.id;
@@ -150,7 +150,7 @@ export default async function ContactWorkbench({ params }: { params: { id: strin
                   </tr>
                 </TableHeader>
                 <tbody>
-                  {project.contacts.map((c) => (
+                  {project.contacts.map((c: (typeof project.contacts)[number]) => (
                     <TableRow key={c.id}>
                       <td className="px-4 py-3 text-sm text-slate-100">{c.name}</td>
                       <td className="px-4 py-3 text-sm text-slate-200">{c.role}</td>
@@ -194,8 +194,8 @@ export default async function ContactWorkbench({ params }: { params: { id: strin
             <SectionHeader title="Sequence Builder" />
             <SequenceBuilder
               projectId={id}
-              contacts={project.contacts.map((c) => ({ id: c.id, name: c.name, role: c.role }))}
-              playbooks={playbooks.map((p) => ({ id: p.id, name: p.name }))}
+              contacts={project.contacts.map((c: (typeof project.contacts)[number]) => ({ id: c.id, name: c.name, role: c.role }))}
+              playbooks={playbooks.map((p: (typeof playbooks)[number]) => ({ id: p.id, name: p.name }))}
             />
           </Card>
           <Card className="rounded-xl border border-white/10 bg-[#0F1012] px-6 py-5 shadow-lg shadow-black/20">

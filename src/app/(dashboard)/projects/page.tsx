@@ -67,8 +67,10 @@ export default async function ProjectsPage({
   const endOfToday = new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
   // Run sequence metadata queries in parallel for better performance
-  const projectIds = projects.map((p) => p.id);
-  const allProjectIds = allProjects.map((p) => p.id);
+  type ProjectType = (typeof projects)[number];
+  type AllProjectType = (typeof allProjects)[number];
+  const projectIds = projects.map((p: ProjectType) => p.id);
+  const allProjectIds = allProjects.map((p: AllProjectType) => p.id);
 
   const [projectSequenceCounts, pendingSteps, allPendingSteps] = await Promise.all([
     prisma.sequence.groupBy({
@@ -89,19 +91,21 @@ export default async function ProjectsPage({
     }),
   ]);
 
-  const sequenceMap = Object.fromEntries(projectSequenceCounts.map((g) => [g.projectId, g._count.id]));
+  type SeqCountType = (typeof projectSequenceCounts)[number];
+  type PendingStepType = (typeof pendingSteps)[number];
+  const sequenceMap = Object.fromEntries(projectSequenceCounts.map((g: SeqCountType) => [g.projectId, g._count.id]));
   const metaMap = buildStepMeta(
-    pendingSteps.map((s) => ({ scheduledAt: s.scheduledAt, sequence: { projectId: s.sequence.projectId } })),
-    projects.map((p) => p.id),
+    pendingSteps.map((s: PendingStepType) => ({ scheduledAt: s.scheduledAt, sequence: { projectId: s.sequence.projectId } })),
+    projects.map((p: ProjectType) => p.id),
   );
 
   // Build meta map for all projects (for stats)
   const allMetaMap = buildStepMeta(
-    allPendingSteps.map((s) => ({ scheduledAt: s.scheduledAt, sequence: { projectId: s.sequence.projectId } })),
+    allPendingSteps.map((s: PendingStepType) => ({ scheduledAt: s.scheduledAt, sequence: { projectId: s.sequence.projectId } })),
     allProjectIds,
   );
 
-  const projectsWithMeta = projects.map((p) => {
+  const projectsWithMeta = projects.map((p: ProjectType) => {
     const meta = metaMap.get(p.id);
     return {
       id: p.id,
@@ -118,7 +122,7 @@ export default async function ProjectsPage({
   });
 
   // Calculate stats from all projects (unfiltered)
-  const allProjectsWithMeta = allProjects.map((p) => {
+  const allProjectsWithMeta = allProjects.map((p: AllProjectType) => {
     const meta = allMetaMap.get(p.id);
     return {
       ...p,
@@ -126,22 +130,24 @@ export default async function ProjectsPage({
       hasOverdueSequenceStep: meta?.hasOverdueSequenceStep || false,
     };
   });
+  type ProjectWithMeta = (typeof projectsWithMeta)[number];
+  type AllProjectWithMeta = (typeof allProjectsWithMeta)[number];
 
-  const actionable = projectsWithMeta.filter((p) => p.status !== "WON" && p.status !== "LOST");
-  const overdue = actionable.filter((p) => p.nextSequenceStepDueAt && p.nextSequenceStepDueAt < today);
-  const dueToday = actionable.filter((p) => p.nextSequenceStepDueAt && p.nextSequenceStepDueAt >= today && p.nextSequenceStepDueAt < endOfToday);
+  const actionable = projectsWithMeta.filter((p: ProjectWithMeta) => p.status !== "WON" && p.status !== "LOST");
+  const overdue = actionable.filter((p: ProjectWithMeta) => p.nextSequenceStepDueAt && p.nextSequenceStepDueAt < today);
+  const dueToday = actionable.filter((p: ProjectWithMeta) => p.nextSequenceStepDueAt && p.nextSequenceStepDueAt >= today && p.nextSequenceStepDueAt < endOfToday);
 
   // Stats from all projects
-  const allActionable = allProjectsWithMeta.filter((p) => p.status !== "WON" && p.status !== "LOST");
-  const allOverdue = allActionable.filter((p) => p.nextSequenceStepDueAt && p.nextSequenceStepDueAt < today);
-  const allDueToday = allActionable.filter((p) => p.nextSequenceStepDueAt && p.nextSequenceStepDueAt >= today && p.nextSequenceStepDueAt < endOfToday);
-  const highIcpCount = allProjects.filter((p) => p.icpScore && p.icpScore >= 70).length;
-  const needsActionCount = allProjects.filter((p) => p.status === "NOT_CONTACTED" || p.status === "WAITING_REPLY").length;
+  const allActionable = allProjectsWithMeta.filter((p: AllProjectWithMeta) => p.status !== "WON" && p.status !== "LOST");
+  const allOverdue = allActionable.filter((p: AllProjectWithMeta) => p.nextSequenceStepDueAt && p.nextSequenceStepDueAt < today);
+  const allDueToday = allActionable.filter((p: AllProjectWithMeta) => p.nextSequenceStepDueAt && p.nextSequenceStepDueAt >= today && p.nextSequenceStepDueAt < endOfToday);
+  const highIcpCount = allProjects.filter((p: AllProjectType) => p.icpScore && p.icpScore >= 70).length;
+  const needsActionCount = allProjects.filter((p: AllProjectType) => p.status === "NOT_CONTACTED" || p.status === "WAITING_REPLY").length;
 
   const sortedProjects = sortProjectsByPriority(projectsWithMeta);
 
   // Prepare focus panel data
-  const focusOverdue = overdue.map((p) => ({
+  const focusOverdue = overdue.map((p: ProjectWithMeta) => ({
     id: p.id,
     name: p.name,
     url: p.url,
@@ -150,7 +156,7 @@ export default async function ProjectsPage({
     sequenceCount: sequenceMap[p.id] || 0,
   }));
 
-  const focusDueToday = dueToday.map((p) => ({
+  const focusDueToday = dueToday.map((p: ProjectWithMeta) => ({
     id: p.id,
     name: p.name,
     url: p.url,
@@ -158,9 +164,10 @@ export default async function ProjectsPage({
     nextSequenceStepDueAt: p.nextSequenceStepDueAt,
     sequenceCount: sequenceMap[p.id] || 0,
   }));
+  type SortedProjectType = (typeof sortedProjects)[number];
 
   // Prepare table data
-  const tableProjects = sortedProjects.map((p) => ({
+  const tableProjects = sortedProjects.map((p: SortedProjectType) => ({
     id: p.id,
     name: p.name,
     url: p.url,

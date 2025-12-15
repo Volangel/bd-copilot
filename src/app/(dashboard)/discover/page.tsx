@@ -92,7 +92,8 @@ export default async function DiscoverPage({
   ]);
 
   // Calculate stats
-  const statsMap = Object.fromEntries(allStats.map((s) => [s.status, s._count.id]));
+  type StatRow = (typeof allStats)[number];
+  const statsMap = Object.fromEntries(allStats.map((s: StatRow) => [s.status, s._count.id]));
   const totalOpps = Object.values(statsMap).reduce((a, b) => a + b, 0);
   const newCount = statsMap["NEW"] || 0;
   const convertedCount = statsMap["CONVERTED"] || 0;
@@ -251,7 +252,7 @@ export default async function DiscoverPage({
               className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-emerald-400 focus:outline-none"
             >
               <option value="">All sources</option>
-              {sourceTypes.map((s) => (
+              {sourceTypes.map((s: { sourceType: string }) => (
                 <option key={s.sourceType} value={s.sourceType} className="bg-slate-900">
                   {s.sourceType}
                 </option>
@@ -339,7 +340,7 @@ export default async function DiscoverPage({
       </Card>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {opportunities.map((opp) => {
+        {opportunities.map((opp: (typeof opportunities)[number]) => {
           const tags = parseJsonString<string[]>(opp.tags, []);
           const bdAngles = parseJsonString<string[]>(opp.bdAngles, []);
           return (

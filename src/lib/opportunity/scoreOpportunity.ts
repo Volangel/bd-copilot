@@ -1,6 +1,26 @@
 import { ProjectAnalysisResult } from "../ai/types";
 import { parseJsonString } from "../parsers";
-import { Playbook, ICPProfile } from "@prisma/client";
+
+// Inline types to avoid Prisma import issues
+type Playbook = {
+  id: string;
+  userId: string;
+  name: string;
+  boosts: string | null;
+  penalties: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type ICPProfile = {
+  id: string;
+  userId: string;
+  industries: string | null;
+  painPoints: string | null;
+  filters: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 type ScoreInput = {
   analysis: ProjectAnalysisResult;

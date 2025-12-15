@@ -5,7 +5,42 @@ import fetchHtml from "@/lib/scraper/fetchHtml";
 import { normalizeUrl } from "@/lib/discovery/urlUtils";
 import { extractPageTitle } from "@/lib/discovery/pageTitle";
 import { scoreOpportunity } from "@/lib/opportunity/scoreOpportunity";
-import { Opportunity, Playbook } from "@prisma/client";
+
+// Inline types to avoid Prisma import issues
+type Opportunity = {
+  id: string;
+  userId: string;
+  sourceType: string;
+  sourceLabel: string | null;
+  rawContext: string | null;
+  url: string;
+  title: string | null;
+  tags: string | null;
+  icpScore: number | null;
+  mqaScore: number | null;
+  bdAngles: string | null;
+  leadScore: number | null;
+  leadReasons: string | null;
+  signalStrength: number | null;
+  recencyScore: number | null;
+  playbookMatches: string | null;
+  icpProfileId: string | null;
+  nextReviewAt: Date | null;
+  status: string;
+  projectId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type Playbook = {
+  id: string;
+  userId: string;
+  name: string;
+  boosts: string | null;
+  penalties: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 type SourceType = "TEXT_SCAN" | "PAGE_SCAN" | "WATCHLIST";
 

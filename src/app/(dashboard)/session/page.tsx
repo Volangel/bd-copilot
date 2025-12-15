@@ -349,7 +349,10 @@ export default async function SessionPage() {
           >
             Open workspace
           </Link>
-          <SessionClient project={project} contact={contact} />
+          <SessionClient
+            project={{ id: project.id, nextFollowUpAt: project.nextFollowUpAt?.toISOString() ?? null }}
+            contact={contact}
+          />
         </Card>
       </div>
 

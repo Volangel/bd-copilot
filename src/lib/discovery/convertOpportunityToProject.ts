@@ -3,7 +3,62 @@ import { serializeJson, parseJsonString } from "@/lib/parsers";
 import { prisma } from "@/lib/prisma";
 import fetchHtml from "@/lib/scraper/fetchHtml";
 import { extractPageTitle } from "@/lib/discovery/pageTitle";
-import { Opportunity, Project } from "@prisma/client";
+
+// Inline types to avoid Prisma import issues
+type Opportunity = {
+  id: string;
+  userId: string;
+  sourceType: string;
+  sourceLabel: string | null;
+  rawContext: string | null;
+  url: string;
+  title: string | null;
+  tags: string | null;
+  icpScore: number | null;
+  mqaScore: number | null;
+  bdAngles: string | null;
+  leadScore: number | null;
+  leadReasons: string | null;
+  signalStrength: number | null;
+  recencyScore: number | null;
+  playbookMatches: string | null;
+  icpProfileId: string | null;
+  nextReviewAt: Date | null;
+  status: string;
+  projectId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type Project = {
+  id: string;
+  userId: string;
+  name: string | null;
+  url: string;
+  summary: string | null;
+  categoryTags: string | null;
+  stage: string | null;
+  targetUsers: string | null;
+  painPoints: string | null;
+  icpScore: number | null;
+  icpExplanation: string | null;
+  bdAngles: string | null;
+  mqaScore: number | null;
+  mqaReasons: string | null;
+  playbookSummary: string | null;
+  playbookPersonas: string | null;
+  playbookAngles: string | null;
+  twitter: string | null;
+  telegram: string | null;
+  discord: string | null;
+  github: string | null;
+  medium: string | null;
+  status: string;
+  lastContactAt: Date | null;
+  nextFollowUpAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 async function seedEngagement({
   project,
@@ -81,7 +136,8 @@ async function seedEngagement({
       include: { steps: true },
     });
 
-    const nextPending = sequence.steps.find((s) => s.status === "PENDING" && s.scheduledAt);
+    type SequenceStepType = (typeof sequence.steps)[number];
+    const nextPending = sequence.steps.find((s: SequenceStepType) => s.status === "PENDING" && s.scheduledAt);
     if (nextPending?.scheduledAt) {
       await prisma.project.update({
         where: { id: project.id },

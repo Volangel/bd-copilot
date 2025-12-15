@@ -2,9 +2,34 @@ import { analyzeProject, scoreProject } from "@/lib/ai/aiService";
 import { serializeJson } from "@/lib/parsers";
 import { prisma } from "@/lib/prisma";
 import fetchHtml from "@/lib/scraper/fetchHtml";
-import { Opportunity } from "@prisma/client";
 import { isHttpUrl, normalizeUrl } from "@/lib/discovery/urlUtils";
 import { extractPageTitle } from "@/lib/discovery/pageTitle";
+
+// Inline type to avoid Prisma import issues
+type Opportunity = {
+  id: string;
+  userId: string;
+  sourceType: string;
+  sourceLabel: string | null;
+  rawContext: string | null;
+  url: string;
+  title: string | null;
+  tags: string | null;
+  icpScore: number | null;
+  mqaScore: number | null;
+  bdAngles: string | null;
+  leadScore: number | null;
+  leadReasons: string | null;
+  signalStrength: number | null;
+  recencyScore: number | null;
+  playbookMatches: string | null;
+  icpProfileId: string | null;
+  nextReviewAt: Date | null;
+  status: string;
+  projectId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 type SourceType = "TEXT_SCAN" | "PAGE_SCAN";
 

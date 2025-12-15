@@ -21,7 +21,7 @@ describe("parseRepresentingProjectConfig", () => {
 describe("buildGenerateOutreachPrompt", () => {
   it("includes persona and primary angle when provided", () => {
     const prompt = buildGenerateOutreachPrompt({
-      analysis: { summary: "Sum", categoryTags: [], stage: "early", targetUsers: "", painPoints: "" },
+      analysis: { summary: "Sum", categoryTags: [], stage: "early", targetUsers: "", painPoints: "", bdAngles: [] },
       contact: { name: "Alice" },
       channels: ["email"],
       icpProfile: null,

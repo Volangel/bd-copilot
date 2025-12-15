@@ -43,6 +43,7 @@ export async function POST(request: Request) {
       stage: project.stage || "early",
       targetUsers: project.targetUsers || "",
       painPoints: project.painPoints || "",
+      bdAngles: parseJsonString<string[]>(project.bdAngles, []),
     };
 
     const userPlan = project.user.plan || "free";
@@ -52,7 +53,8 @@ export async function POST(request: Request) {
       select: { name: true, url: true },
       take: 5,
     });
-    const wonRefs = wonProjects.map((p) => p.name || p.url).filter(Boolean) as string[];
+    type WonProjectType = (typeof wonProjects)[number];
+    const wonRefs = wonProjects.map((p: WonProjectType) => p.name || p.url).filter(Boolean) as string[];
     const representingProject = representingProjectBase
       ? {
           ...representingProjectBase,
@@ -114,7 +116,7 @@ export async function POST(request: Request) {
     return NextResponse.json(createdMessages);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
+      return NextResponse.json({ error: error.issues[0].message }, { status: 400 });
     }
     console.error("[api/outreach/generate] error", error);
     return NextResponse.json({ error: "Failed to generate outreach" }, { status: 500 });

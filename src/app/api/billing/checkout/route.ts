@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${process.env.NEXTAUTH_URL}/billing?status=success`,
       cancel_url: `${process.env.NEXTAUTH_URL}/billing?status=cancelled`,
-      customer_email: session.user.email,
+      customer_email: session.user.email ?? undefined,
       metadata: {
         userId: session.user.id,
         plan,
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ url: sessionCheckout.url });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
+      return NextResponse.json({ error: error.issues[0].message }, { status: 400 });
     }
     console.error("Failed to create checkout session", error);
     return NextResponse.json({ error: "Failed to create checkout session" }, { status: 500 });

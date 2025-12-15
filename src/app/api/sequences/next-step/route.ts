@@ -21,8 +21,9 @@ export async function GET() {
       where: { status: "PENDING", sequence: { userId: session.user.id } },
       include: { sequence: { include: { project: true, contact: true } } },
     });
+    type StepType = (typeof steps)[number];
     const picked = pickNextSequenceStep(
-      steps.map((s) => ({
+      steps.map((s: StepType) => ({
         id: s.id,
         stepNumber: s.stepNumber,
         status: s.status,
@@ -36,7 +37,7 @@ export async function GET() {
       }
       return NextResponse.json({ step: null });
     }
-    const full = steps.find((s) => s.id === picked.id) || null;
+    const full = steps.find((s: StepType) => s.id === picked.id) || null;
     return NextResponse.json(full);
   } catch (err) {
     console.error("next-step GET failed", { userId: session.user.id, err });
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
   // Validate request body with Zod
   const parseResult = postSchema.safeParse(body);
   if (!parseResult.success) {
-    const firstError = parseResult.error.errors[0];
+    const firstError = parseResult.error.issues[0];
     return NextResponse.json({ error: firstError?.message ?? "Invalid payload" }, { status: 400 });
   }
   const { stepId, action, scheduledAt } = parseResult.data;
@@ -129,10 +130,11 @@ export async function POST(request: Request) {
         where: { status: "PENDING", sequence: { projectId: step.sequence.projectId, userId: session.user.id } },
         orderBy: { scheduledAt: "asc" },
       });
+      type PendingStepType = (typeof allPendingSteps)[number];
       // Find the earliest scheduled pending step
       const nextFollowUp = allPendingSteps
-        .filter((s) => s.scheduledAt)
-        .sort((a, b) => (a.scheduledAt!.getTime() - b.scheduledAt!.getTime()))[0];
+        .filter((s: PendingStepType) => s.scheduledAt)
+        .sort((a: PendingStepType, b: PendingStepType) => (a.scheduledAt!.getTime() - b.scheduledAt!.getTime()))[0];
       await prisma.project.update({
         where: { id: step.sequence.projectId, userId: session.user.id },
         data: { nextFollowUpAt: nextFollowUp?.scheduledAt ?? null },

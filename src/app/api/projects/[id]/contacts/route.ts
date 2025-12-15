@@ -38,9 +38,10 @@ export async function POST(
       },
       select: { name: true, email: true, linkedinUrl: true },
     });
+    type ExistingContactType = (typeof existing)[number];
     const dupKey = `${payload.name.toLowerCase()}-${(payload.email || "").toLowerCase()}-${(payload.linkedinUrl || "").toLowerCase()}`;
     const isDup = existing.some(
-      (c) =>
+      (c: ExistingContactType) =>
         `${(c.name || "").toLowerCase()}-${(c.email || "").toLowerCase()}-${(c.linkedinUrl || "").toLowerCase()}` === dupKey,
     );
     if (isDup) {
@@ -63,7 +64,7 @@ export async function POST(
     return NextResponse.json(contact);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const message = error.errors?.[0]?.message ?? "Invalid payload";
+      const message = error.issues?.[0]?.message ?? "Invalid payload";
       return NextResponse.json({ error: message }, { status: 400 });
     }
     console.error("[api/projects/[id]/contacts] error", error);

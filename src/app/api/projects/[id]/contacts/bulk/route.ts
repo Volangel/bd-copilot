@@ -31,11 +31,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       where: { projectId: project.id },
       select: { id: true, name: true, email: true, linkedinUrl: true },
     });
+    type ExistingContactType = (typeof existing)[number];
+    type ContactInputType = (typeof contacts)[number];
     const seen = new Set(
-      existing.map((c) => `${(c.name || "").toLowerCase()}-${(c.email || "").toLowerCase()}-${(c.linkedinUrl || "").toLowerCase()}`),
+      existing.map((c: ExistingContactType) => `${(c.name || "").toLowerCase()}-${(c.email || "").toLowerCase()}-${(c.linkedinUrl || "").toLowerCase()}`),
     );
 
-    const toCreate = contacts.filter((c) => {
+    const toCreate = contacts.filter((c: ContactInputType) => {
       const key = `${c.name.toLowerCase()}-${(c.email || "").toLowerCase()}-${(c.linkedinUrl || "").toLowerCase()}`;
       if (seen.has(key)) return false;
       seen.add(key);
@@ -48,7 +50,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     // Use allSettled to handle partial failures gracefully
     const results = await Promise.allSettled(
-      toCreate.map((c) =>
+      toCreate.map((c: ContactInputType) =>
         prisma.contact.create({
           data: {
             projectId: project.id,
@@ -74,7 +76,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors[0]?.message ?? "Invalid payload" }, { status: 400 });
+      return NextResponse.json({ error: error.issues[0]?.message ?? "Invalid payload" }, { status: 400 });
     }
     console.error("[api/projects/[id]/contacts/bulk] error", error);
     return NextResponse.json({ error: "Failed to import contacts" }, { status: 500 });

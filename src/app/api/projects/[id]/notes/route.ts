@@ -25,7 +25,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json(note);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const message = error.errors[0]?.message ?? "Invalid payload";
+      const message = error.issues[0]?.message ?? "Invalid payload";
       return NextResponse.json({ error: message }, { status: 400 });
     }
     console.error("Failed to create note", error);

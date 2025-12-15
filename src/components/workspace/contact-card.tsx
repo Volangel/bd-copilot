@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { cn } from "@/components/ui/utils";
 import { Badge } from "@/components/ui/badge";
 
@@ -131,7 +131,7 @@ export function ContactCard({
     contact.linkedinUrl && { type: "linkedin", value: contact.linkedinUrl, Icon: LinkedInIcon, color: "hover:bg-blue-500/20 hover:text-blue-400" },
     contact.twitterHandle && { type: "twitter", value: contact.twitterHandle, Icon: TwitterIcon, color: "hover:bg-slate-100/20 hover:text-white" },
     contact.telegram && { type: "telegram", value: contact.telegram, Icon: TelegramIcon, color: "hover:bg-sky-500/20 hover:text-sky-400" },
-  ].filter(Boolean) as Array<{ type: string; value: string; Icon: () => JSX.Element; color: string }>;
+  ].filter(Boolean) as Array<{ type: string; value: string; Icon: () => React.JSX.Element; color: string }>;
 
   const getInitials = (name: string) => {
     return name

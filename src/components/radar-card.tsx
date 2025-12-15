@@ -4,9 +4,34 @@ import { useTransition, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { parseJsonString } from "@/lib/parsers";
-import type { Opportunity } from "@prisma/client";
 import { Toast } from "@/components/ui/toast";
 import { Badge, TagPill } from "@/components/ui/badge";
+
+// Inline type to avoid Prisma import issues
+type Opportunity = {
+  id: string;
+  userId: string;
+  sourceType: string;
+  sourceLabel: string | null;
+  rawContext: string | null;
+  url: string;
+  title: string | null;
+  tags: string | null;
+  icpScore: number | null;
+  mqaScore: number | null;
+  bdAngles: string | null;
+  leadScore: number | null;
+  leadReasons: string | null;
+  signalStrength: number | null;
+  recencyScore: number | null;
+  playbookMatches: string | null;
+  icpProfileId: string | null;
+  nextReviewAt: Date | null;
+  status: string;
+  projectId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 type Props = {
   opp: Opportunity;

@@ -63,7 +63,8 @@ export async function POST(request: Request) {
     select: { name: true, url: true },
     take: 5,
   });
-  const wonRefs = wonProjects.map((p) => p.name || p.url).filter(Boolean) as string[];
+  type WonProjectType = (typeof wonProjects)[number];
+  const wonRefs = wonProjects.map((p: WonProjectType) => p.name || p.url).filter(Boolean) as string[];
   const representingProject = representingProjectBase
     ? {
         ...representingProjectBase,
@@ -96,7 +97,7 @@ export async function POST(request: Request) {
       scoring = mockScoreProject({ analysis, icpProfile: icp ?? null, userPlan, representingProject });
     }
 
-    let socials = { twitter: null, telegram: null, discord: null, github: null, medium: null };
+    let socials: { twitter?: string; telegram?: string; discord?: string; github?: string; medium?: string } = {};
     try {
       socials = fetchMetadata(url, htmlResult.html);
     } catch (err) {
@@ -129,7 +130,7 @@ export async function POST(request: Request) {
     return NextResponse.json(project);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
+      return NextResponse.json({ error: error.issues[0].message }, { status: 400 });
     }
     console.error("[api/projects] error", error);
     return NextResponse.json({ error: "Failed to create project" }, { status: 500 });

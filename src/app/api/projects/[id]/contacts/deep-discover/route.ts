@@ -41,7 +41,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
       linkedinUrl: c.linkedinUrl || null,
       twitterHandle: c.twitterHandle || null,
       telegram: c.telegram || null,
-      email: c.email || null,
+      email: null,
       sourceUrl: project.url,
       tags: [],
       sourceType: "heuristic" as const,

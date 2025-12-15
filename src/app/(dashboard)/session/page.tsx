@@ -30,9 +30,10 @@ export default async function SessionPage() {
     prisma.sequence.count({ where: { userId: session.user.id, status: "ACTIVE" } }),
   ]);
 
-  const overdueSteps = pendingSteps.filter((s) => s.scheduledAt && s.scheduledAt < today);
+  type PendingStepType = (typeof pendingSteps)[number];
+  const overdueSteps = pendingSteps.filter((s: PendingStepType) => s.scheduledAt && s.scheduledAt < today);
   const dueTodaySteps = pendingSteps.filter(
-    (s) => s.scheduledAt && s.scheduledAt >= today && s.scheduledAt < new Date(today.getTime() + 24 * 60 * 60 * 1000)
+    (s: PendingStepType) => s.scheduledAt && s.scheduledAt >= today && s.scheduledAt < new Date(today.getTime() + 24 * 60 * 60 * 1000)
   );
 
   const candidate = await getNextContact(session.user.id);
@@ -149,9 +150,12 @@ export default async function SessionPage() {
     }),
   ]);
 
+  type SequenceStepType = NonNullable<typeof sequence>["steps"][number];
+  type InteractionType = (typeof interactions)[number];
+  type NoteType = (typeof notes)[number];
   const upcomingSteps = (sequence?.steps || [])
-    .filter((s) => s.status !== "SENT")
-    .sort((a, b) => {
+    .filter((s: SequenceStepType) => s.status !== "SENT")
+    .sort((a: SequenceStepType, b: SequenceStepType) => {
       if (a.scheduledAt && b.scheduledAt) return a.scheduledAt.getTime() - b.scheduledAt.getTime();
       if (a.scheduledAt) return -1;
       if (b.scheduledAt) return 1;
@@ -285,7 +289,7 @@ export default async function SessionPage() {
               {project.nextFollowUpAt ? <Badge variant="info">Next {formatDate(project.nextFollowUpAt)}</Badge> : null}
             </div>
             <div className="flex flex-wrap gap-2 text-xs text-slate-200">
-              {tags.map((tag) => (
+              {tags.map((tag: string) => (
                 <span key={tag} className="rounded-full bg-emerald-500/20 px-3 py-1 text-emerald-200">
                   {tag}
                 </span>
@@ -356,7 +360,7 @@ export default async function SessionPage() {
             <p className="text-sm text-slate-400">No scheduled steps remain for this contact.</p>
           ) : (
             <div className="divide-y divide-white/5">{
-              upcomingSteps.map((step) => (
+              upcomingSteps.map((step: SequenceStepType) => (
                 <div key={step.id} className="py-3 flex flex-wrap items-center justify-between gap-3">
                   <div className="space-y-1">
                     <p className="text-xs uppercase text-slate-500">Step {step.stepNumber}</p>
@@ -384,7 +388,7 @@ export default async function SessionPage() {
                 <p className="text-sm text-slate-400">No touchpoints logged yet.</p>
               ) : (
                 <ul className="space-y-2 text-sm text-slate-200">
-                  {interactions.map((i) => (
+                  {interactions.map((i: InteractionType) => (
                     <li key={i.id} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2">
                       <div className="flex items-center justify-between text-xs text-slate-400">
                         <span className="uppercase">{i.channel}</span>
@@ -403,7 +407,7 @@ export default async function SessionPage() {
                 <p className="text-sm text-slate-400">No notes yet.</p>
               ) : (
                 <ul className="space-y-2 text-sm text-slate-200">
-                  {notes.map((note) => (
+                  {notes.map((note: NoteType) => (
                     <li key={note.id} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2">
                       <div className="flex items-center justify-between text-xs text-slate-400">
                         <span>Note</span>

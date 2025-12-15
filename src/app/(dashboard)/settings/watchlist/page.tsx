@@ -39,11 +39,12 @@ export default async function WatchlistPage() {
   const userId = session.user.id;
 
   const watchlist = await prisma.watchlistUrl.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
+  type WatchlistItemType = (typeof watchlist)[number];
 
   const addAction = addWatchlist.bind(null, userId);
 
   // Group by domain for stats
-  const domains = new Set(watchlist.map((item) => {
+  const domains = new Set(watchlist.map((item: WatchlistItemType) => {
     try {
       return new URL(item.url).hostname;
     } catch {
@@ -202,7 +203,7 @@ export default async function WatchlistPage() {
               </tr>
             </TableHeader>
             <tbody>
-              {watchlist.map((item) => {
+              {watchlist.map((item: WatchlistItemType) => {
                 const deleteAction = deleteWatchlist.bind(null, userId, item.id);
                 return (
                   <TableRow key={item.id} className="hover:bg-white/5">

@@ -51,8 +51,9 @@ export async function GET(request: Request) {
     return `"${str.replace(/"/g, '""')}"`;
   };
 
+  type ProjectType = (typeof projects)[number];
   const rows = projects
-    .map((p) => {
+    .map((p: ProjectType) => {
       const vals = [p.name || "", p.url, p.icpScore ?? "", p.mqaScore ?? "", p.status, p.nextFollowUpAt ?? ""];
       return vals.map(escapeCSV).join(",");
     })

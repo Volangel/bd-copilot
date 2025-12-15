@@ -24,7 +24,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ candidates: contacts });
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.errors[0]?.message ?? "Invalid payload" }, { status: 400 });
+      return NextResponse.json({ error: err.issues[0]?.message ?? "Invalid payload" }, { status: 400 });
     }
     console.error("API_ERROR: /api/projects/[id]/auto-detect-contacts", {
       userId: session.user.id,

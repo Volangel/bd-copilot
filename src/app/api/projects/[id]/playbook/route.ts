@@ -30,7 +30,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       painPoints: project.painPoints,
       bdAngles: parseJsonString<string[]>(project.bdAngles, []),
       mqaScore: project.mqaScore,
-      mqaReasons: parseJsonString<string[]>(project.mqaReasons, []),
+      mqaReasons: project.mqaReasons ?? null,
     };
 
     const playbook = await generateAccountPlaybookDraft({
@@ -39,7 +39,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
         ? {
             industries: icpProfile.industries,
             painPoints: icpProfile.painPoints,
-            filters: parseJsonString<Record<string, unknown>>(icpProfile.filters, null),
+            filters: parseJsonString<Record<string, unknown>>(icpProfile.filters, {}),
           }
         : null,
       representingProject: user ? parseRepresentingProjectConfig(user.representingProject) : null,

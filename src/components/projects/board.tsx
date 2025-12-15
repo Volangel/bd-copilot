@@ -2,10 +2,40 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Project } from "@prisma/client";
 import { PROJECT_STATUSES, formatDate } from "@/lib/utils";
 import { Toast } from "@/components/ui/toast";
 import { parseJsonString } from "@/lib/parsers";
+
+// Inline type to avoid Prisma import issues
+type Project = {
+  id: string;
+  userId: string;
+  name: string | null;
+  url: string;
+  summary: string | null;
+  categoryTags: string | null;
+  stage: string | null;
+  targetUsers: string | null;
+  painPoints: string | null;
+  icpScore: number | null;
+  icpExplanation: string | null;
+  bdAngles: string | null;
+  mqaScore: number | null;
+  mqaReasons: string | null;
+  playbookSummary: string | null;
+  playbookPersonas: string | null;
+  playbookAngles: string | null;
+  twitter: string | null;
+  telegram: string | null;
+  discord: string | null;
+  github: string | null;
+  medium: string | null;
+  status: string;
+  lastContactAt: Date | null;
+  nextFollowUpAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 function StatusSelect({
   projectId,

@@ -50,7 +50,8 @@ export async function POST(request: NextRequest) {
     select: { name: true, url: true },
     take: 5,
   });
-  const wonRefs = wonProjects.map((p) => p.name || p.url).filter(Boolean) as string[];
+  type WonProjectType = (typeof wonProjects)[number];
+  const wonRefs = wonProjects.map((p: WonProjectType) => p.name || p.url).filter(Boolean) as string[];
   const representingProject = representingProjectBase
     ? {
         ...representingProjectBase,
@@ -113,7 +114,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ id: project.id }, { headers: corsHeaders(origin) });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors[0]?.message ?? "Invalid payload" }, { status: 400, headers: corsHeaders(origin) });
+      return NextResponse.json({ error: error.issues[0]?.message ?? "Invalid payload" }, { status: 400, headers: corsHeaders(origin) });
     }
     console.error("[api/projects/quick-create] error", error);
     return NextResponse.json({ error: "Failed to quick create" }, { status: 500, headers: corsHeaders(origin) });

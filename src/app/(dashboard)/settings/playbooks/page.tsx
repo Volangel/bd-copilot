@@ -50,6 +50,7 @@ export default async function PlaybooksPage() {
   const userId = session.user.id;
 
   const playbooks = await prisma.playbook.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
+  type PlaybookType = (typeof playbooks)[number];
 
   return (
     <div className="space-y-6">
@@ -104,7 +105,7 @@ export default async function PlaybooksPage() {
             </svg>
           </div>
           <div>
-            <p className="text-xl font-semibold tabular-nums text-white">{playbooks.reduce((acc, pb) => acc + parseJsonString<string[]>(pb.boosts, []).length, 0)}</p>
+            <p className="text-xl font-semibold tabular-nums text-white">{playbooks.reduce((acc: number, pb: PlaybookType) => acc + parseJsonString<string[]>(pb.boosts, []).length, 0)}</p>
             <p className="text-[10px] text-emerald-400/70 uppercase tracking-wide">Boost keywords</p>
           </div>
         </div>
@@ -116,7 +117,7 @@ export default async function PlaybooksPage() {
             </svg>
           </div>
           <div>
-            <p className="text-xl font-semibold tabular-nums text-white">{playbooks.reduce((acc, pb) => acc + parseJsonString<string[]>(pb.penalties, []).length, 0)}</p>
+            <p className="text-xl font-semibold tabular-nums text-white">{playbooks.reduce((acc: number, pb: PlaybookType) => acc + parseJsonString<string[]>(pb.penalties, []).length, 0)}</p>
             <p className="text-[10px] text-red-400/70 uppercase tracking-wide">Penalty keywords</p>
           </div>
         </div>
@@ -195,7 +196,7 @@ export default async function PlaybooksPage() {
               </tr>
             </TableHeader>
             <tbody>
-              {playbooks.map((pb) => {
+              {playbooks.map((pb: PlaybookType) => {
                 const boosts = parseJsonString<string[]>(pb.boosts, []);
                 const penalties = parseJsonString<string[]>(pb.penalties, []);
                 return (
@@ -203,12 +204,12 @@ export default async function PlaybooksPage() {
                     <td className="px-4 py-3 text-sm font-semibold text-white">{pb.name}</td>
                     <td className="px-4 py-3 text-sm text-slate-200">
                       <div className="flex flex-wrap gap-1">
-                        {boosts.length ? boosts.map((b) => <Badge key={b} variant="success">{b}</Badge>) : <span className="text-slate-500">—</span>}
+                        {boosts.length ? boosts.map((b: string) => <Badge key={b} variant="success">{b}</Badge>) : <span className="text-slate-500">—</span>}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-200">
                       <div className="flex flex-wrap gap-1">
-                        {penalties.length ? penalties.map((p) => <Badge key={p} variant="danger">{p}</Badge>) : <span className="text-slate-500">—</span>}
+                        {penalties.length ? penalties.map((p: string) => <Badge key={p} variant="danger">{p}</Badge>) : <span className="text-slate-500">—</span>}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right">

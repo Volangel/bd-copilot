@@ -20,7 +20,8 @@ export async function POST(request: Request) {
     select: { name: true, url: true },
     take: 5,
   });
-  const wonRefs = wonProjects.map((p) => p.name || p.url).filter(Boolean) as string[];
+  type WonProjectType = (typeof wonProjects)[number];
+  const wonRefs = wonProjects.map((p: WonProjectType) => p.name || p.url).filter(Boolean) as string[];
   const representingProject = representingProjectBase
     ? {
         ...representingProjectBase,

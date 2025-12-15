@@ -21,7 +21,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json(updated);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors[0]?.message ?? "Invalid payload" }, { status: 400 });
+      return NextResponse.json({ error: error.issues[0]?.message ?? "Invalid payload" }, { status: 400 });
     }
     console.error("Failed to update template", error);
     return NextResponse.json({ error: "Failed to update template" }, { status: 500 });

@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     return NextResponse.json(parsed);
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.errors[0]?.message ?? "Invalid payload" }, { status: 400 });
+      return NextResponse.json({ error: err.issues[0]?.message ?? "Invalid payload" }, { status: 400 });
     }
     console.error("parse-social failed", { err });
     return NextResponse.json({ error: "Failed to parse social" }, { status: 500 });

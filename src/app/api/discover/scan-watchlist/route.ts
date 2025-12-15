@@ -102,9 +102,10 @@ export async function POST() {
 
   try {
     const watchlist = await prisma.watchlistUrl.findMany({ where: { userId: session.user.id } });
+    type WatchlistItemType = (typeof watchlist)[number];
     // Process watchlist items in parallel for better performance
     const results = await Promise.allSettled(
-      watchlist.map(async (item) => {
+      watchlist.map(async (item: WatchlistItemType) => {
         const candidates = await processWatchlistUrl(item.url);
         return createOpportunities({
           userId: session.user.id,

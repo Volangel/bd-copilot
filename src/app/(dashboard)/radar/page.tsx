@@ -38,7 +38,8 @@ export default async function RadarPage() {
   const now = new Date();
   const reviewable = await getReviewableOpportunities(session.user.id, now);
   const allOpps = await getAllOpportunities(session.user.id);
-  const sorted = [...reviewable].sort((a, b) => {
+  type OppType = (typeof allOpps)[number];
+  const sorted = [...reviewable].sort((a: OppType, b: OppType) => {
     const leadDiff = (b.leadScore ?? -1) - (a.leadScore ?? -1);
     if (leadDiff !== 0) return leadDiff;
     const icpDiff = (b.icpScore ?? -1) - (a.icpScore ?? -1);
@@ -166,7 +167,7 @@ export default async function RadarPage() {
           </Link>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          {topPicks.map((opp) => (
+          {topPicks.map((opp: OppType) => (
             <RadarCard key={opp.id} opp={opp} />
           ))}
           {topPicks.length === 0 ? (
@@ -194,7 +195,7 @@ export default async function RadarPage() {
             </tr>
           </TableHeader>
           <tbody>
-            {allOpps.map((opp) => {
+            {allOpps.map((opp: OppType) => {
               const tags = parseJsonString<string[]>(opp.tags, []);
               const status = opp.status || "NEW";
               return (

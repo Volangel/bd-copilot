@@ -20,6 +20,7 @@ const settingsSchema = z.object({
       idealCustomer: z.string().optional().nullable(),
       keyDifferentiators: z.string().optional().nullable(),
       toneGuidelines: z.string().optional().nullable(),
+      referenceAccounts: z.array(z.string()).optional().nullable(),
     })
     .optional()
     .nullable(),
@@ -71,7 +72,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
+      return NextResponse.json({ error: error.issues[0].message }, { status: 400 });
     }
     console.error("Failed to update settings", error);
     return NextResponse.json({ error: "Failed to update settings" }, { status: 500 });

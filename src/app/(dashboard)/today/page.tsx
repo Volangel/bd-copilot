@@ -41,9 +41,13 @@ export default async function TodayPage() {
     prisma.project.findFirst({ where: { userId }, orderBy: { createdAt: "asc" } }),
   ]);
 
+  type StepType = (typeof steps)[number];
+  type OpportunityType = (typeof opportunities)[number];
+  type ProjectType = (typeof projects)[number];
+
   const stepMeta = new Map<string, { next: Date | null; overdue: boolean }>();
-  projects.forEach((p) => stepMeta.set(p.id, { next: null, overdue: false }));
-  steps.forEach((s) => {
+  projects.forEach((p: ProjectType) => stepMeta.set(p.id, { next: null, overdue: false }));
+  steps.forEach((s: StepType) => {
     const pid = s.sequence.projectId;
     const entry = stepMeta.get(pid);
     if (!entry) return;
@@ -52,17 +56,17 @@ export default async function TodayPage() {
     if (due && due < nowDate) entry.overdue = true;
   });
 
-  const overdueSteps = steps.filter((s) => s.scheduledAt && s.scheduledAt < nowDate);
-  const uniqueOverdueProjects = new Set(overdueSteps.map((s) => s.sequence.projectId));
+  const overdueSteps = steps.filter((s: StepType) => s.scheduledAt && s.scheduledAt < nowDate);
+  const uniqueOverdueProjects = new Set(overdueSteps.map((s: StepType) => s.sequence.projectId));
   const topOverdue = overdueSteps.slice(0, 5);
 
   const upcoming = steps
-    .filter((s) => s.scheduledAt && s.scheduledAt >= nowDate && s.scheduledAt.getTime() - nowDate.getTime() <= 7 * 24 * 60 * 60 * 1000)
-    .sort((a, b) => (a.scheduledAt?.getTime() || 0) - (b.scheduledAt?.getTime() || 0))
+    .filter((s: StepType) => s.scheduledAt && s.scheduledAt >= nowDate && s.scheduledAt.getTime() - nowDate.getTime() <= 7 * 24 * 60 * 60 * 1000)
+    .sort((a: StepType, b: StepType) => (a.scheduledAt?.getTime() || 0) - (b.scheduledAt?.getTime() || 0))
     .slice(0, 5);
 
   const sortedProjects = sortProjectsByPriority(
-    projects.map((p) => ({
+    projects.map((p: ProjectType) => ({
       id: p.id,
       name: p.name,
       url: p.url,
@@ -104,10 +108,11 @@ export default async function TodayPage() {
       preview: "Wire a contact to a sequence so follow-ups are scheduled automatically.",
     },
   ];
-  const allOnboardingDone = onboardingSteps.every((s) => s.done);
+  type OnboardingStepType = (typeof onboardingSteps)[number];
+  const allOnboardingDone = onboardingSteps.every((s: OnboardingStepType) => s.done);
 
   const nextStep = pickNextSequenceStep(
-    steps.map((s) => ({ id: s.id, stepNumber: s.stepNumber, status: s.status, scheduledAt: s.scheduledAt })),
+    steps.map((s: StepType) => ({ id: s.id, stepNumber: s.stepNumber, status: s.status, scheduledAt: s.scheduledAt })),
     nowDate,
   );
 
@@ -161,22 +166,23 @@ export default async function TodayPage() {
         ? `/leads/review?id=${opportunities[0].id}`
         : "/today";
 
+  type QuickActionType = (typeof quickActions)[number];
   const timeline = [
-    ...topOverdue.map((s) => ({
+    ...topOverdue.map((s: StepType) => ({
       id: `overdue-${s.id}`,
       title: `${s.sequence.project.name || s.sequence.project.url} · ${s.channel}`,
       due: s.scheduledAt,
       type: "overdue" as const,
       href: "/session",
     })),
-    ...upcoming.map((s) => ({
+    ...upcoming.map((s: StepType) => ({
       id: `upcoming-${s.id}`,
       title: `${s.sequence.project.name || s.sequence.project.url} · ${s.channel}`,
       due: s.scheduledAt,
       type: "upcoming" as const,
       href: "/session",
     })),
-    ...opportunities.map((o) => ({
+    ...opportunities.map((o: OpportunityType) => ({
       id: `new-${o.id}`,
       title: o.title || o.url,
       type: "new" as const,
@@ -192,7 +198,7 @@ export default async function TodayPage() {
         mode="other"
         actions={
           <div className="flex flex-wrap gap-2">
-            {quickActions.map((action) => (
+            {quickActions.map((action: QuickActionType) => (
               <Link
                 key={action.label}
                 href={action.href}
@@ -284,7 +290,7 @@ export default async function TodayPage() {
             </div>
           ) : (
             <div className="space-y-3 text-sm">
-              {topOverdue.map((s) => (
+              {topOverdue.map((s: StepType) => (
                 <Link
                   key={s.id}
                   href="/session"
@@ -326,7 +332,7 @@ export default async function TodayPage() {
             </div>
           ) : (
             <div className="space-y-3 text-sm">
-              {upcoming.map((s) => (
+              {upcoming.map((s: StepType) => (
                 <div key={s.id} className="rounded-lg border border-white/5 bg-white/5 px-3 py-3 transition hover:border-white/15 hover:bg-white/10">
                   <p className="font-semibold text-white">{s.sequence.project.name || s.sequence.project.url}</p>
                   <p className="text-xs text-slate-400">
@@ -360,7 +366,7 @@ export default async function TodayPage() {
             </div>
           ) : (
             <div className="space-y-3 text-sm">
-              {opportunities.map((o) => (
+              {opportunities.map((o: OpportunityType) => (
                 <div key={o.id} className="rounded-lg border border-white/5 bg-white/5 px-3 py-3 transition hover:border-white/15 hover:bg-white/10">
                   <p className="font-semibold text-white">{o.title || o.url}</p>
                   <p className="text-xs text-slate-400">Lead score: {o.leadScore ?? "-"}</p>

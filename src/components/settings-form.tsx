@@ -17,6 +17,7 @@ export type SettingsPayload = {
     idealCustomer?: string | null;
     keyDifferentiators?: string | null;
     toneGuidelines?: string | null;
+    referenceAccounts?: string[] | null;
   } | null;
 };
 

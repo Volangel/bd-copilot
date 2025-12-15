@@ -54,7 +54,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json(message);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors[0]?.message ?? "Invalid payload" }, { status: 400 });
+      return NextResponse.json({ error: error.issues[0]?.message ?? "Invalid payload" }, { status: 400 });
     }
     console.error("Failed to schedule follow-up", error);
     return NextResponse.json({ error: "Failed to schedule follow-up" }, { status: 500 });

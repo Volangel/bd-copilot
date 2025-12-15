@@ -83,3 +83,9 @@ export interface SequenceStepSpec {
 export interface GenerateSequenceStepsResult {
   steps: SequenceStepSpec[];
 }
+
+export interface IcpProfileShape {
+  industries?: string | null;
+  painPoints?: string | null;
+  filters?: Record<string, unknown> | null;
+}

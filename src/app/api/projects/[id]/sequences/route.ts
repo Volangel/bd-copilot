@@ -25,7 +25,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     select: { name: true, url: true },
     take: 5,
   });
-  const wonRefs = wonProjects.map((p) => p.name || p.url).filter(Boolean) as string[];
+  type WonProjectType = (typeof wonProjects)[number];
+  const wonRefs = wonProjects.map((p: WonProjectType) => p.name || p.url).filter(Boolean) as string[];
   const representingProject = representingProjectBase
     ? {
         ...representingProjectBase,
@@ -106,7 +107,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json(sequence);
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.errors[0]?.message ?? "Invalid payload" }, { status: 400 });
+      return NextResponse.json({ error: err.issues[0]?.message ?? "Invalid payload" }, { status: 400 });
     }
     console.error("[api/projects/[id]/sequences] error", {
       userId: session.user.id,

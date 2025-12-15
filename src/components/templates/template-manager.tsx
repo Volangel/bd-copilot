@@ -2,11 +2,20 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { Template } from "@prisma/client";
 import { Card } from "@/components/ui/card";
 import { PrimaryButton, GhostButton } from "@/components/ui/buttons";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/header";
+
+// Inline type to avoid Prisma import issues
+type Template = {
+  id: string;
+  userId: string;
+  title: string;
+  content: string;
+  category?: string | null;
+  createdAt: Date;
+};
 
 export default function TemplateManager({ initial }: { initial: Template[] }) {
   const router = useRouter();

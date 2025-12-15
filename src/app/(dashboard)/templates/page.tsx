@@ -15,9 +15,10 @@ export default async function TemplatesPage() {
     where: { userId: session.user.id },
     orderBy: { createdAt: "desc" },
   });
+  type TemplateType = (typeof templates)[number];
 
   // Group templates by type for stats
-  const categories = new Set(templates.map((t) => t.category || "general"));
+  const categories = new Set(templates.map((t: TemplateType) => t.category || "general"));
 
   return (
     <div className="space-y-6">

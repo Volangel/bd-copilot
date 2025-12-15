@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SecondaryButton } from "@/components/ui/buttons";
@@ -127,7 +127,7 @@ export function ContactsTab({
                 contact.linkedinUrl && { Icon: LinkedInIcon, color: "bg-blue-500/20 text-blue-400" },
                 contact.twitterHandle && { Icon: TwitterIcon, color: "bg-slate-500/20 text-slate-300" },
                 contact.telegram && { Icon: TelegramIcon, color: "bg-sky-500/20 text-sky-400" },
-              ].filter(Boolean) as Array<{ Icon: () => JSX.Element; color: string }>;
+              ].filter(Boolean) as Array<{ Icon: () => React.JSX.Element; color: string }>;
 
               return (
                 <button
